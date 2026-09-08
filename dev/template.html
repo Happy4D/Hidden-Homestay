@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hidden Homestay — Stay Somewhere Unforgettable</title>
+<meta name="description" content="Hidden Homestay is a boutique private-room experience in Phnom Penh. Three beautifully themed rooms — Burger, Vintage and Fishing — two branches, booked by the hour.">
+<meta name="theme-color" content="#0b011a">
+<link rel="icon" type="image/jpeg" href="{{LOGO}}">
+<style>
+{{STYLES}}
+</style>
+</head>
+<body>
+
+<!-- hidden gradient defs for the success check -->
+<svg class="grad-svg" aria-hidden="true"><defs>
+  <linearGradient id="gradCircle" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#d65bd5"/><stop offset="55%" stop-color="#c63ee9"/><stop offset="100%" stop-color="#61e5e1"/>
+  </linearGradient>
+</defs></svg>
+
+<!-- ================= NAV ================= -->
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#home" aria-label="Hidden Homestay — home">
+      <img class="brand-logo" src="{{LOGO}}" alt="Hidden Homestay logo">
+      <span class="brand-text">
+        <b>Hidden<i>Homestay</i></b>
+        <span>stay cosy · stay hidden</span>
+      </span>
+    </a>
+    <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+      <a href="#home">Home</a>
+      <a href="#rooms">Rooms</a>
+      <a href="#locations">Locations</a>
+      <button class="btn btn-ghost" data-open-bookings>My Bookings</button>
+      <button class="btn btn-primary" data-book>Book Now</button>
+    </nav>
+    <button class="nav-burger" id="burger" aria-label="Open menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+<!-- ================= HERO ================= -->
+<section class="hero" id="home">
+  <div class="hero-ambient" id="heroAmbient" aria-hidden="true"></div>
+  <div class="hero-grid container">
+    <div class="hero-copy reveal in">
+      <span class="eyebrow"><span class="dot"></span> Private Room Experience</span>
+      <h1>Stay Somewhere <em>Unforgettable</em></h1>
+      <p class="hero-sub">
+        Discover themed private rooms designed for memorable moments. A boutique hideaway with
+        <b>three unique room themes</b>, <b>two peaceful branches</b> and easy <b>booking by the hour</b> —
+        pick a vibe, own the moment.
+      </p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" data-book>Book Your Stay</button>
+        <a class="btn btn-ghost btn-lg" href="#rooms">Explore Rooms ↓</a>
+      </div>
+      <div class="hero-stats">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l7-5 7 5v13M3 21h18M9 21v-6h4v6"/></svg> Two branches</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 5.6L20 11l-5.8 2.4L12 19l-2.2-5.6L4 11l5.8-2.4z"/></svg> Three themed rooms</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Book by the hour</span>
+      </div>
+    </div>
+
+    <div class="hero-showcase reveal in" data-delay="1">
+      <div class="showcase-ring" aria-hidden="true"></div>
+      <div class="showcase-wrap">
+        <div class="showcase-frame" id="showcaseFrame" aria-live="polite"></div>
+        <div class="showcase-chip" id="showcaseChip">
+          <small>Now showing</small>
+          <b id="chipName">Burger Room</b>
+          <span id="chipRate">$6.00 / hour</span>
+        </div>
+        <span class="showcase-auto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M21 3l-7.5 7.5M8 21H3v-5M3 21l7.5-7.5M16 21h5v-5M21 21l-7.5-7.5"/></svg>
+          Random tour · every 3s
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true">Scroll</div>
+</section>
+
+<!-- ================= TICKER ================= -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <div>
+      <em>Stay cosy. Stay hidden.</em><i>✦</i> Burger Room <i>✦</i> Vintage Room <i>✦</i> Fishing Room <i>✦</i> Book by the hour <i>✦</i> Two branches in Phnom Penh <i>✦</i>
+    </div>
+    <div>
+      <em>Stay cosy. Stay hidden.</em><i>✦</i> Burger Room <i>✦</i> Vintage Room <i>✦</i> Fishing Room <i>✦</i> Book by the hour <i>✦</i> Two branches in Phnom Penh <i>✦</i>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ROOMS ================= -->
+<section class="section" id="rooms">
+  <div class="container">
+    <div class="sec-head center reveal">
+      <span class="eyebrow"><span class="dot"></span> Our Themed Rooms</span>
+      <h2>Pick a vibe. <em>Own the moment.</em></h2>
+      <p>Every room is a private, self-contained hideaway — styled to its theme, spotless, and ready for your next memory. All rates are per hour.</p>
+    </div>
+    <div class="room-grid" id="roomGrid"></div>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section class="section steps-band">
+  <div class="container">
+    <div class="sec-head center reveal">
+      <span class="eyebrow"><span class="dot"></span> Effortless Booking</span>
+      <h2>Four steps to <em>your hideaway</em></h2>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-num">01</div>
+        <h3>Choose a branch</h3>
+        <p>Two peaceful locations across Phnom Penh — pick the one closest to your story.</p>
+      </div>
+      <div class="step-card reveal" data-delay="1">
+        <div class="step-num">02</div>
+        <h3>Pick your room</h3>
+        <p>Burger, Vintage or Fishing — each theme with its own personality and hourly rate.</p>
+      </div>
+      <div class="step-card reveal" data-delay="2">
+        <div class="step-num">03</div>
+        <h3>Schedule your hours</h3>
+        <p>You choose the date, start and end time. Duration and price are calculated instantly.</p>
+      </div>
+      <div class="step-card reveal" data-delay="3">
+        <div class="step-num">04</div>
+        <h3>Review &amp; pay</h3>
+        <p>Confirm your slip, accept the terms and pay securely with ABA. Simple as that.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BRANCHES ================= -->
+<section class="section" id="locations">
+  <div class="container">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><span class="dot"></span> Where To Find Us</span>
+      <h2>Two hideaways, <em>one standard</em></h2>
+      <p>Both branches keep the same promise — quiet surroundings, easy access and the full Hidden Homestay experience.</p>
+    </div>
+    <div class="branch-grid" id="branchGrid"></div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="cta-band">
+  <div class="container">
+    <div class="cta-card reveal">
+      <h2>Your next favourite room <em>is waiting.</em></h2>
+      <p>Burger, Vintage or Fishing — one hour or the whole evening. The booking takes less than two minutes.</p>
+      <button class="btn btn-primary btn-lg" data-book>Book Your Stay</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="#home">
+          <img class="brand-logo" src="{{LOGO}}" alt="Hidden Homestay logo">
+          <span class="brand-text"><b>Hidden<i>Homestay</i></b><span>stay cosy · stay hidden</span></span>
+        </a>
+        <p>A boutique private-room experience in Phnom Penh. Three themed rooms, two branches, and bookings by the hour — designed for memorable moments.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul class="footer-links">
+          <li><a href="#rooms">Our Rooms</a></li>
+          <li><a href="#locations">Our Branches</a></li>
+          <li><button data-book>Book Now</button></li>
+          <li><button data-open-bookings>My Bookings</button></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Branches</h4>
+        <ul class="footer-branches">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg><span><strong>Borey Vimean Phnom Penh</strong><br>Cheasophara, Phnom Penh</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg><span><strong>Peng Hout</strong><br>Boeung Snor, Phnom Penh</span></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul class="footer-branches">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg><span><strong>Telegram</strong><br><a href="https://t.me/hpp4d" target="_blank" rel="noopener" style="color:var(--cyan)">@hpp4d</a></span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span><strong>Book on Telegram</strong><br><a href="https://t.me/HiddenHomestayBot" target="_blank" rel="noopener" style="color:var(--cyan)">@HiddenHomestayBot</a></span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Hidden Homestay. All rights reserved.</span>
+      <span class="demo-chip">✦ Demonstration experience — frontend only</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ================= BOOKING OVERLAY ================= -->
+<div class="overlay" id="bookingOverlay" role="dialog" aria-modal="true" aria-label="Book your stay at Hidden Homestay">
+  <div class="overlay-top">
+    <button class="icon-btn" id="overlayBack" aria-label="Go back">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="overlay-brand">
+      <img src="{{LOGO}}" alt="Hidden Homestay logo">
+      <div><b>Hidden Homestay</b><span>Booking Experience</span></div>
+    </div>
+    <button class="icon-btn" id="overlayClose" aria-label="Close booking">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="stepper" id="stepper" aria-label="Booking progress">
+    <button class="step-btn" data-step="1" type="button"><span class="step-num">1</span><span class="step-label">Branch</span></button>
+    <div class="step-line"></div>
+    <button class="step-btn" data-step="2" type="button"><span class="step-num">2</span><span class="step-label">Room</span></button>
+    <div class="step-line"></div>
+    <button class="step-btn" data-step="3" type="button"><span class="step-num">3</span><span class="step-label">Schedule</span></button>
+    <div class="step-line"></div>
+    <button class="step-btn" data-step="4" type="button"><span class="step-num">4</span><span class="step-label">Review</span></button>
+  </div>
+
+  <div class="overlay-body" id="overlayBody">
+
+    <!-- STEP 1 · BRANCH -->
+    <section class="pane active" data-pane="1">
+      <div class="pane-head">
+        <h3>First — <em>where</em> will you stay?</h3>
+        <p>Choose the branch that fits your plans. Both offer the same themed rooms and the same warm welcome.</p>
+      </div>
+      <div class="pick-grid branches" id="pickBranches"></div>
+    </section>
+
+    <!-- STEP 2 · ROOM -->
+    <section class="pane" data-pane="2">
+      <div class="pane-head">
+        <h3>Now, <em>pick your theme</em></h3>
+        <p>Three rooms, three moods. Rates are per hour — you decide how long the story lasts.</p>
+      </div>
+      <div class="pick-grid rooms" id="pickRooms"></div>
+    </section>
+
+    <!-- STEP 3 · SCHEDULE -->
+    <section class="pane" data-pane="3">
+      <div class="pane-head">
+        <h3>Schedule <em>your hours</em></h3>
+        <p>Choose your date and check-in time, then decide how many hours you'd like — 1, 2, 3 or more. Whole hours only, and the check-out is always your choice.</p>
+        <div class="pane-context">
+          <span class="pill" id="schedBranchPill"></span>
+          <span class="pill" id="schedRoomPill"></span>
+        </div>
+      </div>
+      <div class="schedule-grid">
+        <div class="schedule-card">
+          <div class="field">
+            <label for="bkDate">Booking date <span class="req">✦</span></label>
+            <input type="date" id="bkDate" autocomplete="off">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="bkIn">Check-in time <span class="req">✦</span></label>
+              <input type="time" id="bkIn" step="3600" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="bkOut">Check-out time <span class="req">✦</span></label>
+              <input type="time" id="bkOut" step="3600" autocomplete="off">
+            </div>
+          </div>
+          <div class="field">
+            <label>How many hours? <span style="color:var(--muted);font-weight:500;font-size:.62rem;letter-spacing:.12em">TAP TO AUTO-FILL CHECK-OUT</span></label>
+            <div class="hour-chips" id="hourChips">
+              <button type="button" data-hours="1">1 hr</button>
+              <button type="button" data-hours="2">2 hrs</button>
+              <button type="button" data-hours="3">3 hrs</button>
+              <button type="button" data-hours="4">4 hrs</button>
+              <button type="button" data-hours="5">5 hrs</button>
+              <button type="button" data-hours="6">6 hrs</button>
+            </div>
+          </div>
+          <p class="schedule-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+            <span>Bookings are in whole hours only — 1, 2, 3 hours and so on (no 2 hrs 5 min). Tap a duration above or set your check-out manually.</span>
+          </p>
+          <ul class="checks" id="schedChecks">
+            <li data-check="date"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>A booking date is selected</li>
+            <li data-check="in"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>A check-in time is selected</li>
+            <li data-check="out"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>A check-out time is selected</li>
+            <li data-check="order"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Check-out is later than check-in</li>
+            <li data-check="whole"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Duration is whole hours (1, 2, 3…)</li>
+          </ul>
+        </div>
+
+        <aside class="summary" id="summaryPanel">
+          <div class="summary-label">Booking Summary <span class="mode-badge" id="modeBadge">Demo</span></div>
+          <div class="summary-room" id="sumRoom">—</div>
+          <div class="summary-big">
+            <span id="sumDur">—</span>
+            <small>total duration · <span id="sumHours">select times</span></small>
+          </div>
+          <div class="summary-rows">
+            <div><span>Hourly rate</span><span id="sumRate">—</span></div>
+            <div><span>Branch</span><span id="sumBranch">—</span></div>
+          </div>
+          <div class="summary-total"><span>Estimated total</span><strong id="sumTotal">—</strong></div>
+          <div class="status" id="availStatus"></div>
+          <p class="demo-note" id="schedModeNote">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 11v5"/></svg>
+            <span>Demo build — no real-time availability is checked in this version.</span>
+          </p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- STEP 4 · REVIEW -->
+    <section class="pane" data-pane="4">
+      <div class="pane-head">
+        <h3>Review &amp; <em>confirm</em></h3>
+        <p>Check your booking slip, add your details and accept the terms to unlock the ABA payment section.</p>
+      </div>
+      <div class="review-grid">
+        <div class="review-col">
+          <div id="reviewReceipt"></div>
+        </div>
+        <div class="review-col">
+          <div class="form-card">
+            <h4>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+              Your details
+            </h4>
+            <div class="field">
+              <label for="bkName">Full name <span class="req">✦</span></label>
+              <input type="text" id="bkName" placeholder="e.g. Sokha Pen" autocomplete="name">
+              <span class="field-err">Please enter your name.</span>
+            </div>
+            <div class="field">
+              <label for="bkPhone">Phone number <span class="req">✦</span></label>
+              <input type="tel" id="bkPhone" placeholder="e.g. +855 12 345 678" autocomplete="tel">
+              <span class="field-err">Please enter a contact number.</span>
+            </div>
+            <div class="field">
+              <label for="bkContact">Telegram / Email <span style="color:var(--muted);font-weight:500">(optional)</span></label>
+              <input type="text" id="bkContact" placeholder="Optional — another way to reach you">
+            </div>
+          </div>
+
+          <div class="terms-card">
+            <h4>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+              Terms &amp; Conditions
+            </h4>
+            <div class="terms-scroll">
+              <div class="terms-item"><h5><i>01</i> Payment</h5><p>Bookings are confirmed by full advance payment via KHQR — scan the code at checkout with any Cambodian banking app (ABA, ACLEDA, Wing, Bakong…). Rates are quoted in USD per hour. Please keep your payment receipt.</p></div>
+              <div class="terms-item"><h5><i>02</i> Booking Changes</h5><p>Need a different time? Reschedule at least 3 hours before your start time and we will move your booking at no charge (once per booking), subject to availability.</p></div>
+              <div class="terms-item"><h5><i>03</i> Cancellations</h5><p>Cancel more than 24 hours before your start time for a full refund. Cancellations within 24 hours are refunded at 50%. Missed bookings without notice are non-refundable.</p></div>
+              <div class="terms-item"><h5><i>04</i> Additional Hours</h5><p>Want to stay longer? Extra hours are charged at your room's hourly rate and depend on availability — just message our team before your session ends.</p></div>
+              <div class="terms-item"><h5><i>05</i> Property Damage</h5><p>Guests are responsible for the room during their booking. Any accidental damage will be assessed fairly and charged at actual repair cost.</p></div>
+              <div class="terms-item"><h5><i>06</i> Guest Responsibilities</h5><p>Please book with your real name and contact number, bring a valid ID at check-in, and respect the maximum occupancy of your room.</p></div>
+              <div class="terms-item"><h5><i>07</i> Personal Belongings</h5><p>We take great care of your things, but Hidden Homestay cannot be held liable for lost or damaged personal items. Please take valuables with you when you leave.</p></div>
+              <div class="terms-item"><h5><i>08</i> House Rules</h5><p>No smoking indoors, no loud parties, and no pets unless agreed in advance. Treat the room like your own — kindly leave it as you found it.</p></div>
+            </div>
+            <label class="agree">
+              <input type="checkbox" id="agreeChk">
+              <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+              <span class="txt">I have read and accept the <b>Terms &amp; Conditions</b> of Hidden Homestay.</span>
+            </label>
+          </div>
+
+          <div class="collapsible" id="paySection">
+            <div class="collapse-inner">
+              <div class="pay-card">
+                <h4>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM19.5 14H21M14 19.5V21M18 18h3v3h-3z"/></svg>
+                  Pay with KHQR
+                </h4>
+                <div class="pay-grid">
+                  <div class="pay-qr-wrap">
+                    <div class="pay-qr">
+                      <canvas id="khqrCanvas" width="232" height="232" aria-label="KHQR payment code with the exact amount"></canvas>
+                    </div>
+                    <div class="pay-qr-caption">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M7 9v6M10 9v6M13 9v6M16 9v6M3 12h18"/></svg>
+                      Scan with any banking app
+                    </div>
+                  </div>
+                  <div class="pay-info">
+                    <p class="pay-amount">Amount to pay · <b id="payAmount">—</b><span class="pay-date">for <span id="payDate">—</span></span></p>
+                    <div class="pay-merchant">
+                      <span>Merchant</span>
+                      <b>HIDDEN HOMESTAY · Phnom Penh</b>
+                    </div>
+                    <ol class="pay-steps">
+                      <li><i>1</i><span>Open <b>ABA</b>, <b>ACLEDA</b>, <b>Wing</b>, <b>Bakong</b> — or any Cambodian banking app.</span></li>
+                      <li><i>2</i><span>Scan this KHQR — or tap <b>Pay Now</b> below on your phone. The exact amount of <b id="payAmount2">—</b> is already included, no typing needed.</span></li>
+                      <li><i>3</i><span>Confirm the payment and keep your receipt — it locks in your booking.</span></li>
+                    </ol>
+                    <p class="pay-demo-note" id="khqrDemoNote">Demo QR — link it to your real account before going live (see the guide).</p>
+                  </div>
+                </div>
+                <a id="abaPayBtn" class="pay-app-btn" href="#" target="_blank" rel="noopener" style="display:none">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+                  <span class="txt"><b>Pay Now · <span id="abaPayAmt">$0.00</span></b><small>Opens ABA · ACLEDA · Wing · Bakong on your phone — exact amount ready, just confirm</small></span>
+                  <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 5 · SUCCESS -->
+    <section class="pane pane-success" data-pane="5">
+      <div class="success-check">
+        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29"/><path d="M20 33l8.5 8.5L44 25"/></svg>
+      </div>
+      <h3>Thank you for choosing <em>Hidden Homestay</em></h3>
+      <p>Your booking request has been submitted successfully. Our team will confirm shortly — here is your slip for review:</p>
+      <div class="success-receipt" id="successReceipt"></div>
+      <div>
+        <span class="success-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 11v5"/></svg>
+          <span id="successModeNote">Demo mode — saved only in this browser, no real payment was processed.</span>
+        </span>
+      </div>
+      <div class="success-links">
+        <button data-open-bookings>View My Bookings</button>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="overlay-actions" id="overlayActions"></div>
+</div>
+
+<!-- ================= MY BOOKINGS MODAL ================= -->
+<div class="modal" id="bookingsModal" role="dialog" aria-modal="true" aria-label="My bookings">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <h4>My Bookings</h4>
+        <p>Saved on this device · demo storage</p>
+      </div>
+      <button class="icon-btn" data-close-bookings aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="bookingsBody"></div>
+    <p class="storage-note" id="storageNote" style="padding:14px 24px 18px;margin:0"></p>
+  </div>
+</div>
+
+<!-- ================= TOAST ================= -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+{{QRLIB}}
+</script>
+<script>
+{{SCRIPT}}
+</script>
+</body>
+</html>
