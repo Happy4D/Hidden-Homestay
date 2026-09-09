@@ -704,7 +704,7 @@ function initSchedulePane() {
   if (!d.dataset.init) {
     d.dataset.init = '1';
     d.min = new Date().toLocaleDateString('en-CA');
-    [d, s, e].forEach(el => el.addEventListener('input', recalcSchedule));
+    [d, s, e].forEach(el => { el.addEventListener('input', recalcSchedule); el.addEventListener('change', recalcSchedule); });
     $$('#hourChips button').forEach(chip => {
       chip.addEventListener('click', () => {
         const h = +chip.dataset.hours;

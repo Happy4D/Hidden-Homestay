@@ -75,7 +75,7 @@ Telegram bookings, stats, filters, confirm/cancel buttons, CSV export, 15 s auto
 **plus a “Pay Now” button** that opens the guest's banking app with the amount pre-filled
 (Bakong official deeplink — cinema-style checkout).
 
-Telegram bot: `/start` `/help` `/template` `/list` `/busy` `/book` `/confirm` `/cancel` —
+Telegram bot: `/start` `/help` `/template` `/list` `/busy` `/book` `/confirm` `/cancel` + automatic 12:30 daily digest of today's guests —
 `/book` with no arguments opens a guided **button flow** (branch → room → date → time →
 hours → phone → name → review → confirm), exactly like booking on the website.
 See DEPLOYMENT.md for the full cheat sheet.

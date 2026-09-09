@@ -11,7 +11,7 @@ process.env.BOT_TOKEN = 'test-disabled';   // disables polling
 process.env.ADMIN_KEY = 'test-key-123';    // protects GET/PATCH /api/bookings
 
 const S = require('../server/server.js');
-const { createBooking, handleUpdate, store } = S;
+const { createBooking, handleUpdate, store, digestText, sendDailyDigest } = S;
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => {
@@ -181,6 +181,18 @@ const tomorrow = () => new Date(Date.now() + 86400000 + 7 * 3600000).toISOString
   await handleUpdate(upd(OWNER, 'BOOKING\nBranch: Cheasophara\nRoom: Fishing\nDate: ' + d2 + '\nCheck-in: 09:00\nHours: 2\nName: Pending One\nPhone: 012 111 222\nStatus: pending'), tg);
   const pb = (await store.all()).find(b => b.name === 'Pending One');
   ok('Status: pending override works', pb && pb.status === 'pending', pb);
+
+  /* ===== daily digest (12:30 staff summary) ===== */
+  console.log('== DAILY DIGEST ==');
+  const dList = (await store.all()).filter(b => b.date === tomorrow() && b.status !== 'cancelled');
+  const dt = digestText(dList, tomorrow());
+  ok('digest lists guests with times, names, totals', /TODAY/.test(dt) && /Sokha/.test(dt) && /HH-/.test(dt) && /Total/.test(dt), dt.slice(0, 120));
+  ok('digest empty day says no bookings', /No bookings/.test(digestText([], tomorrow())));
+  const tgD = makeTg();
+  const sent1 = await sendDailyDigest(tgD, tomorrow());
+  const dMsg = texts(tgD).pop() || '';
+  ok('digest sent to owner once', sent1 && texts(tgD).length === 1, dMsg.slice(0, 100));
+  ok('digest kv guard prevents double send', (await sendDailyDigest(tgD, tomorrow())) === false);
 
   console.log('== HTTP API (admin key enforced) ==');
   await new Promise(res => S.server.listen(0, res));

@@ -75,7 +75,7 @@ We use **GitHub** (stores your files) + **Render** (runs the server), both free.
    - **Name**: `hidden-homestay`
    - **Region**: Singapore (closest to Cambodia)
    - **Runtime**: Node (Render usually detects it from `package.json`)
-   - **Build Command**: leave empty
+   - **Build Command**: `npm install`
    - **Start Command**: `npm start`
    - **Instance Type**: Free
 8. Click **Add Environment Variable** and add **both**:
@@ -192,6 +192,7 @@ The bot can do everything from your Telegram chat:
 | You send | What happens |
 |---|---|
 | *(new website booking)* | You get an alert + ✅ Confirm / ❌ Cancel buttons |
+| *(12:30 PM daily)* | **Today's guests in one text** — every day at 12:30 (Phnom Penh) the bot sends all of today's bookings in a single forwardable message for your staff. Same-day bookings still alert instantly. |
 | `/list` | All bookings for today |
 | `/list 2026-09-15` | All bookings for that date |
 | `/busy` | Today's busy hours for every room |

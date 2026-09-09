@@ -973,6 +973,49 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+/* ---------- daily digest to the owner (12:30 Phnom Penh time) ----------
+   One forwardable text with all of TODAY's guests, sent once a day.
+   Same-day bookings also alert instantly (no waiting) via notifyOwner. */
+function phnomPenhNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Phnom_Penh', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date());
+  const get = t => { const p = parts.find(x => x.type === t); return p ? p.value : ''; };
+  return { date: get('year') + '-' + get('month') + '-' + get('day'), hour: +get('hour'), minute: +get('minute') };
+}
+
+function digestText(list, date) {
+  const head = '\u{1F4CB} TODAY\u2019S GUESTS \u2014 ' + fmtDate(date) + '\n\n';
+  if (!list.length) return head + '\u{1F4ED} No bookings for today.';
+  const lines = list.map((b, i) =>
+    (i + 1) + '. ' + fmtTime(b.checkIn) + ' \u2013 ' + fmtTime(b.checkOut) + ' \u00b7 ' + ROOMS[b.room].name + ' (' + BRANCHES[b.branch] + ')\n' +
+    '      ' + esc(b.name) + ' \u00b7 ' + esc(b.phone) + (b.contact ? ' \u00b7 ' + esc(b.contact) : '') +
+    ' \u00b7 ' + (b.status === 'confirmed' ? '\u2705' : '\u23F3') + ' ' + b.ref);
+  const total = list.reduce((sum, b) => sum + b.total, 0);
+  return head + lines.join('\n\n') + '\n\n' + list.length + ' booking(s) \u00b7 Total ' + money(total) + '\nForward this to your staff \u{1F64F}';
+}
+
+async function sendDailyDigest(tg, date) {
+  const owner = await store.getOwner();
+  if (!owner) return false;
+  if ((await store.getKv('digestDate')) === date) return false;   // once per day
+  const list = (await store.all()).filter(b => b.date === date && b.status !== 'cancelled');
+  await tg.sendMessage(owner, digestText(list, date));
+  await store.setKv('digestDate', date);
+  return true;
+}
+
+function startDailyDigest() {
+  if (!CFG.botToken || CFG.botToken.startsWith('test')) return;
+  const tg = makeTelegram(CFG.botToken);
+  setInterval(() => {
+    const now = phnomPenhNow();
+    const afterLunch = now.hour > 12 || (now.hour === 12 && now.minute >= 30);
+    if (afterLunch) sendDailyDigest(tg, now.date).catch(e => console.error('[bot] digest failed:', e.message));
+  }, 30000);
+}
+
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
@@ -982,7 +1025,8 @@ if (require.main === module) {
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));
   });
   startPolling();
+  startDailyDigest();
 }
 
 /* exported for testing */
-module.exports = { createBooking, handleUpdate, store, findConflicts, bookingText, ROOMS, BRANCHES, server };
+module.exports = { createBooking, handleUpdate, store, findConflicts, bookingText, digestText, sendDailyDigest, ROOMS, BRANCHES, server };
