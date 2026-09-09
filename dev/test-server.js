@@ -223,8 +223,13 @@ const tomorrow = () => new Date(Date.now() + 86400000 + 7 * 3600000).toISOString
           return json(k in sbKv ? [{ value: sbKv[k] }] : []);
         }
         if (rq.method === 'PUT' && u.pathname === '/rest/v1/kv') {
+        /* real PostgREST rejects PUT without a primary-key filter (PGRST105, 405) */
+        rs.writeHead(405, { 'Content-Type': 'application/json' });
+        return rs.end('{"code":"PGRST105","message":"Filters must include all and only primary key columns with eq"}');
+      }
+      if (rq.method === 'POST' && u.pathname === '/rest/v1/kv') {
         const p = JSON.parse(body);
-        if (typeof p.value !== 'string') { rs.writeHead(400, { 'Content-Type': 'application/json' }); return rs.end('{"message":"invalid input for kv.value"}'); }
+        if (typeof p.value !== 'string' || typeof p.key !== 'string') { rs.writeHead(400, { 'Content-Type': 'application/json' }); return rs.end('{"message":"invalid input for kv columns"}'); }
         sbKv[p.key] = p.value; return json([p]);
       }
         rs.writeHead(404); rs.end('{}');

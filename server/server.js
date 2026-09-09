@@ -190,7 +190,7 @@ const store = {
       return;
     }
     const r = await fetch(CFG.supabaseUrl + '/rest/v1/kv', {
-      method: 'PUT', headers: sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
+      method: 'POST', headers: sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
       body: JSON.stringify({ key: 'owner', value: String(chatId) })
     });
     if (!r.ok) console.error('[store] WARNING: supabase setOwner failed ' + r.status + ' ' + (await r.text()).slice(0, 120) + ' — did you create the kv table?');
@@ -214,7 +214,7 @@ const store = {
       return;
     }
     const r = await fetch(CFG.supabaseUrl + '/rest/v1/kv', {
-      method: 'PUT', headers: sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
+      method: 'POST', headers: sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
       body: JSON.stringify({ key: key, value: value })
     });
     if (!r.ok) console.error('[store] WARNING: supabase setKv(' + key + ') failed ' + r.status + ' ' + (await r.text()).slice(0, 120));
@@ -1038,7 +1038,7 @@ function startDailyDigest() {
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server');
+    console.log(' Hidden Homestay server  ·  BUILD v1.0.3 (kv-post-fix)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));
