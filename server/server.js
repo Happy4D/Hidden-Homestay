@@ -175,12 +175,12 @@ const store = {
     return null;
   },
   async getOwner() {
-    if (CFG.ownerChatId) return CFG.ownerChatId;
+    if (CFG.ownerChatId) return String(CFG.ownerChatId);
     if (!useSupabase) return this._readJSON().ownerChatId || '';
     const r = await fetch(CFG.supabaseUrl + '/rest/v1/kv?key=eq.owner&select=value', { headers: sbHeaders() });
     if (!r.ok) return '';
     const j = await r.json();
-    return (j[0] && j[0].value) || '';
+    return String((j[0] && j[0].value) || '');
   },
   async setOwner(chatId) {
     if (!useSupabase) {
@@ -189,10 +189,12 @@ const store = {
       this._writeJSON(d);
       return;
     }
-    await fetch(CFG.supabaseUrl + '/rest/v1/kv', {
+    const r = await fetch(CFG.supabaseUrl + '/rest/v1/kv', {
       method: 'PUT', headers: sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
-      body: JSON.stringify({ key: 'owner', value: chatId })
+      body: JSON.stringify({ key: 'owner', value: String(chatId) })
     });
+    if (!r.ok) console.error('[store] WARNING: supabase setOwner failed ' + r.status + ' ' + (await r.text()).slice(0, 120) + ' — did you create the kv table?');
+    return r.ok;
   },
   /* generic key/value storage (used for the bot's polling offset so a
      restart never re-processes old Telegram messages) */
@@ -201,7 +203,7 @@ const store = {
     const r = await fetch(CFG.supabaseUrl + '/rest/v1/kv?key=eq.' + encodeURIComponent(key) + '&select=value', { headers: sbHeaders() });
     if (!r.ok) return '';
     const j = await r.json();
-    return (j[0] && j[0].value) || '';
+    return String((j[0] && j[0].value) || '');
   },
   async setKv(key, value) {
     if (!useSupabase) {
@@ -211,10 +213,12 @@ const store = {
       this._writeJSON(d);
       return;
     }
-    await fetch(CFG.supabaseUrl + '/rest/v1/kv', {
+    const r = await fetch(CFG.supabaseUrl + '/rest/v1/kv', {
       method: 'PUT', headers: sbHeaders({ Prefer: 'resolution=merge-duplicates' }),
       body: JSON.stringify({ key: key, value: value })
     });
+    if (!r.ok) console.error('[store] WARNING: supabase setKv(' + key + ') failed ' + r.status + ' ' + (await r.text()).slice(0, 120));
+    return r.ok;
   }
 };
 
@@ -665,12 +669,12 @@ async function handleUpdate(update, tg) {
   /* typed input for an active booking draft (owner only) */
   if (!text.startsWith('/')) {
     const owner = await store.getOwner();
-    if (getDraft(chatId) && (!owner || chatId === owner)) {
+    if (getDraft(chatId) && (!owner || String(chatId) === String(owner))) {
       await draftText(chatId, text, tg);
       return;
     }
     /* a pasted booking template (owner or guest — guests create a pending request) */
-    if (looksLikeTemplate(text)) { await handleTemplate(chatId, text, tg, !!(owner && chatId === owner)); return; }
+    if (looksLikeTemplate(text)) { await handleTemplate(chatId, text, tg, !!(owner && String(chatId) === String(owner))); return; }
     return;
   }
 
@@ -686,7 +690,7 @@ async function handleUpdate(update, tg) {
         '👋 Welcome to the <b>Hidden Homestay</b> booking bot!\n\n' +
         'This chat is now linked as the owner — you will receive an alert here every time a guest books on the website.\n\n' +
         'Send /help to see everything I can do.');
-    } else if (chatId === owner) {
+    } else if (String(chatId) === String(owner)) {
       await tg.sendMessage(chatId, 'Welcome back 👋 The website and this bot are connected. Send /help for commands.');
     } else {
       await tg.sendMessage(chatId, 'This bot is private. 🙏');
@@ -724,7 +728,7 @@ async function handleUpdate(update, tg) {
     return;
   }
 
-  if (!owner || chatId !== owner) {
+  if (!owner || String(chatId) !== String(owner)) {
     await tg.sendMessage(chatId, 'This bot is private. 🙏');
     return;
   }
@@ -996,14 +1000,29 @@ function digestText(list, date) {
   return head + lines.join('\n\n') + '\n\n' + list.length + ' booking(s) \u00b7 Total ' + money(total) + '\nForward this to your staff \u{1F64F}';
 }
 
+let digestSentInProc = '';
 async function sendDailyDigest(tg, date) {
   const owner = await store.getOwner();
   if (!owner) return false;
+  if (digestSentInProc === date) return false;                   // memory guard
   if ((await store.getKv('digestDate')) === date) return false;   // once per day
   const list = (await store.all()).filter(b => b.date === date && b.status !== 'cancelled');
   await tg.sendMessage(owner, digestText(list, date));
   await store.setKv('digestDate', date);
+  digestSentInProc = date;
   return true;
+}
+
+async function supabaseBootCheck() {
+  if (!useSupabase) return;
+  try {
+    const w = await store.setKv('bootCheck', String(Date.now()));
+    const rb = await store.getKv('bootCheck');
+    if (w === false || !rb) throw new Error('kv write/read failed — is the kv table created? (run the SQL from DEPLOYMENT.md)');
+    console.log('  · Supabase storage: CONNECTED ✓ (cloud database read/write OK)');
+  } catch (e) {
+    console.error('  · Supabase storage: NOT WORKING — ' + e.message);
+  }
 }
 
 function startDailyDigest() {
@@ -1026,6 +1045,7 @@ if (require.main === module) {
   });
   startPolling();
   startDailyDigest();
+  supabaseBootCheck();
 }
 
 /* exported for testing */

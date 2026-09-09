@@ -136,8 +136,6 @@ create table kv (
 
 alter table bookings enable row level security;
 alter table kv enable row level security;
-create policy "allow service key" on bookings for all using (true) with check (true);
-create policy "allow service key" on kv for all using (true) with check (true);
 ```
 
 4. Now copy your two keys: go to **Project Settings** (gear icon) → **API**:

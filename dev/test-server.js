@@ -194,6 +194,84 @@ const tomorrow = () => new Date(Date.now() + 86400000 + 7 * 3600000).toISOString
   ok('digest sent to owner once', sent1 && texts(tgD).length === 1, dMsg.slice(0, 100));
   ok('digest kv guard prevents double send', (await sendDailyDigest(tgD, tomorrow())) === false);
 
+  /* ============================================================
+     SUPABASE-MODE — run the real Supabase REST code against a mock
+     PostgREST server, so the cloud-storage path is fully tested.
+     ============================================================ */
+  console.log('== SUPABASE STORAGE MODE ==');
+  {
+    const http = require('http');
+    const sbRows = [], sbKv = {};
+    let sawKey = true;
+    const mock = http.createServer((rq, rs) => {
+      let body = '';
+      rq.on('data', c => body += c);
+      rq.on('end', () => {
+        sawKey = sawKey && rq.headers.apikey === 'test-sb-key' && rq.headers.authorization === 'Bearer test-sb-key';
+        const u = new URL(rq.url, 'http://x');
+        const json = o => { rs.writeHead(200, { 'Content-Type': 'application/json' }); rs.end(JSON.stringify(o)); };
+        if (rq.method === 'GET' && u.pathname === '/rest/v1/bookings') return json(sbRows);
+        if (rq.method === 'POST' && u.pathname === '/rest/v1/bookings') { const row = JSON.parse(body); sbRows.push(row); return json([row]); }
+        if (rq.method === 'PATCH' && u.pathname === '/rest/v1/bookings') {
+          const ref = u.searchParams.get('ref').replace('eq.', '');
+          const row = sbRows.find(x => x.ref === ref);
+          if (row) Object.assign(row, JSON.parse(body));
+          return json(row ? [row] : []);
+        }
+        if (rq.method === 'GET' && u.pathname === '/rest/v1/kv') {
+          const k = u.searchParams.get('key').replace('eq.', '');
+          return json(k in sbKv ? [{ value: sbKv[k] }] : []);
+        }
+        if (rq.method === 'PUT' && u.pathname === '/rest/v1/kv') {
+        const p = JSON.parse(body);
+        if (typeof p.value !== 'string') { rs.writeHead(400, { 'Content-Type': 'application/json' }); return rs.end('{"message":"invalid input for kv.value"}'); }
+        sbKv[p.key] = p.value; return json([p]);
+      }
+        rs.writeHead(404); rs.end('{}');
+      });
+    });
+    await new Promise(r => mock.listen(8099, r));
+
+    process.env.SUPABASE_URL = 'http://localhost:8099';
+    process.env.SUPABASE_KEY = 'test-sb-key';
+    delete require.cache[require.resolve('../server/server.js')];
+    const S2 = require('../server/server.js');
+    try {
+      ok('supabase mode: no owner at first', (await S2.store.getOwner()) === '');
+      await S2.store.setOwner('424242');
+      ok('supabase mode: owner saved in kv table', (await S2.store.getOwner()) === '424242');
+      await S2.store.setKv('tgOffset', '777');
+      ok('supabase mode: kv save + read back', (await S2.store.getKv('tgOffset')) === '777');
+
+      const cs = await S2.createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '18:00', checkOut: '20:00', name: 'Cloud Sokha', phone: '099' }, 'website');
+      ok('supabase mode: booking created', cs.ok === true, cs);
+      ok('supabase mode: row inserted with snake_case columns', sbRows.some(x => x.ref === cs.booking.ref && x.check_in === '18:00' && x.status === 'pending'));
+      const back = (await S2.store.all()).find(b => b.ref === cs.booking.ref);
+      ok('supabase mode: row read back as camelCase booking', back && back.checkIn === '18:00' && back.checkOut === '20:00' && back.total === 14 && back.name === 'Cloud Sokha', back);
+      const dup = await S2.createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '19:00', checkOut: '21:00', name: 'Clash', phone: '088' }, 'telegram');
+      ok('supabase mode: conflicts detected across cloud rows', dup.ok === false && dup.error === 'conflict', dup);
+      await S2.store.update(cs.booking.ref, { status: 'confirmed' });
+      ok('supabase mode: status update persisted', (await S2.store.all()).find(b => b.ref === cs.booking.ref).status === 'confirmed');
+
+      await S2.store.setOwner(585858);
+      ok('supabase mode: numeric chat id saved as text (PostgREST-safe)', (await S2.store.getOwner()) === '585858');
+      const tgSb2 = makeTg();
+      await S2.handleUpdate(upd(585858, '/start'), tgSb2);
+      const wm = texts(tgSb2).join(' ');
+      ok('supabase mode: linked owner recognized — Welcome back, not private', /Welcome back/.test(wm) && !/private/.test(wm), wm);
+      await S2.handleUpdate(upd(585858, '/template'), tgSb2);
+      ok('supabase mode: /template works for the cloud-linked owner', /Booking template/i.test(texts(tgSb2).slice(-1)[0] || ''), texts(tgSb2).slice(-1)[0]);
+
+      const tgSb = makeTg();
+      ok('supabase mode: 12:30 digest reads cloud rows + kv guard', (await S2.sendDailyDigest(tgSb, tomorrow())) === true && /Cloud Sokha/.test(texts(tgSb).join(' ')) && (await S2.sendDailyDigest(tgSb, tomorrow())) === false);
+      ok('supabase mode: service-role key sent on every request', sawKey);
+    } finally {
+      delete require.cache[require.resolve('../server/server.js')];
+      delete process.env.SUPABASE_URL; delete process.env.SUPABASE_KEY;
+      mock.close();
+    }
+  }
+
   console.log('== HTTP API (admin key enforced) ==');
   await new Promise(res => S.server.listen(0, res));
   const port = S.server.address().port;
