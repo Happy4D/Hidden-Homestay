@@ -141,6 +141,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   await handleUpdate(upd(OWNER, 'BOOKING\nRoom: London\nDate: ' + aWeekday + '\nCheck-in: 15:00\nHours: 4\nName: Template Guest\nPhone: 099887766'), tg);
   const tplDone = texts(tg).slice(-1)[0] || '';
   ok('owner template paste → confirmed booking', /HH-/.test(tplDone) && /London/.test(tplDone), tplDone.slice(0, 140));
+  ok('template reply includes customer link', /https:\/\/t\.me\/HiddenHomestayBot\?start=HH-/.test(tplDone), tplDone.slice(-160));
 
   /* template overnight (owner side) */
   await handleUpdate(upd(OWNER, 'BOOKING\nRoom: kuromi\nDate: ' + aSaturday + '\nCheck-in: 20:00\nHours: overnight\nName: ON Guest\nPhone: 099887766'), tg);
@@ -154,6 +155,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
 
   await handleUpdate(upd(OWNER, '/book pool ' + aWeekday + ' 12:00 2 011122233 Pool Quick'), tg);
   ok('/book pool 2h = $10', /\$10\.00/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
+  ok('quick /book reply includes forwardable customer link', /https:\/\/t\.me\/HiddenHomestayBot\?start=HH-/.test(texts(tg).slice(-1)[0] || ''), (texts(tg).slice(-1)[0] || '').slice(-160));
 
   /* guided flow with buttons */
   const tg2 = makeTg();
@@ -182,6 +184,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
     await handleUpdate(cbk(OWNER, 'bk:ok'), tg2);
     const done = edits(tg2).slice(-1)[0] || '';
     ok('guided flow confirms booking', /BOOKED/.test(done) && /HH-/.test(done), done.slice(0, 160));
+    ok('guided flow reply includes customer link', /https:\/\/t\.me\/HiddenHomestayBot\?start=HH-/.test(done), done.slice(-160));
   }
 
   /* ============================================================
@@ -221,6 +224,17 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   await handleUpdate(upd(OWNER, '/busy ' + aWeekday), tg);
   const busyMsg = texts(tg).slice(-1)[0] || '';
   ok('/busy lists all 12 rooms', (busyMsg.match(/all free/g) || []).length + (busyMsg.match(/·/g) || []).length >= 12, busyMsg.slice(0, 100));
+
+  /* /link — forwardable customer confirmation link */
+  const someRef = (texts(tg).join('\n').match(/HH-[A-Z0-9]{4,10}/) || [])[0] || '';
+  await handleUpdate(upd(OWNER, '/link ' + someRef), tg);
+  ok('/link REF returns the forwardable link', ('https://t.me/HiddenHomestayBot?start=' + someRef) === (texts(tg).slice(-1)[0] || '').split('\n').find(l => l.includes('t.me/')) , texts(tg).slice(-1)[0]);
+  await handleUpdate(upd(OWNER, '/link'), tg);
+  ok('/link without ref shows usage', /Usage: \/link/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
+  await handleUpdate(upd(OWNER, '/link HH-NOPE99'), tg);
+  ok('/link unknown ref → not found', /No booking/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
+  await handleUpdate(upd(STRANGER, '/link ' + someRef), tg);
+  ok('/link is owner-only (stranger turned away)', /private/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
 
   /* ============================================================
      6 — HTTP API

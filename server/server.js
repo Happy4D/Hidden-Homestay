@@ -57,8 +57,15 @@ const CFG = {
   publicDir: path.join(__dirname, '..'),
   supabaseUrl: (process.env.SUPABASE_URL || '').replace(/\/$/, ''),
   supabaseKey: process.env.SUPABASE_KEY || '',
-  publicUrl: (process.env.PUBLIC_URL || 'https://hidden-homestay.onrender.com').replace(/\/$/, '')
+  publicUrl: (process.env.PUBLIC_URL || 'https://hidden-homestay.onrender.com').replace(/\/$/, ''),
+  botUsername: process.env.BOT_USERNAME || 'HiddenHomestayBot'
 };
+
+/* ---------- customer deep link (bot cannot message first — the guest taps this) ---------- */
+const botDeepLink = ref => "https://t.me/" + CFG.botUsername + '?start=' + encodeURIComponent(ref);
+const customerLinkBlock = ref =>
+  '\n\n📨 <b>Send this link to the customer:</b>\n' + botDeepLink(ref) + '\n' +
+  'They tap it, press START, and receive the confirmation, room photo, entry guideline, parking guide and food menu — the same package as booking on the website.';
 
 /* ---------- business data (keep in sync with the website CONFIG) ----------
    One branch: Borey Vimean Phnom Penh (No 235D, Road 777, Russey Keo).
@@ -454,7 +461,8 @@ async function draftCallback(cb, tg) {
         chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: kb([]),
         text: '✅ <b>BOOKED &amp; CONFIRMED</b> — ref ' + res.booking.ref + '\n\n' + draftSummary(d).replace('📋 <b>Please check the booking:</b>\n\n', '') +
           '\n\n🌐 The website and dashboard now show these hours as taken.' +
-          (res.booking.overnight ? '\n\n🪪 <b>Overnight booking</b> — send the guest\'s ID Card photo with caption <code>ID ' + res.booking.ref + '</code>' : '')
+          (res.booking.overnight ? '\n\n🪪 <b>Overnight booking</b> — send the guest\'s ID Card photo with caption <code>ID ' + res.booking.ref + '</code>' : '') +
+          customerLinkBlock(res.booking.ref)
       });
       return;
     }
@@ -770,7 +778,8 @@ async function handleTemplate(chatId, text, tg, isOwner) {
   if (isOwner) {
     await tg.sendMessage(chatId, '✅ Booking saved — the website now shows these hours as taken.\n\n' +
       bookingText(res.booking).replace('\u{1F195} New booking request — Hidden Homestay\n\n', '') +
-      (res.booking.overnight ? '\n\n🪪 <b>Overnight booking</b> — send the guest\'s ID Card photo with caption <code>ID ' + res.booking.ref + '</code>' : ''));
+      (res.booking.overnight ? '\n\n🪪 <b>Overnight booking</b> — send the guest\'s ID Card photo with caption <code>ID ' + res.booking.ref + '</code>' : '') +
+      customerLinkBlock(res.booking.ref));
   } else {
     await tg.sendMessage(chatId, '\u{1F64F} Thank you ' + esc(t.name) + '! Your booking request was received:\n\n' +
       bookingText(res.booking).replace('\u{1F195} New booking request — Hidden Homestay\n\n', '') +
@@ -879,6 +888,7 @@ async function handleUpdate(update, tg) {
       'Example:\n<code>/book vintage 2026-09-10 14:00 3 012345678 Sokha Pen</code>\n' +
       'rooms: pool, vintage, shanghai, classic, london, camping, fishing, burger, kuromi, veggie, slayer, gaming\n' +
       'hours: 2–6, or <b>overnight</b> (8PM–8AM / 9PM–9AM)\n\n' +
+      '/link HH-XXXXXX — customer confirmation link to forward 📨\n' +
       '/confirm HH-XXXXXX — confirm a pending booking\n' +
       '/cancel — cancel the current booking draft\n' +
       '/cancel HH-XXXXXX — cancel a booking (hours become free)\n\n' +
@@ -957,7 +967,7 @@ async function handleUpdate(update, tg) {
       }
       return;
     }
-    await tg.sendMessage(chatId, '✅ Booked and confirmed — the website now shows these hours as taken.\n\n' + bookingText(res.booking).replace('🆕 New booking request — Hidden Homestay\n\n', ''));
+    await tg.sendMessage(chatId, '✅ Booked and confirmed — the website now shows these hours as taken.\n\n' + bookingText(res.booking).replace('🆕 New booking request — Hidden Homestay\n\n', '') + customerLinkBlock(res.booking.ref));
     return;
   }
 
@@ -975,6 +985,17 @@ async function handleUpdate(update, tg) {
     await store.update(ref, { status });
     await tg.sendMessage(chatId, (cmd === '/confirm' ? '✅ Confirmed: ' : '🚫 Cancelled: ') + ref +
       (cmd === '/cancel' ? ' — those hours are free again.' : ''));
+    return;
+  }
+
+  if (cmd === '/link') {
+    const ref = (args[0] || '').toUpperCase();
+    if (!ref) { await tg.sendMessage(chatId, 'Usage: /link HH-XXXXXX\nGives you the customer confirmation link to forward.'); return; }
+    const b = (await store.all()).find(x => String(x.ref).toUpperCase() === ref);
+    if (!b) { await tg.sendMessage(chatId, 'No booking ' + esc(ref) + ' — check /list all.'); return; }
+    await tg.sendMessage(chatId, '📨 <b>Customer link for ' + ref + '</b>\n' +
+      esc(b.name) + ' · ' + b.date + ' · ' + esc(b.room) + '\n\n' + botDeepLink(ref) + '\n\n' +
+      'Forward it to the guest — they tap it, press START, and receive the full confirmation with photos.');
     return;
   }
 
@@ -1244,7 +1265,7 @@ function startDailyDigest() {
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.3.0 (My Bookings)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.3.1 (customer links)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));
