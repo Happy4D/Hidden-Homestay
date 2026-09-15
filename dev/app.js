@@ -1,51 +1,50 @@
 /* ============================================================
-   HIDDEN HOMESTAY — app.js
-   Front-end for the themed private-room booking experience.
-
-   · Demo mode (default): everything runs locally, bookings are
-     kept in localStorage with an in-memory fallback.
-   · Live mode: if a booking backend is reachable (same origin,
-     or CONFIG.api.baseUrl), the site checks real availability
-     and submits bookings to it (which notifies the owner on
-     Telegram). All content/settings live in CONFIG below.
+   HIDDEN HOMESTAY — app.js (v3)
+   12 rooms · weekday/weekend pricing · overnight · ID upload ·
+   phone validation · EN/ខ្មែរ · Telegram confirmation
    ============================================================ */
 'use strict';
 
-/* ---------- image assets (injected at build time) ---------- */
-const IMG = {
-  logo:     '{{LOGO}}',
-  burger:   '{{IMG_BURGER}}',
-  vintage:  '{{IMG_VINTAGE}}',
-  fishing:  '{{IMG_FISHING}}',
-  branchA:  '{{IMG_BRANCH_A}}',
-  branchB:  '{{IMG_BRANCH_B}}'
-};
+/* ---------- tiny helpers ---------- */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* safe localStorage (sandboxed previews may block it) */
+const store = (() => {
+  try { const k = '__hh'; localStorage.setItem(k, '1'); localStorage.removeItem(k);
+    return { get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+             set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  } catch (e) {
+    const mem = {}; return { get: k => mem[k] || null, set: (k, v) => { mem[k] = v; } };
+  }
+})();
+
+async function fetchTimeout(url, opts, ms) {
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), ms || 8000);
+  try { return await fetch(url, { ...opts, signal: c.signal }); } finally { clearTimeout(t); }
+}
+
+const ICON = { ok: '✅', info: 'ℹ️', cross: '❌' };
+function toast(msg, icon) {
+  const z = $('#toastZone'); if (!z) return;
+  const d = document.createElement('div');
+  d.className = 'toast' + (icon === ICON.cross ? ' err' : '');
+  d.textContent = (icon ? icon + ' ' : '') + msg;
+  z.appendChild(d); setTimeout(() => d.remove(), 4200);
+}
 
 /* ============================================================
-   CONFIG — edit prices / copy / payment here
+   CONFIG
    ============================================================ */
 const CONFIG = {
   brand: 'Hidden Homestay',
-  tagline: 'stay cosy. stay HIDDEN',
-  currency: '$',
-  phone: '+855 12 345 678',
   telegram: '@Hppy4D',
+  telegramUrl: 'https://t.me/Hppy4D',
+  botUrl: 'https://t.me/HiddenHomestayBot',        // confirmation delivery only
+  address: 'No 235D, Road No 777, Sangkat Jranh Chomres II, Khan Russey Keo, Phnom Penh',
+  api: { baseUrl: '' },                            // '' → auto-detect (same origin)
 
-  /* Backend connection.
-     '' (empty)  → auto-detect: if the site is served by the
-                   booking server (see server/ folder) it goes live,
-                   otherwise it stays in demo mode.
-     'https://…' → point at your deployed server from anywhere.   */
-  api: { baseUrl: '' },
-
-  /* KHQR payment (scan with ABA, ACLEDA, Wing, Bakong, any bank app).
-     The payload below was generated for ABA account 000 523 457
-     (Bakong ID 000523457@ABA) in the official KHQR format — the site
-     builds a fresh QR with each booking's exact amount automatically.
-     ⚠️ Scan-test it ONCE with the ABA app before going public: the
-     recipient shown must be your account. If it isn't, open ABA →
-     “My QR” → copy the QR text (starts with “000201…”) and paste it
-     into `payload` instead.                                        */
   khqr: {
     payload: '00020101021129170013000523457@ABA5204599953038405802KH5915HIDDEN HOMESTAY6010Phnom Penh6304F893',
     bakongId: '000523457@ABA',
@@ -53,162 +52,272 @@ const CONFIG = {
     city: 'Phnom Penh'
   },
 
-  rooms: [
-    {
-      id: 'burger',
-      name: 'Burger Room',
-      kicker: 'Theme 01 · Playful',
-      rate: 6.00,
-      img: IMG.burger,
-      blurb: 'Bold, juicy and deliciously playful. A fast-food fantasy in warm colours — built for fun nights, laughter and camera-roll memories.',
-      tags: ['Themed Décor', 'Smart TV', 'Bluetooth Speaker']
-    },
-    {
-      id: 'vintage',
-      name: 'Vintage Room',
-      kicker: 'Theme 02 · Nostalgic',
-      rate: 7.00,
-      img: IMG.vintage,
-      blurb: 'Slow afternoons and warm light. Retro furniture, classic records and a nostalgic calm you can sink into and never want to leave.',
-      tags: ['Retro Furniture', 'Reading Corner', 'Record Player']
-    },
-    {
-      id: 'fishing',
-      name: 'Fishing Room',
-      kicker: 'Theme 03 · Serene',
-      rate: 7.50,
-      img: IMG.fishing,
-      blurb: 'Quietly cool and oddly calming. An underwater-inspired escape in soft blues, designed for deep rest and gentle daydreaming.',
-      tags: ['Cool Blue Palette', 'Ambient Lighting', 'Aroma Diffuser']
-    }
-  ],
-  branches: [
-    {
-      id: 'cheasophara',
-      name: 'Borey Vimean Phnom Penh',
-      area: 'Cheasophara · Phnom Penh',
-      short: 'Cheasophara',
-      badge: 'Branch 01',
-      img: IMG.branchA,
-      blurb: 'Our original hideaway, tucked into the quiet streets of Borey Vimean Phnom Penh at Cheasophara. Peaceful, easy to find, with plenty of space to park.'
-    },
-    {
-      id: 'penghout',
-      name: 'Peng Hout',
-      area: 'Boeung Snor · Phnom Penh',
-      short: 'Boeung Snor',
-      badge: 'Branch 02',
-      img: IMG.branchB,
-      blurb: 'The second chapter, in the Peng Hout community at Boeung Snor. A calm residential setting close to cafés, minimarts and everything you need.'
-    }
-  ]
+  /* weekday / weekend duration tables (Standard rooms) */
+  pricing: {
+    weekday: { 2: 10, 3: 12, 4: 14, 5: 18, 6: 20, overnight: 18 },
+    weekend: { 2: 12, 3: 15, 4: 18, 5: 20, 6: 23, overnight: 18 }
+  },
+  vipUpgrade: 3,          /* VIP = standard price + $3 */
+  poolRate: 5             /* Pool Room: $5 / hour */
 };
 
-/* ============================================================
-   SAFE STORAGE (localStorage may be blocked in sandboxed previews)
-   ============================================================ */
-const store = (() => {
-  const mem = {};
-  let ok = false;
-  try {
-    localStorage.setItem('__hh_t', '1');
-    localStorage.removeItem('__hh_t');
-    ok = true;
-  } catch (e) { ok = false; }
-  return {
-    persistent: ok,
-    get(k) {
-      if (ok) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
-      return (k in mem) ? mem[k] : null;
-    },
-    set(k, v) {
-      mem[k] = v;
-      if (ok) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-    }
-  };
-})();
-const BOOKINGS_KEY = 'hiddenHomestayBookings';
+/* ---------- the 12 rooms ---------- */
+const ROOMS = [
+  { id: 'pool',     name: 'Pool Room',     type: 'pool',     img: 'assets/rooms/pool.png',
+    blurb: 'Your own private pool under the sky. Cool water, cool vibes — the perfect way to spend a hot afternoon.', tags: ['Private Pool', 'Sun Deck', 'Outdoor Shower'] },
+  { id: 'vintage',  name: 'Vintage Room',  type: 'standard', img: 'assets/rooms/vintage.png',
+    blurb: 'Retro furniture, warm light and a nostalgic calm you can sink into and never want to leave.', tags: ['Retro Décor', 'Reading Corner', 'Record Player'] },
+  { id: 'shanghai', name: 'Shanghai Room', type: 'standard', img: 'assets/rooms/shanghai.png',
+    blurb: 'Lantern light and oriental charm — a little piece of old Shanghai right here in Phnom Penh.', tags: ['Oriental Décor', 'Warm Lighting', 'Tea Set'] },
+  { id: 'classic',  name: 'Classic Room',  type: 'standard', img: 'assets/rooms/classic.png',
+    blurb: 'Timeless, clean and quietly elegant. The room that never goes out of style.', tags: ['Elegant Décor', 'Work Desk', 'Blackout Curtains'] },
+  { id: 'london',   name: 'London Room',   type: 'standard', img: 'assets/rooms/london.png',
+    blurb: 'Checkerboard floors, red-postbox reds and a cosy British mood — tea time, anyone?', tags: ['British Theme', 'Cosy Chairs', 'Smart TV'] },
+  { id: 'camping',  name: 'Camping Room',  type: 'standard', img: 'assets/rooms/camping.png',
+    blurb: 'A starry indoor camp — tent vibes, fairy lights and marshmallow dreams, no mosquitoes included.', tags: ['Tent Style', 'Fairy Lights', 'Floor Mattress'] },
+  { id: 'fishing',  name: 'Fishing Room',  type: 'standard', img: 'assets/rooms/fishing.png',
+    blurb: 'Quietly cool and oddly calming. An underwater-inspired escape in soft blues.', tags: ['Blue Palette', 'Ambient Light', 'Aroma Diffuser'] },
+  { id: 'burger',   name: 'Burger Room',   type: 'standard', img: 'assets/rooms/burger.png',
+    blurb: 'Bold, juicy and deliciously playful. A fast-food fantasy built for fun nights and laughter.', tags: ['Playful Décor', 'Smart TV', 'Bluetooth Speaker'] },
+  { id: 'kuromi',   name: 'Kuromi Room',   type: 'standard', img: 'assets/rooms/kuromi.png',
+    blurb: 'Sanrio\u2019s punky little rabbit takes over — black, pink and irresistibly cute.', tags: ['Kuromi Theme', 'Plush Pillows', 'Photo Corner'] },
+  { id: 'veggie',   name: 'Veggie Room',   type: 'vip',      img: 'assets/rooms/veggie.png',
+    blurb: 'Fresh greens and garden calm — a VIP breath of fresh air with everything upgraded.', tags: ['VIP Room', 'Garden Vibe', 'Extra Space'] },
+  { id: 'slayer',   name: 'Slayer Room',   type: 'vip',      img: 'assets/rooms/slayer.png',
+    blurb: 'Dark, dramatic and boldly styled for those who like their comfort with an edge.', tags: ['VIP Room', 'Dramatic Décor', 'Extra Space'] },
+  { id: 'gaming',   name: 'Gaming Room',   type: 'vip',      img: 'assets/rooms/gaming.png',
+    blurb: 'Big screens, fast internet and glow-in-the-dark vibes. Built for all-night gaming sessions.', tags: ['VIP Room', 'Gaming Setup', 'Fast Wi-Fi'] }
+];
+const roomById = id => ROOMS.find(r => r.id === id);
+const VIP_INCLUDES = ['VIP Bed', 'Sofa', 'Water Boiling Machine', 'Hair Dryer', '2 Cups of Noodles'];
 
 /* ============================================================
-   HELPERS
+   I18N — English / ខ្មែរ
    ============================================================ */
-const $  = (s, c) => (c || document).querySelector(s);
-const $$ = (s, c) => Array.from((c || document).querySelectorAll(s));
-const money = n => CONFIG.currency + Number(n).toFixed(2);
-const toMin = t => { const p = t.split(':'); return (+p[0]) * 60 + (+p[1]); };
-const toHHMM = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-const fmtTime = t => {
-  const p = t.split(':').map(Number);
-  const ap = p[0] >= 12 ? 'PM' : 'AM';
-  const h = p[0] % 12 || 12;
-  return h + ':' + String(p[1]).padStart(2, '0') + ' ' + ap;
+const I18N = {
+  en: {
+    tagline: 'stay cosy. stay HIDDEN',
+    navRooms: 'Rooms', navBook: 'Book', navTerms: 'Terms', navContact: 'Contact',
+    heroKicker: 'Borey Vimean Phnom Penh · 12 themed rooms',
+    heroTitle: 'Your next favourite room is waiting.',
+    heroSub: 'Pool, Standard and VIP rooms — by the hour or overnight. Pick a date, choose your room, and get your confirmation plus entry guide straight to your Telegram.',
+    heroCta: 'Book Your Stay', heroCta2: 'See the 12 rooms',
+    heroFact1: 'Overnight stays 8PM–8AM / 9PM–9AM',
+    heroFact2: 'Instant Telegram confirmation & entry guide',
+    heroFact3: 'Pay with any Cambodian bank app (KHQR)',
+    heroBadge: '12 rooms · 1 address · open daily',
+    roomsKicker: 'Pick your vibe', roomsTitle: 'Twelve rooms. Twelve personalities.',
+    roomsSub: 'One homestay, twelve self-contained themed rooms — each spotless, private and ready for your next memory. All at Borey Vimean Phnom Penh.',
+    grpPool: 'Pool Room', grpPoolSub: '$5 / hour',
+    grpStd: 'Standard Rooms', grpStdSub: '8 rooms · from $10 / 2 hrs',
+    grpVip: 'VIP Rooms', grpVipSub: 'Standard price + $3 · VIP extras',
+    howKicker: 'Effortless booking', howTitle: 'Three steps to your hideaway',
+    how1T: 'Date & duration', how1P: 'Choose your date and how long you\u2019ll stay — 2 to 6 hours, or a full overnight (8PM–8AM / 9PM–9AM). The price shows instantly, weekday or weekend.',
+    how2T: 'Pick your room', how2P: 'Twelve themed rooms, one address. Only rooms that are actually free for your slot are shown — no double bookings, ever.',
+    how3T: 'Confirm & pay', how3P: 'Read the house rules, scan the KHQR with any bank app, and get your confirmation, room photo, entry guideline and parking guide in Telegram.',
+    bookKicker: 'Reserve in two minutes', bookTitle: 'Book your stay',
+    bookSub: 'One address: No 235D, Road 777, Sangkat Jranh Chomres II, Khan Russey Keo, Phnom Penh.',
+    step1: 'Schedule', step2: 'Room', step3: 'Your details', step4: 'Confirm & pay',
+    s1Title: 'When would you like to stay?',
+    s1Date: 'Date', hrs: 'hrs', ovNight: 'overnight',
+    s1Dur: 'Duration', s1PoolHours: 'Pool Room — hours:', s1In: 'Check-in time', s1Ov: 'Overnight check-in / check-out',
+    s1OvLine: 'Check-in {in} (evening) · Check-out {out} (next morning)',
+    s2Title: 'Choose your room',
+    s2Note: '{n} of {t} rooms free for your slot', s2NoteDemo: 'Demo mode — availability checking is active on the live site',
+    s3Title: 'Your details', s3Name: 'Full name', s3Phone: 'Telegram phone number',
+    s3PhoneNote: '📱 Please enter the phone number registered with your Telegram account — your booking confirmation and entry guideline will be sent there.',
+    s3Id: 'ID Card photo (required for overnight)',
+    s3IdNote: 'Overnight stays require a photo of your ID Card. Please upload a clear picture (front side).',
+    s3IdRetake: 'Retake', s3IdOk: 'ID photo attached ✓',
+    s4Title: 'Review & confirm', s4Rules: 'House rules',
+    s4Agree: 'I have read and agree to the house rules above.',
+    s4PayTitle: 'Payment',
+    s4PayNote: 'Full payment is required to confirm your booking. Scan the KHQR below with any Cambodian banking app (ABA, ACLEDA, Wing, Bakong…).',
+    s4PayDone: 'After you tap \u201CConfirm Booking\u201D, open Telegram to receive your confirmation, room photo, entry guideline and parking guide.',
+    total: 'Total', confirmBtn: 'Confirm Booking ✓', back: '← Back', next: 'Next →',
+    s5Title: 'Booking received!',
+    s5Sub: 'Your request is in. One last tap — open Telegram and press START to receive your confirmation, your room\u2019s photo, the entry guideline, the parking guide and the food menu.',
+    s5Btn: 'Get my confirmation in Telegram', s5Again: 'Book another stay',
+    s5RefNote: 'Booking reference: {ref}',
+    locKicker: 'One address', locTitle: 'Hidden Homestay — Borey Vimean Phnom Penh',
+    locL1: 'No 235D, Road No 777', locL2: 'Sangkat Jranh Chomres II, Khan Russey Keo', locL3: 'Phnom Penh, Cambodia',
+    locSub: 'Easy to find, calm streets, and space to park. The exact entry guideline and parking guide are sent to your Telegram with every booking.',
+    termsKicker: 'Please read before booking', termsTitle: 'Terms & Conditions',
+    addrLabel: 'Address', hoursLabel: 'Open', hoursValue: 'Every day · 8:00 AM – 11:00 PM',
+    footFine: 'Bookings are confirmed after full payment.',
+    weekday: 'weekday', weekend: 'weekend', overnight: 'overnight', hoursWord: 'hours',
+    fromPrice: 'from', perHour: '/ hour', vipPlus: 'VIP upgrade +$3',
+    vipIncludesTitle: 'VIP rooms include',
+    roomTaken: 'Already booked for this slot',
+    poolNoOvernight: 'Pool Room is hourly only (no overnight)',
+    rules: [
+      '<b>No Smoking</b> — $50 penalty',
+      '<b>No Smelly Food</b> — $50 penalty',
+      '<b>Do not use towels to clean the floor</b> — $20 penalty',
+      'Please flush the toilet after use.',
+      'Material damage will be charged accordingly.',
+      'We do not accept guests under 18 years old.',
+      'No illegal activities / No drugs.',
+      'ID Card is required for overnight / gaming stays.',
+      'Late check-out — $5/hour',
+      'No refund for cancellation.',
+      'Full payment is required to confirm a booking.'
+    ],
+    rcDate: 'Date', rcRoom: 'Room', rcType: 'Type', rcIn: 'Check-in', rcOut: 'Check-out',
+    rcDur: 'Duration', rcGuest: 'Guest', rcPhone: 'Phone', rcId: 'ID Card', rcPriceType: 'Pricing',
+    rcIdYes: 'Attached ✓', rcIdNo: '— (not required)',
+    tName: 'Please enter your full name',
+    tPhone: 'Phone number must contain digits only',
+    tPhoneLen: 'Please enter a valid phone number (8–15 digits)',
+    tId: 'Overnight stays require an ID Card photo',
+    tRoom: 'Please choose a room first',
+    tDur: 'Please choose a duration first',
+    tBusy: 'Those hours were just taken — please pick another room or time',
+    tServer: 'Could not reach the server — please try again',
+    tDone: 'Booking sent! Open Telegram to get your confirmation 🎉',
+    tLang: 'Language switched to English'
+  },
+
+  kh: {
+    tagline: 'stay cosy. stay HIDDEN',
+    navRooms: 'បន្ទប់', navBook: 'កក់', navTerms: 'លក្ខខណ្ឌ', navContact: 'ទំនាក់ទំនង',
+    heroKicker: 'បូរីវៀនភ្នំពេញ · បន្ទប់ចម្រុះ ១២ បន្ទប់',
+    heroTitle: 'បន្ទប់ដែលអ្នកចូលចិត្តបំផុត កំពុងរង់ចាំអ្នក។',
+    heroSub: 'បន្ទប់ Pool, Standard និង VIP — កក់តាមម៉ោង ឬពេលយប់។ ជ្រើសរើសកាលបរិច្ឆេទ ជ្រើសបន្ទប់ ហើយទទួលបានការបញ្ជាក់ និងមគ្គុទ្ទេសក៍ចូល តាម Telegram របស់អ្នក។',
+    heroCta: 'កក់ការស្នាក់នៅ', heroCta2: 'មើលបន្ទប់ទាំង ១២',
+    heroFact1: 'ស្នាក់ពេលយប់ 20:00–08:00 / 21:00–09:00',
+    heroFact2: 'ការបញ្ជាក់ និងមគ្គុទ្ទេសក៍ចូល ភ្លាមៗតាម Telegram',
+    heroFact3: 'បង់ប្រាក់ដោយកម្មវិធីធនាគារកម្ពុជាណាមួយ (KHQR)',
+    heroBadge: 'បន្ទប់ ១២ · អាសយដ្ឋានមួយ · បើករាល់ថ្ងៃ',
+    roomsKicker: 'ជ្រើសរើសស្ទីលរបស់អ្នក', roomsTitle: 'បន្ទប់ ១២ បន្ទប់ · អត្តសញ្ញាណ ១២ យ៉ាង',
+    roomsSub: 'ផ្ទះសំណាក់មួយ បន្ទប់ចម្រុះ ១២ បន្ទប់ — ស្អាត ឯកជន និងរួចរាល់សម្រាប់ការសម្រាករបស់អ្នក។ ទាំងអស់ស្ថិតនៅបូរីវៀនភ្នំពេញ។',
+    grpPool: 'បន្ទប់ Pool', grpPoolSub: '៥$ / ម៉ោង',
+    grpStd: 'បន្ទប់ Standard', grpStdSub: '៨ បន្ទប់ · ចាប់ពី ១០$ / ២ ម៉ោង',
+    grpVip: 'បន្ទប់ VIP', grpVipSub: 'តម្លៃ Standard + ៣$ · សេវាបន្ថែម VIP',
+    howKicker: 'កក់ងាយស្រួល', howTitle: 'បីជំហាន ទៅកាន់កន្លែងសម្រាប់អ្នក',
+    how1T: 'កាលបរិច្ឆេទ និងរយៈពេល', how1P: 'ជ្រើសរើសកាលបរិច្ឆេទ និងរយៈពេលស្នាក់ — ២ ទៅ ៦ ម៉ោង ឬពេញមួយយប់ (20:00–08:00 / 21:00–09:00)។ តម្លៃបង្ហាញភ្លាមៗ ថ្ងៃធ្នើរ ឬចុងសប្តាហ៍។',
+    how2T: 'ជ្រើសរើសបន្ទប់', how2P: 'បន្ទប់ចម្រុះ ១២ បន្ទប់ នៅអាសយដ្ឋានតែមួយ។ បង្ហាញតែបន្ទប់ដែលទំនេងពិតប្រាកដសម្រាប់ពេលរបស់អ្នក — មិនមានការកក់ទ្វេដងឡើយ។',
+    how3T: 'បញ្ជាក់ និងបង់ប្រាក់', how3P: 'អានច្បាប់ផ្ទះ ស្កេន KHQR ជាមួយកម្មវិធីធនាគារណាមួយ ហើយទទួលបានការបញ្ជាក់ រូបបន្ទប់ មគ្គុទ្ទេសក៍ចូល និងមគ្គុទ្ទេសក៍ចត់ឡាន តាម Telegram។',
+    bookKicker: 'កក់ក្នុងរយៈពេលពីរនាទី', bookTitle: 'កក់ការស្នាក់នៅរបស់អ្នក',
+    bookSub: 'អាសយដ្ឋានតែមួយ: លេខ 235D, ផ្លូវលេខ 777, សង្កាត់ជ្រាញ់ជំនុះ II, ខណ្ឌ Russey Keo, ភ្នំពេញ។',
+    step1: 'កាលវិភាគ', step2: 'បន្ទប់', step3: 'ព័ត៌មានរបស់អ្នក', step4: 'បញ្ជាក់ និងបង់ប្រាក់',
+    s1Title: 'តើអ្នកចង់ស្នាក់នៅពេលណា?',
+    s1Date: 'កាលបរិច្ឆេទ', hrs: 'ម៉ោង', ovNight: 'ពេលយប់',
+    s1Dur: 'រយៈពេល', s1PoolHours: 'បន្ទប់ Pool — ចំនួនម៉ោង:', s1In: 'ម៉ោងចូល', s1Ov: 'ចូល / ចេញ ពេលយប់',
+    s1OvLine: 'ចូលម៉ោង {in} (ល្ងាច) · ចេញម៉ោង {out} (ព្រឹកថ្ងៃក្រោយ)',
+    s2Title: 'ជ្រើសរើសបន្ទប់របស់អ្នក',
+    s2Note: 'មានបន្ទប់ {n} ក្នុងចំណោម {t} ទំនេងសម្រាប់ពេលរបស់អ្នក', s2NoteDemo: 'របៀបសាកល្បង — ការពិនិត្យភាពទំនេងដំណើរការនៅលើគេហទំព័រពិត',
+    s3Title: 'ព័ត៌មានរបស់អ្នក', s3Name: 'ឈ្មោះពេញ', s3Phone: 'លេខទូរស័ព្ទ Telegram',
+    s3PhoneNote: '📱 សូមបញ្ចូលលេខទូរស័ព្ទដែលបានចុះឈ្មោះក្នុង Telegram របស់អ្នក — ការបញ្ជាក់ការកក់ និងមគ្គុទ្ទេសក៍ចូល នឹងផ្ញើទៅទីនោះ។',
+    s3Id: 'រូបភាពអត្តសញ្ញាណប័ណ្ណ (តម្រូវសម្រាប់ពេលយប់)',
+    s3IdNote: 'ការស្នាក់ពេលយប់តម្រូវឱ្យមានរូបភាពអត្តសញ្ញាណប័ណ្ណ។ សូមបញ្ចូលរូបភាពច្បាស់ (ផ្នែកខាងមុខ)។',
+    s3IdRetake: 'យកឡើងវិញ', s3IdOk: 'បានភ្ជាប់រូបអត្តសញ្ញាណ ✓',
+    s4Title: 'ពិនិត្យ និងបញ្ជាក់', s4Rules: 'ច្បាប់ផ្ទះ',
+    s4Agree: 'ខ្ញុំបានអាន ហើយយល់ព្រមនឹងច្បាប់ផ្ទះខាងលើ។',
+    s4PayTitle: 'ការបង់ប្រាក់',
+    s4PayNote: 'ត្រូវបង់ប្រាក់ពេញលេញ ដើម្បីបញ្ជាក់ការកក់។ សូមស្កេន KHQR ខាងក្រោម ដោយកម្មវិធីធនាគារកម្ពុជាណាមួយ (ABA, ACLEDA, Wing, Bakong…)។',
+    s4PayDone: 'បន្ទាប់ពីចុច \u201Cបញ្ជាក់ការកក់\u201D សូមបើក Telegram ដើម្បីទទួលការបញ្ជាក់ រូបបន្ទប់ មគ្គុទ្ទេសក៍ចូល និងមគ្គុទ្ទេសក៍ចត់ឡាន។',
+    total: 'សរុប', confirmBtn: 'បញ្ជាក់ការកក់ ✓', back: '← ត្រឡប់', next: 'បន្ទាប់ →',
+    s5Title: 'បានទទួលការកក់!',
+    s5Sub: 'សំណើរបស់អ្នកបានជោគជ័យ។ នៅសល់មួយចុច — បើក Telegram ហើយចុច START ដើម្បីទទួលការបញ្ជាក់ រូបបន្ទប់របស់អ្នក មគ្គុទ្ទេសក៍ចូល មគ្គុទ្ទេសក៍ចត់ឡាន និងមឺនុុយអាហារ។',
+    s5Btn: 'ទទួលការបញ្ជាក់តាម Telegram', s5Again: 'កក់ម្តងទៀត',
+    s5RefNote: 'លេខយោងការកក់: {ref}',
+    locKicker: 'អាសយដ្ឋានតែមួយ', locTitle: 'Hidden Homestay — បូរីវៀនភ្នំពេញ',
+    locL1: 'លេខ 235D, ផ្លូវលេខ 777', locL2: 'សង្កាត់ជ្រាញ់ជំនុះ II, ខណ្ឌ Russey Keo', locL3: 'ភ្នំពេញ, កម្ពុជា',
+    locSub: 'ងាយស្រួលរក តំបន់ស្ងប់ស្ងាត់ និងមានកន្លែងចត់ឡាន។ មគ្គុទ្ទេសក៍ចូល និងមគ្គុទ្ទេសក៍ចត់ឡានត្រូវបានផ្ញើទៅ Telegram របស់អ្នកជាមួយគ្រប់ការកក់។',
+    termsKicker: 'សូមអានមុនពេលកក់', termsTitle: 'លក្ខខណ្ឌ និងច្បាប់',
+    addrLabel: 'អាសយដ្ឋាន', hoursLabel: 'បើក', hoursValue: 'រាល់ថ្ងៃ · 8:00 ព្រឹក – 11:00 យប់',
+    footFine: 'ការកក់ត្រូវបានបញ្ជាក់ បន្ទាប់ពីបង់ប្រាក់ពេញលេញ។',
+    weekday: 'ថ្ងៃធ្នើរ', weekend: 'ចុងសប្តាហ៍', overnight: 'ពេលយប់', hoursWord: 'ម៉ោង',
+    fromPrice: 'ចាប់ពី', perHour: '/ ម៉ោង', vipPlus: 'សេវា VIP +៣$',
+    vipIncludesTitle: 'បន្ទប់ VIP រួមមាន',
+    roomTaken: 'បានកក់រួចហើយសម្រាប់ពេលនេះ',
+    poolNoOvernight: 'បន្ទប់ Pool កក់តាមម៉ោងប៉ុណ្ណោះ (មិនមានពេលយប់)',
+    rules: [
+      '<b>ហាមជក់បារី</b> — ពិន័យ ៥០ ដុល្លារ',
+      '<b>ហាមអាហារមានក្លិនខ្លាំង</b> — ពិន័យ ៥០ ដុល្លារ',
+      '<b>កុំប្រើកន្សែងជូតដី</b> — ពិន័យ ២០ ដុល្លារ',
+      'សូមបង្ហូរទឹកបង្គន់ បន្ទាប់ពីប្រើប្រាស់។',
+      'ការខូចខាតសម្ភារៈ នឹងត្រូវទូទាត់តាមតម្លៃពិត។',
+      'យើងមិនទទួលភ្ញៀវអាយុក្រោម ១៨ ឆ្នាំទេ។',
+      'ហាមសកម្មភាពខុសច្បាប់ / ហាមគ្រឿងញៀន។',
+      'តម្រូវឱ្យមានអត្តសញ្ញាណប័ណ្ណ សម្រាប់ការស្នាក់ពេលយប់ / លេងហ្គេម។',
+      'ចេញយឺត — ៥ ដុល្លារ / ម៉ោង',
+      'ការលុបចោលការកក់ នឹងមិនត្រូវបង់វិញទេ។',
+      'ត្រូវបង់ប្រាក់ពេញលេញ ដើម្បីបញ្ជាក់ការកក់។'
+    ],
+    rcDate: 'កាលបរិច្ឆេទ', rcRoom: 'បន្ទប់', rcType: 'ប្រភេទ', rcIn: 'ចូល', rcOut: 'ចេញ',
+    rcDur: 'រយៈពេល', rcGuest: 'ភ្ញៀវ', rcPhone: 'ទូរស័ព្ទ', rcId: 'អត្តសញ្ញាណ', rcPriceType: 'ការកំណត់តម្លៃ',
+    rcIdYes: 'បានភ្ជាប់ ✓', rcIdNo: '— (មិនតម្រូវ)',
+    tName: 'សូមបញ្ចូលឈ្មោះពេញរបស់អ្នក',
+    tPhone: 'លេខទូរស័ព្ទត្រូវមានតែលេខប៉ុណ្ណោះ',
+    tPhoneLen: 'សូមបញ្ចូលលេខទូរស័ព្ទត្រឹមត្រូវ (៨–១៥ ខ្ទង់)',
+    tId: 'ការស្នាក់ពេលយប់តម្រូវឱ្យមានរូបភាពអត្តសញ្ញាណប័ណ្ណ',
+    tRoom: 'សូមជ្រើសរើសបន្ទប់ជាមុនសិន',
+    tDur: 'សូមជ្រើសរើសរយៈពេលជាមុនសិន',
+    tBusy: 'ពេលនោះទើបតែមានមនុស្សកក់ — សូមជ្រើសបន្ទប់ ឬពេលផ្សេង',
+    tServer: 'មិនអាចទាក់ទងម៉ាស៊ីនបម្រើបានទេ — សូមព្យាយាមម្តងទៀត',
+    tDone: 'បានផ្ញើការកក់! សូមបើក Telegram ដើម្បីទទួលការបញ្ជាក់ 🎉',
+    tLang: 'បានប្តូរភាសាទៅខ្មែរ'
+  }
 };
-const fmtDate = d => {
-  const p = d.split('-').map(Number);
-  return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('en-GB', {
-    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
-  });
+
+let LANG = 'en';
+const t = (k, vars) => {
+  let s = (I18N[LANG] && I18N[LANG][k]) != null ? I18N[LANG][k] : (I18N.en[k] != null ? I18N.en[k] : k);
+  if (vars) Object.keys(vars).forEach(v => { s = String(s).split('{' + v + '}').join(vars[v]); });
+  return s;
 };
-const fmtDur = m => {
-  const h = Math.floor(m / 60), mm = m % 60;
-  if (!h) return mm + ' min';
-  if (!mm) return h + (h > 1 ? ' hrs' : ' hr');
-  return h + (h > 1 ? ' hrs ' : ' hr ') + mm + ' min';
-};
-const genRef = () => {
-  const c = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let s = '';
-  for (let i = 0; i < 6; i++) s += c[Math.floor(Math.random() * c.length)];
-  return 'HH-' + s;
-};
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
-));
-function fetchTimeout(url, opts, ms) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), ms || 4000);
-  return fetch(url, Object.assign({}, opts, { signal: ctrl.signal })).finally(() => clearTimeout(t));
+
+function applyI18n() {
+  document.documentElement.lang = LANG === 'kh' ? 'km' : 'en';
+  document.body.dataset.lang = LANG;
+  $$('[data-i18n]').forEach(el => { el.innerHTML = t(el.dataset.i18n); });
+  $('#langEn').classList.toggle('active', LANG === 'en');
+  $('#langKh').classList.toggle('active', LANG === 'kh');
 }
-const overlaps = (aIn, aOut, bIn, bOut) => toMin(aIn) < toMin(bOut) && toMin(bIn) < toMin(aOut);
-
-const ICON = {
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>',
-  cross: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-  pin:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>',
-  info:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 11v5"/></svg>',
-  cal:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
-  spin:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9" /></svg>'
-};
 
 /* ============================================================
-   KHQR — Cambodia's universal payment QR (EMV merchant QR).
-   Builds a payload containing the exact amount to pay, then
-   renders it with the bundled qrcode-generator library.
+   PRICING ENGINE
    ============================================================ */
-function crc16(str) {
+const isWeekend = dateStr => { const d = new Date(dateStr + 'T12:00:00'); const w = d.getDay(); return w === 0 || w === 6; };
+
+/* duration: 2..6 (hours) | 'ON8' | 'ON9' | {poolHours:n} handled via state.poolCustom */
+function priceFor(roomId, dateStr, dur) {
+  const room = roomById(roomId); if (!room) return null;
+  const isPool = room.type === 'pool';
+  if (dur === 'ON8' || dur === 'ON9') {
+    if (isPool) return null;                                   // pool is hourly only
+    const base = CONFIG.pricing[isWeekend(dateStr) ? 'weekend' : 'weekday'].overnight;
+    return room.type === 'vip' ? base + CONFIG.vipUpgrade : base;
+  }
+  const h = (dur === 'X' ? state.poolHours : Number(dur));
+  if (!h || h < 1) return null;
+  if (isPool) return CONFIG.poolRate * h;
+  const table = CONFIG.pricing[isWeekend(dateStr) ? 'weekend' : 'weekday'];
+  if (!table[h]) return null;                                   // only 2..6 for std/vip
+  return room.type === 'vip' ? table[h] + CONFIG.vipUpgrade : table[h];
+}
+const money = n => '$' + Number(n).toFixed(2).replace(/\.00$/, '');
+
+/* ============================================================
+   KHQR (scan-to-pay with any Cambodian bank app)
+   ============================================================ */
+const tlv = (id, v) => id + String(v.length).padStart(2, '0') + v;
+const crc16 = s => {
   let crc = 0xFFFF;
-  for (let i = 0; i < str.length; i++) {
-    crc ^= str.charCodeAt(i) << 8;
-    for (let j = 0; j < 8; j++) {
-      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
-    }
+  for (let i = 0; i < s.length; i++) {
+    crc ^= s.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
   }
   return crc.toString(16).toUpperCase().padStart(4, '0');
-}
-const tlv = (id, v) => id + String(v.length).padStart(2, '0') + v;
-
-function khqrConfigured() {
-  const k = CONFIG.khqr || {};
-  return !!(k.payload || (k.bakongId && k.bakongId.indexOf('your.name') === -1 && k.bakongId.indexOf('REPLACE') === -1));
-}
-
+};
 function buildKHQRPayload(amount) {
   const k = CONFIG.khqr || {};
   const amt = amount != null ? Number(amount).toFixed(2) : null;
-  if (k.payload) {                                    // owner pasted their full KHQR string
-    const parts = [];
-    let s = k.payload, i = 0;
-    while (i + 4 <= s.length) {                       // parse top-level TLVs
+  if (k.payload) {
+    const parts = []; let s = k.payload, i = 0;
+    while (i + 4 <= s.length) {
       const id = s.substr(i, 2), len = parseInt(s.substr(i + 2, 2), 10);
       if (i + 4 + len > s.length) break;
       if (id !== '63' && id !== '54') parts.push({ id: id, value: s.substr(i + 4, len) });
@@ -218,10 +327,9 @@ function buildKHQRPayload(amount) {
     parts.forEach(p => { if (p.id === '01') p.value = amt ? '12' : '11'; });
     if (amt) parts.push({ id: '54', value: amt });
     parts.sort((a, b) => (a.id === '54' && b.id === '53') ? 1 : (a.id === '53' && b.id === '54') ? -1 : (a.id < b.id ? -1 : 1));
-    let out = parts.map(p => tlv(p.id, p.value)).join('') + '6304';
+    const out = parts.map(p => tlv(p.id, p.value)).join('') + '6304';
     return out + crc16(out);
   }
-  // build from parts
   let merchant = tlv('00', 'KHQR') + tlv('01', k.bakongId || 'your.name@aba');
   if (k.accountNumber) merchant += tlv('02', String(k.accountNumber));
   let out = tlv('00', '01') + tlv('01', amt ? '12' : '11') + tlv('29', merchant);
@@ -232,786 +340,402 @@ function buildKHQRPayload(amount) {
   out += '6304';
   return out + crc16(out);
 }
-
-/* Bakong official payment link — opens the guest's banking app with the
-   exact amount (same mechanism cinema/restaurant "Pay Now" buttons use). */
-function bakongPayLink(amount) {
-  return 'https://bakong-deeplink.nbc.gov.kh/bakong/payment?qr=' + encodeURIComponent(buildKHQRPayload(amount));
-}
-
 function renderKHQR(canvas, amount) {
-  const payload = buildKHQRPayload(amount);
-  const qr = qrcode(0, 'M');           // global from qrcode.min.js
-  qr.addData(payload);
+  if (!canvas) return;
+  const qr = qrcode(0, 'M');               // global from qrcode.min.js
+  qr.addData(buildKHQRPayload(amount));
   qr.make();
-  const n = qr.getModuleCount();
-  const quiet = 4;
-  const size = canvas.width;           // square canvas
-  const scale = Math.max(1, Math.floor(size / (n + quiet * 2)));
-  const dim = scale * n;
-  const off = Math.floor((size - dim) / 2);
+  const cells = qr.getModuleCount(), scale = 4;
+  canvas.width = canvas.height = cells * scale + 32;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#161028';
-  for (let r = 0; r < n; r++) {
-    for (let c = 0; c < n; c++) {
-      if (qr.isDark(r, c)) ctx.fillRect(off + c * scale, off + r * scale, scale, scale);
-    }
-  }
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#241b3a';
+  for (let r = 0; r < cells; r++) for (let c = 0; c < cells; c++)
+    if (qr.isDark(r, c)) ctx.fillRect(16 + c * scale, 16 + r * scale, scale, scale);
 }
 
 /* ============================================================
-   STATE
+   LIVE BACKEND DETECTION
+   ============================================================ */
+const live = { on: false };
+async function detectLive() {
+  if (location.protocol === 'file:') { live.on = false; return; }
+  const base = CONFIG.api.baseUrl || '';
+  try {
+    const r = await fetchTimeout(base + '/api/health', { method: 'GET' }, 3500);
+    const j = await r.json().catch(() => ({}));
+    live.on = !!(j && j.ok);
+  } catch (e) { live.on = false; }
+}
+
+/* ============================================================
+   STATE + WIZARD
    ============================================================ */
 const state = {
-  step: 1,
-  branch: null,            // branch id
-  room: null,              // room id
-  date: '',
-  start: '',               // check-in  HH:MM
-  end: '',                 // check-out HH:MM
-  name: '', phone: '', contact: '',
-  agreed: false,
-  ref: null,
-  completed: false,
-  avail: 'off'             // 'off' | 'unknown' | 'checking' | 'ok' | 'busy' | 'error'
+  step: 1, date: '', dur: '', poolHours: 2, poolCustom: false,
+  start: '', room: '', name: '', phone: '', agreed: false,
+  idCard: '', ref: '', completed: false, avail: ''
 };
-const live = { on: false, availCtrl: null };
+const D = $('#book');
 
-const getRoom    = () => CONFIG.rooms.find(r => r.id === state.room) || null;
-const getBranch  = () => CONFIG.branches.find(b => b.id === state.branch) || null;
-const scheduleValid = () => {
-  if (!(state.date && state.start && state.end)) return false;
-  const d = toMin(state.end) - toMin(state.start);
-  return d > 0 && d % 60 === 0;            // whole hours only
+const durInfo = () => {
+  if (state.dur === 'ON8') return { checkIn: '20:00', checkOut: '08:00', hours: 12, overnight: true };
+  if (state.dur === 'ON9') return { checkIn: '21:00', checkOut: '09:00', hours: 12, overnight: true };
+  const h = state.poolCustom ? state.poolHours : Number(state.dur);
+  return { checkIn: state.start, checkOut: toHHMM(toMin(state.start) + h * 60), hours: h, overnight: false };
 };
-const durationMin   = () => scheduleValid() ? toMin(state.end) - toMin(state.start) : 0;
-const totalPrice    = () => { const r = getRoom(); return r ? +(r.rate * durationMin() / 60).toFixed(2) : 0; };
-const reviewEnabled = () => scheduleValid() && !(live.on && state.avail === 'busy');
+const toMin = hhmm => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
+const toHHMM = mins => { mins = ((mins % 1440) + 1440) % 1440; return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0'); };
+const scheduleValid = () => !!state.date && !!state.dur && (state.dur === 'ON8' || state.dur === 'ON9' ? true : !!state.start);
 
-/* ============================================================
-   TOAST
-   ============================================================ */
-let toastTimer = null;
-function toast(msg, icon) {
-  const t = $('#toast');
-  t.innerHTML = (icon || ICON.check) + '<span>' + esc(msg) + '</span>';
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-function copyText(txt, label) {
-  const done = () => toast((label || 'Copied') + ' — ' + txt);
-  const fallback = () => {
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = txt;
-      ta.style.cssText = 'position:fixed;opacity:0';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      done();
-    } catch (e) { toast('Copy is blocked here — ' + txt); }
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(txt).then(done, fallback);
-  } else fallback();
-}
-
-/* ============================================================
-   NAV
-   ============================================================ */
-const nav = $('#nav');
-const navLinks = $('#navLinks');
-window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 14), { passive: true });
-$('#burger').addEventListener('click', () => {
-  const open = navLinks.classList.toggle('open');
-  $('#burger').setAttribute('aria-expanded', open ? 'true' : 'false');
-});
-navLinks.addEventListener('click', e => { if (e.target.closest('a, button.btn')) navLinks.classList.remove('open'); });
-
-/* ============================================================
-   HOMEPAGE — render rooms & branches
-   ============================================================ */
-function renderHomeRooms() {
-  $('#roomGrid').innerHTML = CONFIG.rooms.map((r, i) => `
-    <article class="room-card reveal" data-delay="${i % 3 + 1}">
-      <div class="room-media">
-        <img src="${r.img}" alt="${esc(r.name)} — themed private room" loading="lazy">
-        <div class="room-price"><b>${money(r.rate)}</b><span>/ hour</span></div>
-        <div class="room-kicker">${esc(r.kicker)}</div>
-      </div>
-      <div class="room-body">
-        <h3>${esc(r.name)}</h3>
-        <p>${esc(r.blurb)}</p>
-        <ul class="room-tags">${r.tags.map(t => '<li>' + esc(t) + '</li>').join('')}</ul>
-        <button class="btn btn-primary" data-book data-room="${r.id}">Book This Room</button>
-      </div>
-    </article>`).join('');
-}
-
-function renderHomeBranches() {
-  $('#branchGrid').innerHTML = CONFIG.branches.map((b, i) => `
-    <article class="branch-card reveal" data-delay="${i + 1}">
-      <div class="branch-media">
-        <img src="${b.img}" alt="${esc(b.name)} branch" loading="lazy">
-        <span class="branch-badge">${esc(b.badge)}</span>
-      </div>
-      <div class="branch-body">
-        <div class="branch-loc">${ICON.pin} ${esc(b.area)}</div>
-        <h3>${esc(b.name)}</h3>
-        <p>${esc(b.blurb)}</p>
-        <button class="btn btn-ghost" data-book data-branch="${b.id}">Book at This Branch</button>
-      </div>
-    </article>`).join('');
-}
-
-/* ============================================================
-   HERO SLIDER — random order, 3s, fade + subtle zoom
-   ============================================================ */
-const slider = (() => {
-  const showcase = $('#showcaseFrame');
-  const ambient = $('#heroAmbient');
-  const chip = $('#showcaseChip');
-  let slides = [], ambSlides = [], cur = -1, timer = null, altZoom = false, chipT = null;
-
-  function build() {
-    showcase.innerHTML = CONFIG.rooms.map(r =>
-      `<div class="slide" style="background-image:url('${r.img}')" role="img" aria-label="${esc(r.name)}"></div>`).join('');
-    ambient.innerHTML = CONFIG.rooms.map(r =>
-      `<div class="amb" style="background-image:url('${r.img}')"></div>`).join('');
-    slides = $$('.slide', showcase);
-    ambSlides = $$('.amb', ambient);
-  }
-
-  function show(i) {
-    if (i === cur) return;
-    slides.forEach((s, k) => s.classList.toggle('active', k === i));
-    ambSlides.forEach((s, k) => s.classList.toggle('active', k === i));
-    if (cur >= 0) {
-      altZoom = !altZoom;
-      slides[i].classList.toggle('zoom-out', altZoom);
-    }
-    cur = i;
-    const r = CONFIG.rooms[i];
-    chip.classList.add('swap');
-    clearTimeout(chipT);
-    chipT = setTimeout(() => {
-      $('#chipName').textContent = r.name;
-      $('#chipRate').textContent = money(r.rate) + ' / hour';
-      chip.classList.remove('swap');
-    }, 320);
-  }
-
-  function nextRandom() {
-    if (slides.length < 2) { show(0); return; }
-    let i = cur;
-    while (i === cur) i = Math.floor(Math.random() * slides.length);
-    show(i);
-  }
-
-  function start() { if (!timer) { nextRandom(); timer = setInterval(nextRandom, 3000); } }
-  function stop()  { clearInterval(timer); timer = null; }
-
-  document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
-
-  return { build, start, stop, nextRandom };
-})();
-
-/* ============================================================
-   REVEAL ON SCROLL
-   ============================================================ */
-function initReveal() {
-  const els = $$('.reveal');
-  if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
-  }, { threshold: 0.14, rootMargin: '0px 0px -6% 0px' });
-  els.forEach(e => io.observe(e));
-}
-
-/* ============================================================
-   LIVE MODE — talk to the booking backend when one exists
-   ============================================================ */
-async function detectLive() {
-  const base = CONFIG.api.baseUrl || '';
-  if (!base && (location.protocol !== 'http:' && location.protocol !== 'https:')) {
-    // opened as a local file (or sandboxed preview) — no backend to talk to
-    live.on = false;
-    updateModeUI();
-    return;
-  }
-  try {
-    const r = await fetchTimeout(base + '/api/health', { method: 'GET' }, 3000);
-    if (r.ok) {
-      const j = await r.json();
-      live.on = !!(j && j.ok);
-    }
-  } catch (e) { live.on = false; }
-  updateModeUI();
-}
-
-function updateModeUI() {
-  const badge = $('#modeBadge');
-  if (badge) {
-    badge.textContent = live.on ? 'Live' : 'Demo';
-    badge.classList.toggle('is-live', live.on);
-  }
-  const note = $('#schedModeNote');
-  if (note) {
-    note.innerHTML = live.on
-      ? '<b>Live mode</b> — availability is checked in real time with our booking system.'
-      : 'Demo build — no real-time availability is checked in this version.';
-  }
-  const sn = $('#successModeNote');
-  if (sn) {
-    sn.innerHTML = live.on
-      ? 'Our team has been notified on Telegram and will confirm your booking shortly.'
-      : 'Demo mode — saved only in this browser, no real payment was processed.';
-  }
-}
-
-async function checkAvailability() {
-  if (!live.on || !scheduleValid()) return;
-  state.avail = 'checking';
-  paintStatus();
-  renderActions();
-  if (live.availCtrl) live.availCtrl.abort();
-  live.availCtrl = new AbortController();
-  const base = CONFIG.api.baseUrl || '';
-  const url = base + '/api/availability?branch=' + encodeURIComponent(state.branch) +
-              '&room=' + encodeURIComponent(state.room) + '&date=' + encodeURIComponent(state.date);
-  try {
-    const r = await fetchTimeout(url, { signal: live.availCtrl.signal }, 5000);
-    const j = await r.json();
-    const busy = (j && j.busy) || [];
-    const conflicts = busy.filter(b => overlaps(state.start, state.end, b.start, b.end));
-    state.avail = conflicts.length ? 'busy' : 'ok';
-    state.busyInfo = conflicts;
-  } catch (e) {
-    if (e && e.name === 'AbortError') return;
-    state.avail = 'error';
-  }
-  paintStatus();
-  renderActions();
-}
-
-function paintStatus() {
-  const st = $('#availStatus');
-  st.classList.remove('show', 'ok', 'busy', 'warn', 'checking');
-  if (!scheduleValid()) { st.innerHTML = ''; return; }
-  st.classList.add('show');
-  if (!live.on) {
-    st.classList.add('ok');
-    st.innerHTML = '<span class="st-ico">' + ICON.check + '</span><span>Available — Demo Mode<small>Real-time availability is not enabled in this demonstration.</small></span>';
-    return;
-  }
-  if (state.avail === 'checking') {
-    st.classList.add('checking');
-    st.innerHTML = '<span class="st-ico spin">' + ICON.spin + '</span><span>Checking real-time availability…</span>';
-  } else if (state.avail === 'ok') {
-    st.classList.add('ok');
-    st.innerHTML = '<span class="st-ico">' + ICON.check + '</span><span>Available — real time<small>Live availability from our booking system.</small></span>';
-  } else if (state.avail === 'busy') {
-    const c = (state.busyInfo || []).map(b => fmtTime(b.start) + ' – ' + fmtTime(b.end)).join(' · ');
-    st.classList.add('busy');
-    st.innerHTML = '<span class="st-ico">' + ICON.cross + '</span><span>Not available for those hours<small>Already booked: ' + esc(c || 'overlapping slot') + '. Please choose different hours.</small></span>';
-  } else {
-    st.classList.add('warn');
-    st.innerHTML = '<span class="st-ico">' + ICON.info + '</span><span>Could not verify availability right now<small>You can still submit — our team will confirm with you.</small></span>';
-  }
-}
-
-/* ============================================================
-   BOOKING OVERLAY
-   ============================================================ */
-const overlay = $('#bookingOverlay');
-const overlayBody = $('#overlayBody');
-const stepperEl = $('#stepper');
-const actionsEl = $('#overlayActions');
-
-function lockScroll(on) { document.documentElement.style.overflow = on ? 'hidden' : ''; }
-
-function openBooking(opts) {
-  opts = opts || {};
-  if (state.completed && !opts.room && !opts.branch) resetState(); // fresh flow after a completed booking
-  if (opts.room) state.room = opts.room;
-  if (opts.branch) state.branch = opts.branch;
-  let target;
-  if (opts.branch && opts.room) target = 3;
-  else if (opts.branch) target = 2;
-  else if (opts.room) target = 1;
-  else if (state.branch && state.room) target = Math.min(Math.max(state.step, 3), 4);
-  else if (state.branch) target = 2;
-  else target = 1;
-  overlay.classList.add('open');
-  lockScroll(true);
-  slider.stop();
-  goStep(target);
-}
-
-function closeBooking() {
-  overlay.classList.remove('open');
-  lockScroll(false);
-  slider.start();
-}
-
-/* allow clicking completed steps in the stepper to jump back */
-$$('.step-btn', stepperEl).forEach(btn => {
-  btn.addEventListener('click', () => {
-    const s = +btn.dataset.step;
-    if (s < state.step && s < 5) goStep(s);
-  });
-});
-
-/* ---------- selection panes ---------- */
-function buildPickBranches() {
-  $('#pickBranches').innerHTML = CONFIG.branches.map(b => `
-    <button type="button" class="pick-card" data-branch-id="${b.id}">
-      <span class="pick-media">
-        <img src="${b.img}" alt="${esc(b.name)}" loading="lazy">
-        <span class="pick-check">${ICON.check}</span>
-        <span class="pick-rate">${ICON.pin}<span style="color:var(--ink-dim);font-weight:600">${esc(b.area)}</span></span>
-      </span>
-      <span class="pick-body">
-        <span class="pick-eyebrow">${ICON.pin} ${esc(b.badge)}</span>
-        <b class="pick-title">${esc(b.name)}</b>
-        <span class="pick-desc">${esc(b.blurb)}</span>
-        <span class="pick-cta">Select this branch →</span>
-      </span>
-    </button>`).join('');
-  $$('#pickBranches .pick-card').forEach(card => {
-    card.addEventListener('click', () => {
-      state.branch = card.dataset.branchId;
-      refreshPicks();
-      renderActions();
-    });
-  });
-}
-
-function buildPickRooms() {
-  $('#pickRooms').innerHTML = CONFIG.rooms.map(r => `
-    <button type="button" class="pick-card" data-room-id="${r.id}">
-      <span class="pick-media">
-        <img src="${r.img}" alt="${esc(r.name)}" loading="lazy">
-        <span class="pick-check">${ICON.check}</span>
-        <span class="pick-rate"><b>${money(r.rate)}</b><span>/ hour</span></span>
-      </span>
-      <span class="pick-body">
-        <span class="pick-eyebrow">${esc(r.kicker)}</span>
-        <b class="pick-title">${esc(r.name)}</b>
-        <span class="pick-desc">${esc(r.blurb)}</span>
-        <span class="pick-cta">Select this room →</span>
-      </span>
-    </button>`).join('');
-  $$('#pickRooms .pick-card').forEach(card => {
-    card.addEventListener('click', () => {
-      state.room = card.dataset.roomId;
-      refreshPicks();
-      renderActions();
-    });
-  });
-}
-
-function refreshPicks() {
-  $$('#pickBranches .pick-card').forEach(c => c.classList.toggle('selected', c.dataset.branchId === state.branch));
-  $$('#pickRooms .pick-card').forEach(c => c.classList.toggle('selected', c.dataset.roomId === state.room));
-}
-
-/* ---------- stepper / panes / actions ---------- */
 function goStep(n) {
   state.step = n;
-  $$('.step-btn', stepperEl).forEach((el, i) => {
-    const s = i + 1;
-    el.classList.toggle('current', s === n);
-    el.classList.toggle('done', s < n);
+  for (let i = 1; i <= 5; i++) { const p = $('#pane' + i); if (p) p.hidden = (i !== n); }
+  $$('.step-btn').forEach(b => {
+    const s = Number(b.dataset.step);
+    b.classList.toggle('active', s === n);
+    b.classList.toggle('done', s < n);
   });
-  $$('.step-line', stepperEl).forEach((el, i) => el.classList.toggle('done', i + 1 < n));
-  stepperEl.style.display = (n === 5) ? 'none' : '';
-  $$('.pane', overlayBody).forEach(p => p.classList.toggle('active', +p.dataset.pane === n));
-  overlayBody.scrollTop = 0;
-  if (n === 3) initSchedulePane();
+  if (n === 2) buildRoomGrid();
+  if (n === 3) buildGuest();
   if (n === 4) buildReview();
   if (n === 5) buildSuccess();
-  renderActions();
-  $('#overlayBack').style.visibility = (n === 5) ? 'hidden' : 'visible';
-}
-
-function renderActions() {
-  const n = state.step;
-  let html = '';
-  if (n === 1) {
-    html = `<span class="hint">Step 1 of 4 · Choose where your story begins</span>
-      <span class="actions-right"><button class="btn btn-primary btn-lg" id="actNext" ${state.branch ? '' : 'disabled'}>Continue</button></span>`;
-  } else if (n === 2) {
-    html = `<button class="btn btn-ghost" id="actBack">← Back</button>
-      <span class="actions-right"><button class="btn btn-primary btn-lg" id="actNext" ${state.room ? '' : 'disabled'}>Continue</button></span>`;
-  } else if (n === 3) {
-    html = `<button class="btn btn-ghost" id="actBack">← Back</button>
-      <span class="actions-right"><button class="btn btn-primary btn-lg" id="actNext" ${reviewEnabled() ? '' : 'disabled'}>Review Booking →</button></span>`;
-  } else if (n === 4) {
-    html = `<button class="btn btn-ghost" id="actBack">← Back</button>
-      <span class="actions-right"><button class="btn btn-primary btn-lg" id="actConfirm" ${reviewValid() && !(live.on && state.avail === 'busy') ? '' : 'disabled'}>Confirm Booking ✓</button></span>`;
-  } else {
-    html = `<button class="btn btn-ghost" id="actReset">Book Another Stay</button>
-      <span class="actions-right"><button class="btn btn-primary btn-lg" id="actDone">Done</button></span>`;
-  }
-  actionsEl.innerHTML = html;
-  const back = $('#actBack');
-  if (back) back.addEventListener('click', () => goStep(state.step - 1));
-  const next = $('#actNext');
-  if (next) next.addEventListener('click', () => goStep(state.step + 1));
-  const confirm = $('#actConfirm');
-  if (confirm) confirm.addEventListener('click', confirmBooking);
-  const done = $('#actDone');
-  if (done) done.addEventListener('click', () => { resetFlow(); closeBooking(); });
-  const reset = $('#actReset');
-  if (reset) reset.addEventListener('click', resetFlow);
-}
-
-function resetState() {
-  state.step = 1; state.branch = null; state.room = null;
-  state.date = ''; state.start = ''; state.end = '';
-  state.name = ''; state.phone = ''; state.contact = '';
-  state.agreed = false; state.ref = null; state.completed = false;
-  state.avail = live.on ? 'unknown' : 'off';
-  refreshPicks();
-  const d = $('#bkDate'), s = $('#bkIn'), e = $('#bkOut');
-  if (d) d.value = '';
-  if (s) s.value = '';
-  if (e) e.value = '';
-  const nm = $('#bkName'), ph = $('#bkPhone'), ct = $('#bkContact');
-  if (nm) nm.value = '';
-  if (ph) ph.value = '';
-  if (ct) ct.value = '';
-  const ag = $('#agreeChk');
-  if (ag) ag.checked = false;
-}
-
-function resetFlow() {
-  resetState();
-  goStep(1);
+  if (D) D.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /* ============================================================
-   STEP 3 — SCHEDULE (check-in / check-out, whole hours only)
+   STEP 1 — SCHEDULE
    ============================================================ */
-function initSchedulePane() {
-  const d = $('#bkDate'), s = $('#bkIn'), e = $('#bkOut');
+function initSchedule() {
+  const d = $('#bkDate');
+  d.min = new Date().toLocaleDateString('en-CA');
   if (!d.dataset.init) {
     d.dataset.init = '1';
-    d.min = new Date().toLocaleDateString('en-CA');
-    [d, s, e].forEach(el => { el.addEventListener('input', recalcSchedule); el.addEventListener('change', recalcSchedule); });
-    $$('#hourChips button').forEach(chip => {
+    d.addEventListener('change', () => { state.date = d.value; syncSchedule(); });
+    $$('#durChips button').forEach(chip => {
       chip.addEventListener('click', () => {
-        const h = +chip.dataset.hours;
-        if (!state.start) { toast('Pick a check-in time first', ICON.info); $('#bkIn').focus(); return; }
-        const out = toMin(state.start) + h * 60;
-        if (out >= 1440) { toast('That would pass midnight — choose fewer hours', ICON.info); return; }
-        $('#bkOut').value = toHHMM(out);
-        recalcSchedule();
+        $$('#durChips button').forEach(c => c.classList.remove('sel'));
+        chip.classList.add('sel');
+        state.dur = chip.dataset.dur;
+        state.poolCustom = (state.dur === 'X');
+        $('#poolDur').hidden = !state.poolCustom;
+        syncSchedule();
       });
     });
+    $('#hrsMinus').addEventListener('click', () => { state.poolHours = Math.max(1, state.poolHours - 1); $('#hrsVal').textContent = state.poolHours; syncSchedule(); });
+    $('#hrsPlus').addEventListener('click', () => { state.poolHours = Math.min(12, state.poolHours + 1); $('#hrsVal').textContent = state.poolHours; syncSchedule(); });
+    $('#bkIn').addEventListener('change', () => { state.start = $('#bkIn').value; syncSchedule(); });
+    $('#actNext1').addEventListener('click', () => {
+      if (!scheduleValid()) { toast(t(state.dur ? 'tDur' : 'tDur'), ICON.info); return; }
+      goStep(2);
+    });
   }
-  d.value = state.date; s.value = state.start; e.value = state.end;
-  $('#schedRoomPill').innerHTML = ICON.cal + ' <b>' + esc(getRoom() ? getRoom().name : '—') + '</b>&nbsp;·&nbsp;' + money(getRoom() ? getRoom().rate : 0) + ' / hour';
-  $('#schedBranchPill').innerHTML = ICON.pin + ' <b>' + esc(getBranch() ? getBranch().name : '—') + '</b>';
-  recalcSchedule();
-  if (live.on) checkAvailability();
+  syncSchedule();
 }
 
-function recalcSchedule() {
-  if (!getRoom() || !getBranch()) return;
-  state.date  = $('#bkDate').value || '';
-  state.start = $('#bkIn').value || '';
-  state.end   = $('#bkOut').value || '';
+function syncSchedule() {
+  const note = $('#priceNote'), dNote = $('#dateTypeNote');
+  if (state.date) dNote.textContent = '📅 ' + (isWeekend(state.date) ? t('weekend') : t('weekday')) + ' pricing applies';
+  else dNote.textContent = '';
 
-  const hasIn = !!state.start, hasOut = !!state.end;
-  const orderOk = hasIn && hasOut && toMin(state.end) > toMin(state.start);
-  const wholeOk = orderOk && (toMin(state.end) - toMin(state.start)) % 60 === 0;
-
-  const items = {
-    date:  state.date ? 'ok' : '',
-    in:    hasIn ? 'ok' : '',
-    out:   hasOut ? 'ok' : '',
-    order: (hasIn && hasOut) ? (orderOk ? 'ok' : 'bad') : '',
-    whole: orderOk ? (wholeOk ? 'ok' : 'bad') : ''
-  };
-  $$('#schedChecks li').forEach(li => {
-    const k = li.dataset.check;
-    li.classList.toggle('ok', items[k] === 'ok');
-    li.classList.toggle('bad', items[k] === 'bad');
-  });
-
-  /* hour chips: highlight matching duration, disable ones past midnight */
-  const mins = orderOk ? toMin(state.end) - toMin(state.start) : 0;
-  $$('#hourChips button').forEach(chip => {
-    const h = +chip.dataset.hours;
-    chip.classList.toggle('active', wholeOk && mins === h * 60);
-    const crossesMidnight = hasIn && toMin(state.start) + h * 60 >= 1440;
-    chip.disabled = crossesMidnight;
-  });
-
-  const valid = scheduleValid();
-  $('#sumRoom').innerHTML = '<b>' + esc(getRoom().name) + '</b> · ' + money(getRoom().rate) + ' / hour';
-  $('#sumBranch').textContent = getBranch().name;
-  $('#sumRate').textContent = money(getRoom().rate) + ' / hour';
-  $('#sumDur').textContent = valid ? fmtDur(mins) : '—';
-  $('#sumTotal').textContent = valid ? money(totalPrice()) : '—';
-  $('#sumHours').textContent = valid ? (mins / 60) + (mins >= 120 ? ' hours' : ' hour') : 'select times';
-
-  if (valid && live.on && (state.avail === 'ok' || state.avail === 'busy')) {
-    // times changed → previous verdict is stale
-    state.avail = 'unknown';
+  const isON = state.dur === 'ON8' || state.dur === 'ON9';
+  $('#checkinField').hidden = isON || !state.dur;
+  $('#ovField').hidden = !isON;
+  if (isON) {
+    const info = durInfo();
+    $('#ovTimes').innerHTML = '<div>' + esc(t('s1OvLine', { in: info.checkIn, out: info.checkOut })) + '</div>';
   }
-  paintStatus();
-  renderActions();
-  if (valid && live.on) checkAvailability();
+
+  /* build check-in hour options allowed for this duration */
+  if (!isON && state.dur) {
+    const h = state.poolCustom ? state.poolHours : Number(state.dur);
+    const sel = $('#bkIn');
+    const cur = state.start;
+    const lastStart = 23 - h;                                  // check-out must be ≤ 23:00
+    let html = '<option value="" disabled selected>' + esc(t('s1In')) + '</option>';
+    for (let hr = 8; hr <= lastStart; hr++) {
+      const v = String(hr).padStart(2, '0') + ':00';
+      html += '<option value="' + v + '">' + v + '</option>';
+    }
+    sel.innerHTML = html;
+    if (cur && toMin(cur) <= lastStart * 60) { sel.value = cur; }
+    else state.start = sel.value || '';
+  }
+
+  /* live price note */
+  if (state.date && state.dur) {
+    const wk = isWeekend(state.date) ? 'weekend' : 'weekday';
+    const parts = [];
+    const std = priceFor('vintage', state.date, state.dur);
+    const vip = priceFor('veggie', state.date, state.dur);
+    const pool = priceFor('pool', state.date, state.dur);
+    if (std != null) parts.push('Standard ' + money(std));
+    if (vip != null) parts.push('VIP ' + money(vip));
+    if (pool != null) parts.push('Pool ' + money(pool));
+    note.innerHTML = '💰 ' + esc(t(wk)) + (state.dur === 'ON8' || state.dur === 'ON9' ? ' · ' + esc(t('overnight')) : ' · ' + (state.poolCustom ? state.poolHours : state.dur) + ' ' + esc(t('hoursWord'))) +
+      ' → <b>' + parts.join(' · ') + '</b>';
+  } else note.textContent = '';
+
+  const b = $('#actNext1');
+  if (b) b.disabled = !scheduleValid();
 }
 
 /* ============================================================
-   RECEIPT BUILDER
+   STEP 2 — ROOM PICKER
+   ============================================================ */
+async function buildRoomGrid() {
+  const grid = $('#roomGrid');
+  const info = durInfo();
+  let busyMap = {};
+  if (live.on) {
+    try {
+      const base = CONFIG.api.baseUrl || '';
+      const q = '?date=' + encodeURIComponent(state.date) + '&checkIn=' + encodeURIComponent(info.checkIn) +
+                '&checkOut=' + encodeURIComponent(info.checkOut) + '&hours=' + info.hours;
+      const r = await fetchTimeout(base + '/api/availability' + q, { method: 'GET' }, 6000);
+      const j = await r.json().catch(() => ({}));
+      (j.busy || []).forEach(bk => { busyMap[bk.room] = true; });
+    } catch (e) { /* offline → treat all as available */ }
+  }
+  const free = ROOMS.filter(r => !busyMap[r.id] && priceFor(r.id, state.date, state.dur) != null);
+  const note = $('#roomAvailNote');
+  note.textContent = live.on ? t('s2Note', { n: free.length, t: ROOMS.length }) : t('s2NoteDemo');
+
+  grid.innerHTML = ROOMS.map(r => {
+    const p = priceFor(r.id, state.date, state.dur);
+    const busy = !!busyMap[r.id];
+    const unavail = busy || p == null;
+    const flag = r.type === 'vip' ? '<span class="room-flag vip">VIP</span>'
+               : r.type === 'pool' ? '<span class="room-flag pool">POOL</span>'
+               : '<span class="room-flag">STANDARD</span>';
+    const busyTag = busy ? '<span class="room-flag busy">✕ ' + esc(t('roomTaken')) + '</span>' : '';
+    const vipBox = r.type === 'vip' ? '<div class="vip-includes"><b>👑 ' + esc(t('vipIncludesTitle')) + '</b>' +
+      VIP_INCLUDES.map(x => esc(x)).join(' · ') + '</div>' : '';
+    const price = p != null
+      ? (r.type === 'pool'
+          ? '<span class="room-price">' + money(CONFIG.poolRate) + esc(t('perHour')) + ' · ' + money(p) + ' / ' + (state.poolCustom ? state.poolHours : state.dur) + 'h</span>'
+          : '<span class="room-price">' + money(p) + (state.dur === 'ON8' || state.dur === 'ON9' ? ' · ' + esc(t('overnight')) : ' / ' + (state.poolCustom ? state.poolHours : state.dur) + 'h') + '</span>')
+      : '<span class="room-price">' + esc(t('poolNoOvernight')) + '</span>';
+    return '<div class="room-card' + (state.room === r.id ? ' sel' : '') + (unavail ? ' unavail' : '') + '" data-room="' + r.id + '">' +
+      '<div class="room-pic"><img src="' + r.img + '" alt="' + esc(r.name) + '" loading="lazy">' + flag + busyTag + '</div>' +
+      '<div class="room-body"><h4>' + esc(r.name) + '</h4><p class="room-blurb">' + esc(r.blurb) + '</p>' +
+      '<div class="room-tags">' + r.tags.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' +
+      vipBox + price + '</div></div>';
+  }).join('');
+
+  $$('#roomGrid .room-card').forEach(card => {
+    card.addEventListener('click', () => {
+      if (card.classList.contains('unavail')) return;
+      $$('#roomGrid .room-card').forEach(c => c.classList.remove('sel'));
+      card.classList.add('sel');
+      state.room = card.dataset.room;
+      $('#actNext2').disabled = false;
+    });
+  });
+  $('#actNext2').disabled = !state.room;
+  $('#actBack2').onclick = () => goStep(1);
+  $('#actNext2').onclick = () => goStep(3);
+}
+
+/* ============================================================
+   STEP 3 — GUEST DETAILS (phone validation + ID upload)
+   ============================================================ */
+function buildGuest() {
+  const nm = $('#bkName'), ph = $('#bkPhone');
+  nm.value = state.name; ph.value = state.phone;
+  const isON = state.dur === 'ON8' || state.dur === 'ON9';
+  $('#idField').hidden = !isON;
+
+  if (!nm.dataset.init) {
+    nm.dataset.init = '1';
+    nm.addEventListener('input', () => { state.name = nm.value; guestValid(); });
+    /* phone: digits only, live-filtered */
+    ph.addEventListener('input', () => {
+      const clean = ph.value.replace(/\D+/g, '');
+      if (clean !== ph.value) ph.value = clean;
+      state.phone = clean; guestValid();
+    });
+    ph.addEventListener('blur', () => {
+      if (state.phone && !phoneOk(state.phone)) toast(t('tPhoneLen'), ICON.info);
+    });
+    $('#idUpload').addEventListener('change', readIdFile);
+    $('#idClear').addEventListener('click', () => {
+      state.idCard = ''; $('#idUpload').value = ''; $('#idPreview').hidden = true; guestValid();
+    });
+    $('#actBack3').onclick = () => goStep(2);
+    $('#actNext3').onclick = () => {
+      if (!state.name.trim()) { toast(t('tName'), ICON.info); return; }
+      if (!phoneOk(state.phone)) { toast(t('tPhoneLen'), ICON.info); return; }
+      if (isON && !state.idCard) { toast(t('tId'), ICON.info); return; }
+      goStep(4);
+    };
+  }
+  guestValid();
+}
+const phoneOk = p => /^[0-9]{8,15}$/.test(p);
+function guestValid() {
+  const isON = state.dur === 'ON8' || state.dur === 'ON9';
+  const valid = !!(state.name.trim() && phoneOk(state.phone) && (!isON || !!state.idCard));
+  $('#actNext3').disabled = !valid;
+}
+
+/* read + downscale ID image to a data URL (max 1280px, jpeg) */
+function readIdFile(ev) {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  if (!/^image\//.test(f.type)) { toast(t('tId'), ICON.info); return; }
+  const rd = new FileReader();
+  rd.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 1280;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale); cv.height = Math.round(img.height * scale);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      state.idCard = cv.toDataURL('image/jpeg', 0.82);
+      $('#idPreviewImg').src = state.idCard;
+      $('#idPreview').hidden = false;
+      toast(t('s3IdOk'), ICON.ok);
+      guestValid();
+    };
+    img.src = rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+
+/* ============================================================
+   STEP 4 — REVIEW + PAY + CONFIRM
    ============================================================ */
 function receiptHTML() {
-  const r = getRoom(), b = getBranch();
-  const valid = scheduleValid();
-  return `
-  <div class="receipt-head">
-    <img src="${IMG.logo}" alt="${esc(CONFIG.brand)} logo">
-    <div>
-      <b>${esc(CONFIG.brand.toUpperCase())}</b>
-      <span>Private Room Experience · Phnom Penh</span>
-    </div>
-    <div class="receipt-ref">Booking Ref<b>${esc(state.ref || '—')}</b></div>
-  </div>
-  <div class="receipt-rows">
-    <div class="receipt-row"><span>Branch</span><b>${esc(b ? b.name + ' — ' + b.short : '—')}</b></div>
-    <div class="receipt-row"><span>Room</span><b>${esc(r ? r.name : '—')}</b></div>
-    <div class="receipt-row"><span>Booking date</span><b>${state.date ? esc(fmtDate(state.date)) : '—'}</b></div>
-    <div class="receipt-row mono"><span>Check-in</span><b>${state.start ? esc(fmtTime(state.start)) : '—'}</b></div>
-    <div class="receipt-row mono"><span>Check-out</span><b>${state.end ? esc(fmtTime(state.end)) : '—'}</b></div>
-    <div class="receipt-row"><span>Duration</span><b>${valid ? esc(fmtDur(durationMin())) : '—'}</b></div>
-    <div class="receipt-row"><span>Hourly rate</span><b>${r ? money(r.rate) + ' / hour' : '—'}</b></div>
-  </div>
-  <div class="receipt-total"><span>Estimated Total</span><b>${valid ? money(totalPrice()) : '—'}</b></div>
-  <div class="receipt-rows">
-    <div class="receipt-row"><span>Guest name</span><b>${state.name ? esc(state.name) : '—'}</b></div>
-    <div class="receipt-row mono"><span>Contact</span><b>${state.phone ? esc(state.phone + (state.contact ? ' · ' + state.contact : '')) : '—'}</b></div>
-  </div>
-  <div class="receipt-foot">
-    <b>Thank you for staying hidden</b>
-    ${live.on ? 'Please complete the KHQR payment to confirm your booking' : 'Please present this slip upon arrival · Demonstration copy — not a real transaction'}
-  </div>`;
-}
-
-/* ============================================================
-   STEP 4 — REVIEW + KHQR PAYMENT
-   ============================================================ */
-function reviewValid() {
-  return !!(scheduleValid() && state.agreed && state.name.trim() && state.phone.trim());
+  const r = roomById(state.room), info = durInfo();
+  const wk = isWeekend(state.date) ? 'weekend' : 'weekday';
+  const isON = info.overnight;
+  const total = priceFor(state.room, state.date, state.dur);
+  const row = (k, v) => '<div class="rc-row"><span>' + esc(k) + '</span><b>' + v + '</b></div>';
+  return row(t('rcDate'), esc(state.date) + ' (' + esc(t(wk)) + ')') +
+         row(t('rcRoom'), esc(r ? r.name : '—')) +
+         row(t('rcType'), esc(r ? r.type.toUpperCase() + (r.type === 'vip' ? ' (+' + CONFIG.vipUpgrade + ')' : '') : '—')) +
+         row(t('rcIn'), esc(info.checkIn) + (isON ? ' 🌙' : '')) +
+         row(t('rcOut'), esc(info.checkOut) + (isON ? ' ☀️' : '')) +
+         row(t('rcDur'), isON ? esc(t('overnight')) + ' (12h)' : info.hours + ' ' + esc(t('hoursWord'))) +
+         row(t('rcGuest'), esc(state.name)) +
+         row(t('rcPhone'), esc(state.phone)) +
+         row(t('rcId'), isON ? (state.idCard ? esc(t('rcIdYes')) : '—') : esc(t('rcIdNo'))) +
+         '<div class="rc-row rc-total"><span>' + esc(t('total')) + '</span><b>' + money(total) + '</b></div>';
 }
 
 function buildReview() {
-  if (!state.ref) state.ref = genRef();
   $('#reviewReceipt').innerHTML = receiptHTML();
-  $('#payAmount').textContent = money(totalPrice());
-  $('#payAmount2').textContent = money(totalPrice());
-  $('#payDate').textContent = state.date ? fmtDate(state.date) : '—';
-  renderKHQR($('#khqrCanvas'), totalPrice());
-  $('#khqrDemoNote').style.display = khqrConfigured() ? 'none' : '';
-  const ab = $('#abaPayBtn');
-  if (ab) {
-    ab.href = bakongPayLink(totalPrice());
-    ab.style.display = khqrConfigured() ? '' : 'none';
-    const amt = $('#abaPayAmt'); if (amt) amt.textContent = money(totalPrice());
-  }
-
-  const nm = $('#bkName'), ph = $('#bkPhone'), ct = $('#bkContact'), ag = $('#agreeChk');
-  nm.value = state.name; ph.value = state.phone; ct.value = state.contact; ag.checked = state.agreed;
+  $('#termsList').innerHTML = t('rules').map(r => '<li>' + r + '</li>').join('');
+  const ag = $('#agreedTerms');
+  ag.checked = state.agreed;
   $('#paySection').classList.toggle('open', state.agreed);
-
-  if (!nm.dataset.init) {
-    nm.dataset.init = ph.dataset.init = ct.dataset.init = ag.dataset.init = '1';
-    nm.addEventListener('input', () => { state.name = nm.value; nm.closest('.field').classList.remove('invalid'); syncReview(); });
-    ph.addEventListener('input', () => { state.phone = ph.value; ph.closest('.field').classList.remove('invalid'); syncReview(); });
-    ct.addEventListener('input', () => { state.contact = ct.value; });
+  $('#payAmount').textContent = money(priceFor(state.room, state.date, state.dur));
+  $('#payRef').textContent = '';
+  renderKHQR($('#khqrCanvas'), priceFor(state.room, state.date, state.dur));
+  if (!ag.dataset.init) {
+    ag.dataset.init = '1';
     ag.addEventListener('change', () => {
       state.agreed = ag.checked;
       $('#paySection').classList.toggle('open', state.agreed);
-      syncReview();
-      if (state.agreed) toast('Terms accepted — payment section unlocked');
+      syncConfirmBtn();
     });
+    $('#actBack4').onclick = () => goStep(3);
+    $('#actConfirm').addEventListener('click', confirmBooking);
   }
-  syncReview();
+  syncConfirmBtn();
 }
-
-function syncReview() {
-  $('#reviewReceipt').innerHTML = receiptHTML();
-  const btn = $('#actConfirm');
-  if (btn) btn.disabled = !reviewValid();
+function syncConfirmBtn() {
+  const info = durInfo(), isON = info.overnight;
+  const valid = state.agreed && state.name.trim() && phoneOk(state.phone) && (!isON || !!state.idCard) && state.room;
+  $('#actConfirm').disabled = !valid;
 }
 
 async function confirmBooking() {
-  const nm = $('#bkName'), ph = $('#bkPhone');
-  let ok = true;
-  if (!state.name.trim()) { nm.closest('.field').classList.add('invalid'); ok = false; }
-  if (!state.phone.trim()) { ph.closest('.field').classList.add('invalid'); ok = false; }
-  if (!ok || !reviewValid() || !scheduleValid()) { toast('Please complete your details and accept the terms', ICON.info); return; }
-
   const btn = $('#actConfirm');
-  const busyInfo = live.on && state.avail === 'busy';
-  if (busyInfo) { toast('Those hours are not available — please change your schedule', ICON.cross); goStep(3); return; }
-
-  /* local record (works in demo AND live) */
-  const r = getRoom(), b = getBranch();
-  const localBooking = {
-    ref: state.ref,
-    branch: b.name, branchArea: b.short,
-    room: r.name,
-    date: fmtDate(state.date),
-    start: fmtTime(state.start),
-    end: fmtTime(state.end),
-    duration: fmtDur(durationMin()),
-    rate: money(r.rate) + ' / hour',
-    total: money(totalPrice()),
-    name: state.name.trim(),
-    phone: state.phone.trim(),
-    contact: state.contact.trim(),
-    status: 'Pending · Demo',
-    source: live.on ? 'website · live' : 'website · demo',
-    created: new Date().toISOString()
-  };
-
-  if (live.on) {
-    btn.disabled = true;
-    btn.textContent = 'Submitting…';
+  const r = roomById(state.room), info = durInfo();
+  btn.disabled = true; btn.textContent = '…';
+  try {
     const base = CONFIG.api.baseUrl || '';
-    try {
-      const resp = await fetchTimeout(base + '/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          branch: state.branch, room: state.room,
-          date: state.date, checkIn: state.start, checkOut: state.end,
-          name: state.name.trim(), phone: state.phone.trim(), contact: state.contact.trim()
-        })
-      }, 8000);
-      const j = await resp.json().catch(() => ({}));
-      if (resp.status === 409) {
-        state.avail = 'busy';
-        state.busyInfo = (j && j.busy) || [];
-        paintStatus();
-        toast('Those hours were just taken — please pick other hours', ICON.cross);
-        goStep(3);
-        return;
-      }
-      if (!resp.ok || !j.ok) throw new Error('server error');
-      if (j.ref) state.ref = j.ref;                    // use the server's reference
-      localBooking.ref = state.ref;
-      localBooking.status = 'Pending · Live';
-    } catch (e) {
-      // network/server failure → keep the booking locally, warn
-      toast('Could not reach the server — saved locally for now', ICON.info);
-    }
-    btn.textContent = 'Confirm Booking ✓';
+    const resp = await fetchTimeout(base + '/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        room: state.room, date: state.date,
+        checkIn: info.checkIn, checkOut: info.checkOut,
+        hours: info.hours, overnight: info.overnight,
+        name: state.name.trim(), phone: state.phone.trim(), contact: '',
+        idCard: info.overnight ? state.idCard : ''
+      })
+    }, 12000);
+    const j = await resp.json().catch(() => ({}));
+    if (resp.status === 409) { toast(t('tBusy'), ICON.cross); goStep(2); return; }
+    if (!resp.ok || !j.ok) throw new Error('server error');
+    state.ref = j.booking ? j.booking.ref : (j.ref || '');
+    toast(t('tDone'), ICON.ok);
+    state.completed = true;
+    goStep(5);
+  } catch (e) {
+    toast(t('tServer'), ICON.cross);
   }
-
-  const list = store.get(BOOKINGS_KEY) || [];
-  list.push(localBooking);
-  store.set(BOOKINGS_KEY, list);
-  state.completed = true;
-  goStep(5);
+  btn.textContent = t('confirmBtn');
+  syncConfirmBtn();
 }
 
 /* ============================================================
-   STEP 5 — SUCCESS
+   STEP 5 — SUCCESS (Telegram confirmation hand-off)
    ============================================================ */
 function buildSuccess() {
+  $('#tgConfirmBtn').href = CONFIG.botUrl + '?start=' + encodeURIComponent(state.ref);
+  $('#s5RefNote').textContent = t('s5RefNote', { ref: state.ref });
   $('#successReceipt').innerHTML = receiptHTML();
+  const again = $('#actAgain');
+  again.onclick = () => {
+    Object.assign(state, { step: 1, date: '', dur: '', poolHours: 2, poolCustom: false, start: '', room: '', name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
+    $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = '';
+    $('#idUpload').value = ''; $('#idPreview').hidden = true;
+    $$('#durChips button').forEach(c => c.classList.remove('sel'));
+    initSchedule();
+    goStep(1);
+  };
 }
 
 /* ============================================================
-   MY BOOKINGS (localStorage viewer)
+   SHOWCASE (rooms section) + static bits
    ============================================================ */
-const bookingsModal = $('#bookingsModal');
-function openBookings() { renderBookings(); bookingsModal.classList.add('open'); }
-function closeBookings() { bookingsModal.classList.remove('open'); }
+function renderShowcase() {
+  const card = r => {
+    const flag = r.type === 'vip' ? '<span class="room-flag vip">VIP</span>'
+               : r.type === 'pool' ? '<span class="room-flag pool">POOL</span>'
+               : '<span class="room-flag">STANDARD</span>';
+    const vipBox = r.type === 'vip' ? '<div class="vip-includes"><b>👑 ' + esc(t('vipIncludesTitle')) + '</b>' + VIP_INCLUDES.map(esc).join(' · ') + '</div>' : '';
+    const price = r.type === 'pool'
+      ? '<span class="room-price">' + money(CONFIG.poolRate) + esc(t('perHour')) + '</span>'
+      : '<span class="room-price">' + esc(t('fromPrice')) + ' ' + money(CONFIG.pricing.weekday[2] + (r.type === 'vip' ? CONFIG.vipUpgrade : 0)) + ' / 2h <small>· ' + esc(t('weekend')) + ' ' + money(CONFIG.pricing.weekend[2] + (r.type === 'vip' ? CONFIG.vipUpgrade : 0)) + '</small></span>';
+    return '<div class="room-card"><div class="room-pic"><img src="' + r.img + '" alt="' + esc(r.name) + '" loading="lazy">' + flag + '</div>' +
+      '<div class="room-body"><h4>' + esc(r.name) + '</h4><p class="room-blurb">' + esc(r.blurb) + '</p>' +
+      '<div class="room-tags">' + r.tags.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' + vipBox + price + '</div></div>';
+  };
+  $('#showPool').innerHTML = ROOMS.filter(r => r.type === 'pool').map(card).join('');
+  $('#showStd').innerHTML  = ROOMS.filter(r => r.type === 'standard').map(card).join('');
+  $('#showVip').innerHTML  = ROOMS.filter(r => r.type === 'vip').map(card).join('');
+}
 
-function renderBookings() {
-  const list = (store.get(BOOKINGS_KEY) || []).slice().reverse();
-  const body = $('#bookingsBody');
-  if (!list.length) {
-    body.innerHTML = `<div class="modal-empty">${ICON.cal}<p>No bookings yet on this device.<br>Make your first one — it only takes a minute.</p></div>`;
-  } else {
-    body.innerHTML = list.map(bk => `
-      <div class="bk-item">
-        <div class="bk-item-top"><b>${esc(bk.ref)}</b><span class="bk-status">${esc(bk.status)}</span></div>
-        <div class="bk-item-rows">
-          <div><span>Room</span><b>${esc(bk.room)}</b></div>
-          <div><span>Branch</span><b>${esc(bk.branch)}</b></div>
-          <div><span>Date</span><b>${esc(bk.date)}</b></div>
-          <div><span>Check-in / out</span><b>${esc(bk.start)} – ${esc(bk.end)} · ${esc(bk.duration)}</b></div>
-          <div><span>Guest</span><b>${esc(bk.name)}</b></div>
-        </div>
-        <div class="bk-item-foot">
-          <span class="amt">${esc(bk.total)}</span>
-          <button class="bk-del" data-ref="${esc(bk.ref)}">Remove</button>
-        </div>
-      </div>`).join('');
-    $$('.bk-del', body).forEach(btn => btn.addEventListener('click', () => {
-      const cur = store.get(BOOKINGS_KEY) || [];
-      store.set(BOOKINGS_KEY, cur.filter(x => x.ref !== btn.dataset.ref));
-      renderBookings();
-      toast('Booking removed from this device');
-    }));
-  }
-  $('#storageNote').innerHTML = store.persistent
-    ? 'Bookings are saved locally in this browser only (demo storage).'
-    : '<b>Preview note:</b> this sandbox blocks saved storage, so bookings last only for this preview session. Open the file in a normal browser tab and they will persist on the device.';
+function renderStatic() {
+  $('#termsListFull').innerHTML = t('rules').map(r => '<li>' + r + '</li>').join('');
+  $('#yr').textContent = new Date().getFullYear();
 }
 
 /* ============================================================
-   GLOBAL EVENTS
+   BOOT
    ============================================================ */
-document.addEventListener('click', e => {
-  const bookBtn = e.target.closest('[data-book]');
-  if (bookBtn) {
-    e.preventDefault();
-    openBooking({
-      room: bookBtn.dataset.room || null,
-      branch: bookBtn.dataset.branch || null
-    });
-    return;
-  }
-  if (e.target.closest('[data-open-bookings]')) { openBookings(); return; }
-  if (e.target.closest('[data-close-bookings]') || e.target === bookingsModal) { closeBookings(); return; }
-  const cp = e.target.closest('[data-copy]');
-  if (cp) { copyText(cp.dataset.copy, cp.dataset.copyLabel); }
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
-  if (bookingsModal.classList.contains('open')) closeBookings();
-  else if (overlay.classList.contains('open')) closeBooking();
-});
-
-$('#overlayClose').addEventListener('click', closeBooking);
-$('#overlayBack').addEventListener('click', () => {
-  if (state.step > 1 && state.step < 5) goStep(state.step - 1);
-  else closeBooking();
-});
-
-/* ============================================================
-   INIT
-   ============================================================ */
-renderHomeRooms();
-renderHomeBranches();
-buildPickBranches();
-buildPickRooms();
-slider.build();
-slider.start();
-initReveal();
-detectLive();
+(async function boot() {
+  LANG = store.get('hh_lang') || 'en';
+  applyI18n(); renderShowcase(); renderStatic();
+  $('#langEn').addEventListener('click', () => { LANG = 'en'; store.set('hh_lang', 'en'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step >= 4) buildReview(); if (state.step === 5) buildSuccess(); });
+  $('#langKh').addEventListener('click', () => { LANG = 'kh'; store.set('hh_lang', 'kh'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step >= 4) buildReview(); if (state.step === 5) buildSuccess(); });
+  initSchedule();
+  $$('.step-btn').forEach(b => b.addEventListener('click', () => { const s = Number(b.dataset.step); if (s < state.step && !state.completed) goStep(s); }));
+  await detectLive();
+})();

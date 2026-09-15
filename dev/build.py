@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Hidden Homestay — single-file site builder.
+Hidden Homestay — single-file site builder (v3).
 
-Reads dev/template.html, dev/styles.css, dev/app.js and the images in
-assets/, then produces a fully self-contained index.html (all images
-inlined as data URIs). No server, no external requests needed.
+Reads dev/template.html, dev/styles.css, dev/app.js and the bundled QR
+library, then produces a self-contained index.html (logo + Khmer font
+inlined as data URIs). Room photos / guidelines / menus live in assets/
+and are served by the booking server as normal files.
 
 Usage:  python3 dev/build.py
 """
@@ -18,7 +19,7 @@ ASSETS = ROOT / 'assets'
 DEV = ROOT / 'dev'
 
 
-def duri(path: pathlib.Path, mime: str = 'image/jpeg') -> str:
+def duri(path: pathlib.Path, mime: str) -> str:
     return f'data:{mime};base64,' + base64.b64encode(path.read_bytes()).decode()
 
 
@@ -28,18 +29,20 @@ def main() -> None:
     js = (DEV / 'app.js').read_text(encoding='utf-8')
     qrlib = (DEV / 'qrcode.min.js').read_text(encoding='utf-8')
 
+    # Khmer font lives next to the dev files (downloaded from Google Fonts)
+    font_path = DEV / 'khmer.woff2'
+    if not font_path.exists():
+        sys.exit('ERROR: dev/khmer.woff2 missing (Khmer font)')
+    css = css.replace('{{KHMER_FONT}}',
+                      base64.b64encode(font_path.read_bytes()).decode())
+
     html = (template
             .replace('{{STYLES}}', css)
             .replace('{{QRLIB}}', qrlib)
             .replace('{{SCRIPT}}', js))
 
     tokens = {
-        '{{LOGO}}':          duri(ASSETS / 'logo.jpg'),                    # owner's logo — original bytes
-        '{{IMG_BURGER}}':    duri(ASSETS / 'burger.jpg'),
-        '{{IMG_VINTAGE}}':   duri(ASSETS / 'vintage.jpg'),
-        '{{IMG_FISHING}}':   duri(ASSETS / 'fishing.jpg'),
-        '{{IMG_BRANCH_A}}':  duri(ASSETS / 'branch-cheasophara.jpg'),
-        '{{IMG_BRANCH_B}}':  duri(ASSETS / 'branch-penghout.jpg'),
+        '{{LOGO}}': duri(ASSETS / 'logo.jpg', 'image/jpeg'),   # owner's logo — original bytes
     }
     for token, value in tokens.items():
         if token not in html:
@@ -52,7 +55,7 @@ def main() -> None:
 
     out = ROOT / 'index.html'
     out.write_text(html, encoding='utf-8')
-    print(f'Built {out}  ({out.stat().st_size / 1024 / 1024:.2f} MB)')
+    print(f'Built {out}  ({out.stat().st_size / 1024:.0f} KB)')
 
 
 if __name__ == '__main__':

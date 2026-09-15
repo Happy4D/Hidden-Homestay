@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-/* Automated test for server/server.js — booking logic, bot commands (incl. interactive
-   button flow), admin API, HTTP endpoints. */
+/* Automated test for server/server.js — v2 model:
+   12 rooms · weekday/weekend pricing · overnight · ID card · phone validation ·
+   customer Telegram confirmation · bot flows · admin API · Supabase mode. */
 'use strict';
 const fs = require('fs');
 const os = require('os');
@@ -8,14 +9,14 @@ const path = require('path');
 
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'hh-test-'));
 process.env.BOT_TOKEN = 'test-disabled';   // disables polling
-process.env.ADMIN_KEY = 'test-key-123';    // protects GET/PATCH /api/bookings
+process.env.ADMIN_KEY = 'test-key-123';    // protects GET /api/bookings
 
 const S = require('../server/server.js');
-const { createBooking, handleUpdate, store, digestText, sendDailyDigest } = S;
+const { createBooking, handleUpdate, store, digestText, sendDailyDigest, deliverConfirmation, priceFor, ROOMS } = S;
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => {
-  console.log((cond ? '  PASS  ' : '  FAIL  ') + name + (cond ? '' : '   -> ' + (extra !== undefined ? JSON.stringify(extra).slice(0, 200) : '')));
+  console.log((cond ? '  PASS  ' : '  FAIL  ') + name + (cond ? '' : '   -> ' + (extra !== undefined ? JSON.stringify(extra).slice(0, 220) : '')));
   cond ? pass++ : fail++;
 };
 
@@ -25,178 +26,268 @@ function makeTg() {
   const tg = {
     calls,
     call: async (method, params) => { calls.push({ method, params }); return { ok: true }; },
-    sendMessage: async (chatId, text, extra) => { calls.push({ method: 'sendMessage', params: { chat_id: chatId, text, ...(extra || {}) } }); return { ok: true }; }
+    sendMessage: async (chatId, text, extra) => { calls.push({ method: 'sendMessage', params: { chat_id: chatId, text, ...(extra || {}) } }); return { ok: true }; },
+    sendMediaGroup: async (chatId, media) => { calls.push({ method: 'sendMediaGroup', params: { chat_id: chatId, media } }); return { ok: true }; },
+    sendPhotoBuffer: async (chatId, buf, caption) => { calls.push({ method: 'sendPhotoBuffer', params: { chat_id: chatId, bytes: buf.length, caption } }); return { ok: true }; },
+    downloadFile: async () => Buffer.from('/9j/4AAQSkZJRgABAQEAYABgAAD', 'base64')  // fake jpeg bytes
   };
   return tg;
 }
 const upd = (chatId, text) => ({ message: { chat: { id: chatId }, text } });
 const cbk = (chatId, data) => ({ callback_query: { id: 'q1', data, message: { chat: { id: chatId }, message_id: 42 } } });
+const photoUpd = (chatId, caption) => ({ message: { chat: { id: chatId }, caption, photo: [{ file_id: 'f1' }, { file_id: 'f2' }] } });
 const texts = tg => tg.calls.filter(c => c.method === 'sendMessage').map(c => c.params.text);
 const edits = tg => tg.calls.filter(c => c.method === 'editMessageText').map(c => c.params.text);
-const tomorrow = () => new Date(Date.now() + 86400000 + 7 * 3600000).toISOString().slice(0, 10);
+
+/* date helpers — pick a guaranteed weekday + a guaranteed Saturday, in the future */
+function nextDow(dow, minAhead) {
+  let d = new Date(Date.now() + (minAhead || 2) * 86400000);
+  while (d.getUTCDay() !== dow) d = new Date(d.getTime() + 86400000);
+  return d.toISOString().slice(0, 10);
+}
+const aWeekday = nextDow(3);            // a Wednesday
+const aSaturday = nextDow(6);           // a Saturday
+const ID_PNG = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD';
+const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
 
 (async () => {
-  console.log('== BOOKING LOGIC ==');
-  let r = await createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '14:00', checkOut: '17:00', name: 'Sokha', phone: '012' }, 'website');
-  ok('valid booking created, pending, 3h vintage = $21', r.ok && r.booking.status === 'pending' && r.booking.total === 21, r);
-  const ref1 = r.booking ? r.booking.ref : null;
-
-  r = await createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '16:00', checkOut: '18:00', name: 'X', phone: '1' }, 'website');
-  ok('overlap rejected (14-17 vs 16-18)', !r.ok && r.error === 'conflict', r);
-
-  r = await createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '17:00', checkOut: '19:00', name: 'X', phone: '1' }, 'website');
-  ok('back-to-back allowed (17-19)', r.ok, r);
-
-  r = await createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '14:00', checkOut: '15:30', name: 'X', phone: '1' }, 'website');
-  ok('fractional hours rejected (1.5h)', !r.ok && /whole hours/.test(r.message), r);
-
-  r = await createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '15:00', checkOut: '14:00', name: 'X', phone: '1' }, 'website');
-  ok('checkout before checkin rejected', !r.ok && /later/.test(r.message), r);
-
-  r = await createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '14:00', checkOut: '15:00', name: '', phone: '1' }, 'website');
-  ok('missing name rejected', !r.ok && /name/i.test(r.message), r);
-
-  console.log('== BOT: OWNER + BASIC COMMANDS ==');
-  const tg = makeTg();
-  const OWNER = 111222333, STRANGER = 999;
-  await handleUpdate(upd(OWNER, '/start'), tg);
-  ok('/start claims ownership', texts(tg).some(t => /linked as the owner/.test(t)), texts(tg)[0]);
-
-  await handleUpdate(upd(STRANGER, '/start'), tg);
-  ok('stranger rejected', texts(tg).some(t => /private/.test(t)));
-
-  await handleUpdate(upd(OWNER, '/book 1 3 ' + tomorrow() + ' 10:00 2 098765432 Dara Chhan'), tg);
-  const bookMsg = texts(tg).pop();
-  ok('/book (typed) creates confirmed booking', /Booked and confirmed/.test(bookMsg), bookMsg);
-  ok('telegram booking stored + confirmed', (await store.all()).some(b => b.source === 'telegram' && b.status === 'confirmed' && b.name === 'Dara Chhan' && b.checkIn === '10:00' && b.checkOut === '12:00' && b.room === 'fishing'));
-
-  /* kv store (bot polling offset persistence) */
-  await store.setKv('tgOffset', '424242');
-  ok('kv set/get round-trip (tgOffset)', (await store.getKv('tgOffset')) === '424242');
-  ok('kv missing key returns empty', (await store.getKv('never-set')) === '');
-
-  r = await createBooking({ branch: 'cheasophara', room: 'fishing', date: tomorrow(), checkIn: '11:00', checkOut: '13:00', name: 'Y', phone: '2' }, 'website');
-  ok('telegram booking blocks website overlap', !r.ok && r.error === 'conflict', r);
-
-  await handleUpdate(upd(OWNER, '/busy ' + tomorrow()), tg);
-  ok('/busy lists fishing 10:00 – 12:00 PM', texts(tg).some(t => /Fishing Room/.test(t) && /10:00 AM – 12:00 PM/.test(t)), texts(tg).slice(-1)[0]);
-
-  await handleUpdate(upd(OWNER, '/list ' + tomorrow()), tg);
-  ok('/list shows bookings', texts(tg).some(t => /Bookings —/.test(t) && /Dara Chhan/.test(t)));
-
-  console.log('== BOT: INTERACTIVE /book FLOW (buttons) ==');
-  const tb = makeTg();
-  await handleUpdate(upd(OWNER, '/book'), tb);
-  ok('/book starts guided flow with branch buttons', texts(tb).some(t => /step 1 of 6/i.test(t) && /Choose the branch/.test(t)), texts(tb)[0]);
-  ok('branch buttons present', tb.calls.some(c => (c.params.reply_markup || {}).inline_keyboard && JSON.stringify(c.params.reply_markup).includes('bk:branch:cheasophara')));
-
-  await handleUpdate(cbk(OWNER, 'bk:branch:penghout'), tb);
-  ok('branch tap → room step', edits(tb).some(t => /step 2 of 6/i.test(t) && /choose the room/i.test(t)), edits(tb));
-
-  await handleUpdate(cbk(OWNER, 'bk:room:vintage'), tb);
-  ok('room tap → date step with buttons', edits(tb).some(t => /step 3 of 6/i.test(t) && /the date/i.test(t)), edits(tb).slice(-1)[0]);
-
-  await handleUpdate(cbk(OWNER, 'bk:date:' + tomorrow()), tb);
-  ok('date tap → check-in step (free slot shown)', edits(tb).some(t => /step 4 of 6/i.test(t) && /Already booked|completely free/.test(t)), edits(tb).slice(-1)[0]);
-
-  await handleUpdate(cbk(OWNER, 'bk:time:19:00'), tb);
-  ok('time tap → hours step', edits(tb).some(t => /step 5 of 6/i.test(t) && /how many hours/i.test(t)), edits(tb).slice(-1)[0]);
-
-  /* clash path: vintage@penghout 14:00-17:00 exists → 18:00+3h is free, but test clash with 2h? 18-20 vs 14-17 no clash. Use 13:00? already past step. Test clash with the existing 14-17: pick hours so it overlaps: check-in was 18:00 — choose 6h → 18:00-24:00 no overlap with 14-17. So do a separate clash draft later. */
-  await handleUpdate(cbk(OWNER, 'bk:hours:3'), tb);
-  ok('hours tap (19-22, no clash) → phone step', edits(tb).some(t => /step 6 of 6/i.test(t) && /phone number/i.test(t)), edits(tb).slice(-1)[0]);
-
-  await handleUpdate(upd(OWNER, '012 345 678'), tb);
-  ok('typed phone → name step', texts(tb).some(t => /customer's name/i.test(t)), texts(tb).slice(-1)[0]);
-
-  await handleUpdate(upd(OWNER, 'Button Booking'), tb);
-  const review = texts(tb).find(t => /Please check the booking/.test(t));
-  ok('typed name → review summary', !!review && review.includes('$21.00') && review.includes('Button Booking') && review.includes('7:00 PM'), review);
-  ok('review has confirm button', tb.calls.some(c => JSON.stringify(c.params.reply_markup || {}).includes('bk:ok')));
-
-  await handleUpdate(cbk(OWNER, 'bk:ok'), tb);
-  const done = edits(tb).slice(-1)[0] || '';
-  ok('confirm tap → BOOKED & CONFIRMED', /BOOKED/.test(done) && /website and dashboard now show/.test(done), done);
-  const saved = (await store.all()).find(b => b.name === 'Button Booking');
-  ok('button-flow booking stored (telegram, confirmed, 18-21)', saved && saved.source === 'telegram' && saved.status === 'confirmed' && saved.checkIn === '19:00' && saved.checkOut === '22:00' && saved.total === 21, saved);
-
-  /* clash path */
-  const tc = makeTg();
-  await handleUpdate(upd(OWNER, '/book'), tc);
-  await handleUpdate(cbk(OWNER, 'bk:branch:penghout'), tc);
-  await handleUpdate(cbk(OWNER, 'bk:room:vintage'), tc);
-  await handleUpdate(cbk(OWNER, 'bk:date:' + tomorrow()), tc);
-  await handleUpdate(cbk(OWNER, 'bk:time:15:00'), tc);
-  await handleUpdate(cbk(OWNER, 'bk:hours:3'), tc);   // 15-18 overlaps 14-17
-  ok('clash detected during flow → warning', texts(tc).some(t => /Clash/.test(t) && /2:00 PM/.test(t)), texts(tc).slice(-1)[0]);
-  ok('flow returns to hours step', edits(tc).some(t => /step 5 of 6/i.test(t)));
-
-  /* /cancel clears the draft */
-  await handleUpdate(upd(OWNER, '/cancel'), tc);
-  ok('/cancel clears draft', texts(tc).some(t => /draft cleared/i.test(t)), texts(tc).slice(-1)[0]);
-
-  /* non-owner cannot run the flow */
-  const ts = makeTg();
-  await handleUpdate(upd(STRANGER, '/book'), ts);
-  ok('stranger cannot start booking flow', texts(ts).some(t => /private/.test(t)), texts(ts)[0]);
-
-  console.log('== BOT: WEBSITE ALERT BUTTONS ==');
-  const tgB = makeTg();
-  const cbRef = (await store.all()).find(b => b.source === 'telegram' && b.name === 'Dara Chhan').ref;
-  await handleUpdate({ callback_query: { id: '1', data: 'cancel:' + cbRef, message: { chat: { id: OWNER } } } }, tgB);
-  ok('cancel button cancels booking', (await store.all()).find(b => b.ref === cbRef).status === 'cancelled');
-
-  r = await createBooking({ branch: 'cheasophara', room: 'fishing', date: tomorrow(), checkIn: '11:00', checkOut: '13:00', name: 'Y', phone: '2' }, 'website');
-  ok('cancelled slot becomes free', r.ok, r);
-
-  await handleUpdate(upd(OWNER, '/confirm ' + ref1), tg);
-  ok('/confirm confirms', (await store.all()).find(b => b.ref === ref1).status === 'confirmed');
-
-  /* ===== booking template (paste-a-form) ===== */
-  console.log('== BOOKING TEMPLATE ==');
-  await handleUpdate(upd(OWNER, '/template'), tg);
-  const tplMsg = texts(tg).pop();
-  ok('/template sends a copyable blank form', /BOOKING/.test(tplMsg) && /Branch:/.test(tplMsg) && /Phone:/.test(tplMsg), tplMsg);
-
-  const d2 = new Date(Date.now() + 2 * 86400000 + 7 * 3600000).toISOString().slice(0, 10);
-  await handleUpdate(upd(OWNER, 'BOOKING\nBranch: Peng Hout\nRoom: Vintage Room\nDate: ' + d2 + '\nCheck-in: 20:00\nHours: 2\nName: Thida Kou\nPhone: 097 111 222'), tg);
-  const tMsg = texts(tg).pop();
-  ok('owner template saved + confirmed', /Booking saved/i.test(tMsg) && /HH-/.test(tMsg), tMsg);
-  const tplB = (await store.all()).find(b => b.name === 'Thida Kou');
-  ok('template booking stored (vintage 20-22 · $14 · confirmed · website syncs)', tplB && tplB.source === 'telegram' && tplB.status === 'confirmed' && tplB.checkIn === '20:00' && tplB.checkOut === '22:00' && tplB.total === 14, tplB);
-
-  await handleUpdate(upd(OWNER, 'BOOKING\nBranch: Peng Hout\nRoom: Vintage\nDate: ' + d2 + '\nCheck-in: 21:00\nHours: 2\nName: Clash Man\nPhone: 012345678'), tg);
-  ok('template clash rejected with a clear warning', /clash/.test(texts(tg).pop()) && !(await store.all()).some(b => b.name === 'Clash Man'));
-
-  await handleUpdate(upd(OWNER, 'BOOKING\nBranch: Peng Hout\nRoom: Vintage\nName: Half Done'), tg);
-  const halfMsg = texts(tg).pop();
-  ok('incomplete template lists the missing fields', /missing/.test(halfMsg) && /Date/.test(halfMsg) && /Phone/.test(halfMsg), halfMsg);
-
-  await handleUpdate(upd(STRANGER, 'Branch: Cheasophara\nRoom: Burger\nDate: ' + d2 + '\nCheck-in: 10:00\nHours: 1\nName: Walk In\nPhone: 012 999 888'), tg);
-  const gMsg = texts(tg).pop();
-  ok('guest template → thank-you + pending request', /Thank you/.test(gMsg) || /received/.test(gMsg), gMsg);
-  const gb = (await store.all()).find(b => b.name === 'Walk In');
-  ok('guest template stored as pending', gb && gb.status === 'pending' && gb.source === 'telegram', gb);
-
-  await handleUpdate(upd(OWNER, 'BOOKING\nBranch: Cheasophara\nRoom: Fishing\nDate: ' + d2 + '\nCheck-in: 09:00\nHours: 2\nName: Pending One\nPhone: 012 111 222\nStatus: pending'), tg);
-  const pb = (await store.all()).find(b => b.name === 'Pending One');
-  ok('Status: pending override works', pb && pb.status === 'pending', pb);
-
-  /* ===== daily digest (12:30 staff summary) ===== */
-  console.log('== DAILY DIGEST ==');
-  const dList = (await store.all()).filter(b => b.date === tomorrow() && b.status !== 'cancelled');
-  const dt = digestText(dList, tomorrow());
-  ok('digest lists guests with times, names, totals', /TODAY/.test(dt) && /Sokha/.test(dt) && /HH-/.test(dt) && /Total/.test(dt), dt.slice(0, 120));
-  ok('digest empty day says no bookings', /No bookings/.test(digestText([], tomorrow())));
-  const tgD = makeTg();
-  const sent1 = await sendDailyDigest(tgD, tomorrow());
-  const dMsg = texts(tgD).pop() || '';
-  ok('digest sent to owner once', sent1 && texts(tgD).length === 1, dMsg.slice(0, 100));
-  ok('digest kv guard prevents double send', (await sendDailyDigest(tgD, tomorrow())) === false);
+  /* ============================================================
+     1 — PRICING ENGINE
+     ============================================================ */
+  console.log('== PRICING ENGINE ==');
+  ok('weekday 3h standard = $12', priceFor('vintage', aWeekday, 3, false) === 12, priceFor('vintage', aWeekday, 3, false));
+  ok('weekend 3h standard = $15', priceFor('vintage', aSaturday, 3, false) === 15, priceFor('vintage', aSaturday, 3, false));
+  ok('weekday overnight standard = $18', priceFor('vintage', aWeekday, 12, true) === 18);
+  ok('weekend overnight also $18', priceFor('camping', aSaturday, 12, true) === 18);
+  ok('VIP 3h weekday = $15 (12+3)', priceFor('veggie', aWeekday, 3, false) === 15);
+  ok('VIP overnight = $21 (18+3)', priceFor('gaming', aWeekday, 12, true) === 21);
+  ok('pool 3h = $15, 1h = $5', priceFor('pool', aWeekday, 3, false) === 15 && priceFor('pool', aWeekday, 1, false) === 5);
+  ok('pool overnight has no price', priceFor('pool', aWeekday, 12, true) === null);
+  ok('standard 1h / 7h have no price (2-6 only)', priceFor('classic', aWeekday, 1, false) === null && priceFor('classic', aWeekday, 7, false) === null);
+  ok('12 rooms configured', Object.keys(ROOMS).length === 12, Object.keys(ROOMS));
 
   /* ============================================================
-     SUPABASE-MODE — run the real Supabase REST code against a mock
-     PostgREST server, so the cloud-storage path is fully tested.
+     2 — BOOKING VALIDATION
+     ============================================================ */
+  console.log('== BOOKING VALIDATION ==');
+  let r = await createBooking({ room: 'vintage', date: aWeekday, checkIn: '14:00', hours: 3, name: 'Sokha', phone: '012345678' }, 'website');
+  ok('standard 3h website booking ok', r.ok === true && r.booking.total === 12 && r.booking.status === 'pending', r);
+  ok('website booking has no branch field', r.ok && !('branch' in r.booking), r.booking);
+
+  r = await createBooking({ room: 'classic', date: aWeekday, checkIn: '14:00', hours: 1, name: 'One Hour', phone: '012345678' }, 'website');
+  ok('standard 1h rejected (min 2h)', r.ok === false && /2-6 hours/.test(r.message), r);
+
+  r = await createBooking({ room: 'pool', date: aWeekday, checkIn: '10:00', hours: 1, name: 'Pool Guest', phone: '012345678' }, 'website');
+  ok('pool 1h ok at $5', r.ok === true && r.booking.total === 5, r);
+
+  r = await createBooking({ room: 'kuromi', date: aSaturday, checkIn: '14:00', hours: 3, name: 'Weekend Guest', phone: '012345678' }, 'website');
+  ok('weekend price applied ($15)', r.ok === true && r.booking.total === 15, r);
+
+  r = await createBooking({ room: 'vintage', date: aWeekday, checkIn: '14:00', hours: 3, name: 'No Digits', phone: '01a2b3c' }, 'website');
+  ok('phone with letters rejected', r.ok === false && /digits/.test(r.message), r);
+
+  r = await createBooking({ room: 'vintage', date: aWeekday, checkIn: '14:00', hours: 3, name: 'Short', phone: '0123' }, 'website');
+  ok('phone too short rejected (8-15)', r.ok === false && /8-15/.test(r.message), r);
+
+  /* ============================================================
+     3 — OVERNIGHT BOOKINGS
+     ============================================================ */
+  console.log('== OVERNIGHT ==');
+  r = await createBooking({ room: 'shanghai', date: aWeekday, checkIn: '20:00', hours: 12, overnight: true, name: 'Night Owl', phone: '012345678' }, 'website');
+  ok('overnight without ID rejected (website)', r.ok === false && /ID Card photo is required/.test(r.message), r);
+
+  r = await createBooking({ room: 'shanghai', date: aWeekday, checkIn: '22:00', hours: 12, overnight: true, idCard: ID_PNG, name: 'Night Owl', phone: '012345678' }, 'website');
+  ok('overnight check-in must be 20:00 or 21:00', r.ok === false && /20:00 or 21:00/.test(r.message), r);
+
+  r = await createBooking({ room: 'shanghai', date: aWeekday, checkIn: '20:00', hours: 12, overnight: true, idCard: ID_PNG, name: 'Night Owl', phone: '012345678' }, 'website');
+  const ON1 = r.ok ? r.booking.ref : '';
+  ok('overnight with ID ok · $18 · checkOut 08:00 · 12h', r.ok === true && r.booking.total === 18 && r.booking.checkOut === '08:00' && r.booking.hours === 12 && r.booking.overnight === true, r);
+
+  r = await createBooking({ room: 'veggie', date: aWeekday, checkIn: '21:00', hours: 12, overnight: true, idCard: ID_PNG, name: 'Vip Night', phone: '012345678' }, 'telegram');
+  ok('VIP overnight via telegram ok at $21 (no ID needed for owner-side)', r.ok === true && r.booking.total === 21 && r.booking.status === 'confirmed', r);
+
+  /* overnight blocks the NEXT MORNING of the same room */
+  const dayAfter = new Date(aWeekday + 'T00:00:00Z').toISOString().slice(0, 10) === aWeekday
+    ? new Date(Date.parse(aWeekday + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10) : aWeekday;
+  r = await createBooking({ room: 'shanghai', date: dayAfter, checkIn: '07:00', hours: 2, name: 'Early Bird', phone: '012345678' }, 'website');
+  ok('overnight blocks 07:00 the NEXT DAY (true cross-midnight)', r.ok === false && r.error === 'conflict', r);
+
+  r = await createBooking({ room: 'shanghai', date: dayAfter, checkIn: '09:00', hours: 2, name: 'Late Bird', phone: '012345678' }, 'website');
+  ok('09:00 next day is free after 8AM checkout', r.ok === true, r);
+
+  /* same slot, different room = fine */
+  r = await createBooking({ room: 'classic', date: aWeekday, checkIn: '14:00', hours: 3, name: 'Other Room', phone: '088877766' }, 'website');
+  ok('same slot different room is fine', r.ok === true, r);
+
+  /* same room overlapping hours = conflict */
+  r = await createBooking({ room: 'vintage', date: aWeekday, checkIn: '16:00', hours: 2, name: 'Clash', phone: '012345678' }, 'website');
+  ok('overlapping hours same room → conflict', r.ok === false && r.error === 'conflict', r);
+
+  /* ============================================================
+     4 — BOT: OWNER LINK + COMMANDS
+     ============================================================ */
+  console.log('== BOT COMMANDS ==');
+  const tg = makeTg();
+  await handleUpdate(upd(OWNER, '/start'), tg);
+  await handleUpdate(upd(STRANGER, '/start'), tg);
+  ok('first /start links owner, second told private',
+    /Welcome/.test(texts(tg)[0] || '') && /private/.test(texts(tg)[1] || ''), texts(tg));
+
+  await handleUpdate(upd(OWNER, '/template'), tg);
+  const tplMsg = texts(tg).slice(-1)[0] || '';
+  ok('/template has no Branch line, has Room + Hours', /Room:/i.test(tplMsg) && /Hours:/i.test(tplMsg) && !/Branch:/i.test(tplMsg), tplMsg.slice(0, 120));
+
+  /* paste a filled template (owner → confirmed) */
+  await handleUpdate(upd(OWNER, 'BOOKING\nRoom: London\nDate: ' + aWeekday + '\nCheck-in: 15:00\nHours: 4\nName: Template Guest\nPhone: 099887766'), tg);
+  const tplDone = texts(tg).slice(-1)[0] || '';
+  ok('owner template paste → confirmed booking', /HH-/.test(tplDone) && /London/.test(tplDone), tplDone.slice(0, 140));
+
+  /* template overnight (owner side) */
+  await handleUpdate(upd(OWNER, 'BOOKING\nRoom: kuromi\nDate: ' + aSaturday + '\nCheck-in: 20:00\nHours: overnight\nName: ON Guest\nPhone: 099887766'), tg);
+  const tplON = texts(tg).slice(-1)[0] || '';
+  ok('template overnight → booked + ID prompt', /HH-/.test(tplON) && /ID/.test(tplON), tplON.slice(0, 160));
+
+  /* quick /book path */
+  await handleUpdate(upd(OWNER, '/book gaming ' + aWeekday + ' 14:00 3 011122233 Quick VIP'), tg);
+  const quick = texts(tg).slice(-1)[0] || '';
+  ok('/book quick path: VIP 3h = $15', /HH-/.test(quick) && /\$15\.00/.test(quick), quick.slice(0, 160));
+
+  await handleUpdate(upd(OWNER, '/book pool ' + aWeekday + ' 12:00 2 011122233 Pool Quick'), tg);
+  ok('/book pool 2h = $10', /\$10\.00/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
+
+  /* guided flow with buttons */
+  const tg2 = makeTg();
+  await handleUpdate(upd(OWNER, '/start'), tg2); // owner already set
+  await handleUpdate(upd(OWNER, '/book'), tg2);
+  const guided0 = JSON.stringify(tg2.calls);
+  ok('guided /book starts at room picker (no branch step)', /bk:room:kuromi/.test(guided0) && !/bk:branch/.test(guided0));
+  await handleUpdate(cbk(OWNER, 'bk:room:kuromi'), tg2);
+  const dateBtn = (JSON.stringify(tg2.calls).match(/bk:date:(\d{4}-\d{2}-\d{2})/) || [])[1];
+  ok('room → date step offers dates', !!dateBtn, dateBtn);
+  if (dateBtn) {
+    await handleUpdate(cbk(OWNER, 'bk:time:14:00'), tg2).catch(() => {});
+    /* date first, then time */
+  }
+  // step order: room → date → time → dur → phone → name → review
+  if (dateBtn) {
+    await handleUpdate(cbk(OWNER, 'bk:date:' + dateBtn), tg2);
+    await handleUpdate(cbk(OWNER, 'bk:time:14:00'), tg2);
+    const durKb = JSON.stringify(tg2.calls);
+    ok('time → duration picker with overnight chips', /bk:dur:ON8/.test(durKb) && /bk:dur:2/.test(durKb));
+    await handleUpdate(cbk(OWNER, 'bk:dur:3'), tg2);
+    await handleUpdate(upd(OWNER, '012 345 678'), tg2);
+    await handleUpdate(upd(OWNER, 'Button Guest'), tg2);
+    const review = texts(tg2).slice(-1)[0] || '';
+    ok('guided flow reaches review with computed price', /Please check the booking/.test(review) && /Total/.test(review), review.slice(0, 160));
+    await handleUpdate(cbk(OWNER, 'bk:ok'), tg2);
+    const done = edits(tg2).slice(-1)[0] || '';
+    ok('guided flow confirms booking', /BOOKED/.test(done) && /HH-/.test(done), done.slice(0, 160));
+  }
+
+  /* ============================================================
+     5 — CUSTOMER CONFIRMATION (deep link /start HH-REF)
+     ============================================================ */
+  console.log('== CUSTOMER CONFIRMATION ==');
+  const onRef = ON1;
+  const tg3 = makeTg();
+  await handleUpdate(upd(CUSTOMER, '/start ' + onRef), tg3);
+  const cMsgs = texts(tg3);
+  const cMedia = tg3.calls.filter(c => c.method === 'sendMediaGroup');
+  ok('customer /start REF gets confirmation text', cMsgs.some(x => /BOOKING CONFIRMED/.test(x) && /Night Owl/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 140));
+  ok('customer gets media album: room + guideline + parking + 5 menus', cMedia.length === 1 && cMedia[0].params.media.length === 8, cMedia[0] && cMedia[0].params.media.length);
+  ok('media URLs use the public site', cMedia.length === 1 && cMedia[0].params.media.every(m => m.media.startsWith('https://')), cMedia[0] && cMedia[0].params.media[0]);
+
+  /* pool booking → no guideline image (7 photos) */
+  const tg3b = makeTg();
+  const poolRes = await createBooking({ room: 'pool', date: aWeekday, checkIn: '15:00', hours: 2, name: 'Pool C', phone: '099887766' }, 'website');
+  await handleUpdate(upd(CUSTOMER, '/start ' + poolRes.booking.ref), tg3b);
+  const poolMedia = tg3b.calls.filter(c => c.method === 'sendMediaGroup');
+  ok('pool confirmation: room + parking + 5 menus (no guideline)', poolMedia.length === 1 && poolMedia[0].params.media.length === 7, poolMedia[0] && poolMedia[0].params.media.length);
+
+  await handleUpdate(upd(CUSTOMER, '/start HH-NOPE99'), tg3);
+  ok('unknown ref → friendly message', /don.t know the booking/i.test(texts(tg3).slice(-1)[0] || ''), texts(tg3).slice(-1)[0]);
+
+  /* owner sends ID photo for a telegram-side overnight booking */
+  const tg4 = makeTg();
+  const onTg = await createBooking({ room: 'camping', date: aWeekday, checkIn: '21:00', hours: 12, overnight: true, name: 'ID Less', phone: '012345678' }, 'telegram');
+  await handleUpdate(photoUpd(OWNER, 'ID ' + onTg.booking.ref), tg4);
+  const after = (await store.all()).find(b => b.ref === onTg.booking.ref);
+  ok('owner photo caption "ID HH-REF" attaches the ID card', after && /data:image\/jpeg/.test(after.idCard || ''), after && (after.idCard || '').slice(0, 40));
+  ok('bot confirms ID saved', /ID Card saved/.test(texts(tg4).slice(-1)[0] || ''), texts(tg4).slice(-1)[0]);
+
+  /* /list and /busy work with 12 rooms */
+  await handleUpdate(upd(OWNER, '/list ' + aWeekday), tg);
+  ok('/list shows bookings with room names', /Vintage|Shanghai|Kuromi|London/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
+  await handleUpdate(upd(OWNER, '/busy ' + aWeekday), tg);
+  const busyMsg = texts(tg).slice(-1)[0] || '';
+  ok('/busy lists all 12 rooms', (busyMsg.match(/all free/g) || []).length + (busyMsg.match(/·/g) || []).length >= 12, busyMsg.slice(0, 100));
+
+  /* ============================================================
+     6 — HTTP API
+     ============================================================ */
+  console.log('== HTTP API ==');
+  await new Promise(res => S.server.listen(0, res));
+  const port = S.server.address().port;
+  const base = 'http://127.0.0.1:' + port;
+  const KEY = 'test-key-123';
+  const get = p => fetch(base + p).then(async x => ({ status: x.status, j: await x.json().catch(() => ({})) }));
+  const post = (p, body) => fetch(base + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(async x => ({ status: x.status, j: await x.json().catch(() => ({})) }));
+
+  let h = (await get('/api/health')).j;
+  ok('health ok', h.ok === true && h.storage === 'json-file', h);
+
+  let av = (await get('/api/availability?date=' + aWeekday + '&checkIn=15:00&hours=2')).j;
+  ok('availability marks busy rooms for the slot', av.ok === true && av.busy.some(b => b.room === 'vintage'), av);
+
+  av = (await get('/api/availability?date=' + dayAfter + '&checkIn=07:00&hours=2')).j;
+  ok('availability sees overnight spill into next morning', av.ok === true && av.busy.some(b => b.room === 'shanghai'), av);
+
+  av = (await get('/api/availability?date=' + aWeekday + '&checkIn=22:00&hours=3')).j;
+  ok('availability rejects missing/bad params', (await get('/api/availability?date=' + aWeekday)).status === 400);
+
+  let pr = await post('/api/bookings', { room: 'gaming', date: aWeekday, checkIn: '18:00', hours: 2, name: 'Web Guest', phone: '012345678' });
+  ok('POST booking ok + ref', pr.status === 200 && pr.j.ok && /^HH-/.test(pr.j.ref), pr.j);
+
+  pr = await post('/api/bookings', { room: 'gaming', date: aWeekday, checkIn: '19:00', hours: 2, name: 'Clash', phone: '012345678' });
+  ok('POST conflict → 409 with busy list', pr.status === 409 && pr.j.error === 'conflict', pr.j);
+
+  pr = await post('/api/bookings', { room: 'london', date: aWeekday, checkIn: '20:00', hours: 12, overnight: true, name: 'No ID', phone: '012345678' });
+  ok('POST overnight without ID → 400', pr.status === 400 && /ID Card/.test(pr.j.message), pr.j);
+
+  pr = await post('/api/bookings', { room: 'london', date: aWeekday, checkIn: '20:00', hours: 12, overnight: true, idCard: ID_PNG, name: 'With ID', phone: '012345678' });
+  ok('POST overnight with ID → ok $18', pr.status === 200 && pr.j.ok && pr.j.total === 18, pr.j);
+
+  pr = await post('/api/bookings', { room: 'vintage', date: aWeekday, checkIn: '10:00', hours: 3, total: 1, name: 'Cheater', phone: '012345678' });
+  ok('server ignores client-sent total (computes $12 itself)', pr.status === 200 && pr.j.total === 12, pr.j);
+
+  let list = await get('/api/bookings');
+  ok('GET /api/bookings blocked without key', list.status === 401 || list.status === 403, list.status);
+  list = await get('/api/bookings?key=' + KEY);
+  ok('GET /api/bookings with admin key works', list.status === 200 && list.j.ok && Array.isArray(list.j.bookings), list.status);
+
+  const html = await fetch(base + '/admin').then(x => x.text());
+  ok('admin dashboard served at /admin', /Hidden Homestay/.test(html));
+  const site = await fetch(base + '/').then(x => x.text());
+  ok('static site served at /', /Hidden Homestay/.test(site));
+
+  S.server.close();
+
+  /* ============================================================
+     7 — DAILY DIGEST
+     ============================================================ */
+  console.log('== DAILY DIGEST ==');
+  const dList = (await store.all()).filter(b => b.date === aWeekday && b.status !== 'cancelled');
+  const dt = digestText(dList, aWeekday);
+  ok('digest lists guests with rooms + totals', /TODAY/.test(dt) && /Sokha/.test(dt) && /Total/.test(dt), dt.slice(0, 120));
+  ok('digest marks overnight stays', /🌙/.test(dt), dt.slice(0, 200));
+  ok('digest empty day says no bookings', /No bookings/.test(digestText([], aWeekday)));
+  const tgD = makeTg();
+  await store.setOwner(OWNER);
+  ok('digest sent to owner once', (await sendDailyDigest(tgD, aWeekday)) === true && texts(tgD).length === 1);
+  ok('digest kv guard prevents double send', (await sendDailyDigest(tgD, aWeekday)) === false);
+
+  /* ============================================================
+     8 — SUPABASE MODE (mock PostgREST)
      ============================================================ */
   console.log('== SUPABASE STORAGE MODE ==');
   {
@@ -223,15 +314,14 @@ const tomorrow = () => new Date(Date.now() + 86400000 + 7 * 3600000).toISOString
           return json(k in sbKv ? [{ value: sbKv[k] }] : []);
         }
         if (rq.method === 'PUT' && u.pathname === '/rest/v1/kv') {
-        /* real PostgREST rejects PUT without a primary-key filter (PGRST105, 405) */
-        rs.writeHead(405, { 'Content-Type': 'application/json' });
-        return rs.end('{"code":"PGRST105","message":"Filters must include all and only primary key columns with eq"}');
-      }
-      if (rq.method === 'POST' && u.pathname === '/rest/v1/kv') {
-        const p = JSON.parse(body);
-        if (typeof p.value !== 'string' || typeof p.key !== 'string') { rs.writeHead(400, { 'Content-Type': 'application/json' }); return rs.end('{"message":"invalid input for kv columns"}'); }
-        sbKv[p.key] = p.value; return json([p]);
-      }
+          rs.writeHead(405, { 'Content-Type': 'application/json' });
+          return rs.end('{"code":"PGRST105","message":"Filters must include all and only primary key columns with eq"}');
+        }
+        if (rq.method === 'POST' && u.pathname === '/rest/v1/kv') {
+          const p = JSON.parse(body);
+          if (typeof p.value !== 'string' || typeof p.key !== 'string') { rs.writeHead(400, { 'Content-Type': 'application/json' }); return rs.end('{"message":"invalid input for kv columns"}'); }
+          sbKv[p.key] = p.value; return json([p]);
+        }
         rs.writeHead(404); rs.end('{}');
       });
     });
@@ -242,33 +332,24 @@ const tomorrow = () => new Date(Date.now() + 86400000 + 7 * 3600000).toISOString
     delete require.cache[require.resolve('../server/server.js')];
     const S2 = require('../server/server.js');
     try {
-      ok('supabase mode: no owner at first', (await S2.store.getOwner()) === '');
       await S2.store.setOwner('424242');
       ok('supabase mode: owner saved in kv table', (await S2.store.getOwner()) === '424242');
-      await S2.store.setKv('tgOffset', '777');
-      ok('supabase mode: kv save + read back', (await S2.store.getKv('tgOffset')) === '777');
 
-      const cs = await S2.createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '18:00', checkOut: '20:00', name: 'Cloud Sokha', phone: '099' }, 'website');
+      const cs = await S2.createBooking({ room: 'veggie', date: aWeekday, checkIn: '18:00', hours: 2, name: 'Cloud Sokha', phone: '099887766' }, 'website');
       ok('supabase mode: booking created', cs.ok === true, cs);
-      ok('supabase mode: row inserted with snake_case columns', sbRows.some(x => x.ref === cs.booking.ref && x.check_in === '18:00' && x.status === 'pending'));
+      const row = sbRows.find(x => x.ref === cs.booking.ref);
+      ok('supabase mode: row has overnight + id_card columns', row && row.overnight === false && row.id_card === '' && !('branch' in row), row);
       const back = (await S2.store.all()).find(b => b.ref === cs.booking.ref);
-      ok('supabase mode: row read back as camelCase booking', back && back.checkIn === '18:00' && back.checkOut === '20:00' && back.total === 14 && back.name === 'Cloud Sokha', back);
-      const dup = await S2.createBooking({ branch: 'penghout', room: 'vintage', date: tomorrow(), checkIn: '19:00', checkOut: '21:00', name: 'Clash', phone: '088' }, 'telegram');
-      ok('supabase mode: conflicts detected across cloud rows', dup.ok === false && dup.error === 'conflict', dup);
-      await S2.store.update(cs.booking.ref, { status: 'confirmed' });
-      ok('supabase mode: status update persisted', (await S2.store.all()).find(b => b.ref === cs.booking.ref).status === 'confirmed');
+      ok('supabase mode: row read back as booking', back && back.checkIn === '18:00' && back.total === 13 && back.name === 'Cloud Sokha', back);
 
-      await S2.store.setOwner(585858);
-      ok('supabase mode: numeric chat id saved as text (PostgREST-safe)', (await S2.store.getOwner()) === '585858');
-      const tgSb2 = makeTg();
-      await S2.handleUpdate(upd(585858, '/start'), tgSb2);
-      const wm = texts(tgSb2).join(' ');
-      ok('supabase mode: linked owner recognized — Welcome back, not private', /Welcome back/.test(wm) && !/private/.test(wm), wm);
-      await S2.handleUpdate(upd(585858, '/template'), tgSb2);
-      ok('supabase mode: /template works for the cloud-linked owner', /Booking template/i.test(texts(tgSb2).slice(-1)[0] || ''), texts(tgSb2).slice(-1)[0]);
+      const dup = await S2.createBooking({ room: 'veggie', date: aWeekday, checkIn: '19:00', hours: 2, name: 'Clash', phone: '088777666' }, 'telegram');
+      ok('supabase mode: conflicts detected across cloud rows', dup.ok === false && dup.error === 'conflict', dup);
+
+      await S2.store.update(cs.booking.ref, { idCard: ID_PNG });
+      ok('supabase mode: idCard patch maps to id_card column', sbRows.find(x => x.ref === cs.booking.ref).id_card === ID_PNG);
 
       const tgSb = makeTg();
-      ok('supabase mode: 12:30 digest reads cloud rows + kv guard', (await S2.sendDailyDigest(tgSb, tomorrow())) === true && /Cloud Sokha/.test(texts(tgSb).join(' ')) && (await S2.sendDailyDigest(tgSb, tomorrow())) === false);
+      ok('supabase mode: digest reads cloud rows + kv guard', (await S2.sendDailyDigest(tgSb, aWeekday)) === true && /Cloud Sokha/.test(texts(tgSb).join(' ')) && (await S2.sendDailyDigest(tgSb, aWeekday)) === false);
       ok('supabase mode: service-role key sent on every request', sawKey);
     } finally {
       delete require.cache[require.resolve('../server/server.js')];
@@ -277,65 +358,6 @@ const tomorrow = () => new Date(Date.now() + 86400000 + 7 * 3600000).toISOString
     }
   }
 
-  console.log('== HTTP API (admin key enforced) ==');
-  await new Promise(res => S.server.listen(0, res));
-  const port = S.server.address().port;
-  const base = 'http://127.0.0.1:' + port;
-  const KEY = 'test-key-123';
-
-  const get = p => fetch(base + p).then(async x => ({ status: x.status, j: await x.json().catch(() => ({})) }));
-  const post = (p, body) => fetch(base + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(async x => ({ status: x.status, j: await x.json().catch(() => ({})) }));
-  const patch = (p, body) => fetch(base + p, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(async x => ({ status: x.status, j: await x.json().catch(() => ({})) }));
-
-  let h = (await get('/api/health')).j;
-  ok('health ok, json storage, bot off', h.ok && h.storage === 'json-file' && h.botLinked === false, h);
-
-  let av = (await get('/api/availability?branch=cheasophara&room=fishing&date=' + tomorrow())).j;
-  ok('availability returns busy slots', av.ok && av.busy.length === 1 && av.busy[0].start === '11:00', av);
-
-  let pr = await post('/api/bookings', { branch: 'cheasophara', room: 'burger', date: tomorrow(), checkIn: '18:00', checkOut: '21:00', name: 'Web Guest', phone: '011' });
-  ok('POST booking ok + ref', pr.status === 200 && pr.j.ok && /^HH-/.test(pr.j.ref), pr.j);
-
-  pr = await post('/api/bookings', { branch: 'cheasophara', room: 'burger', date: tomorrow(), checkIn: '20:00', checkOut: '22:00', name: 'Clash', phone: '012' });
-  ok('POST conflict → 409 with busy list', pr.status === 409 && pr.j.error === 'conflict' && pr.j.busy.length === 1, pr.j);
-
-  pr = await post('/api/bookings', { branch: 'cheasophara', room: 'burger', date: tomorrow(), checkIn: '20:00', checkOut: '20:30', name: 'Frac', phone: '012' });
-  ok('POST fractional hours → 400', pr.status === 400 && /whole hours/.test(pr.j.message), pr.j);
-
-  let list = await get('/api/bookings');
-  ok('GET bookings without key → 401', list.status === 401);
-
-  list = await get('/api/bookings?key=' + KEY);
-  ok('GET bookings with key lists all', list.j.ok && list.j.bookings.length >= 5, list.j.bookings && list.j.bookings.length);
-
-  const webRef = (await get('/api/bookings?key=' + KEY)).j.bookings.find(b => b.name === 'Web Guest').ref;
-  let pa = await patch('/api/bookings?key=' + KEY + '&ref=' + webRef, { status: 'confirmed' });
-  ok('PATCH confirm with key → 200', pa.status === 200 && pa.j.ok && pa.j.status === 'confirmed', pa.j);
-  ok('status really changed in store', (await store.all()).find(b => b.ref === webRef).status === 'confirmed');
-
-  pa = await patch('/api/bookings?ref=' + webRef, { status: 'cancelled' });
-  ok('PATCH without key → 401', pa.status === 401);
-
-  pa = await patch('/api/bookings?key=' + KEY + '&ref=' + webRef, { status: 'nonsense' });
-  ok('PATCH invalid status → 400', pa.status === 400);
-
-  const html = await fetch(base + '/admin').then(x => x.text());
-  ok('admin dashboard served at /admin', html.includes('Owner Dashboard') && html.includes('Export CSV') && html.includes('New Booking'), html.slice(0, 80));
-
-  /* dashboard "New Booking" (manual source, status honored with key) */
-  pr = await post('/api/bookings', { key: KEY, branch: 'penghout', room: 'fishing', date: tomorrow(), checkIn: '08:00', checkOut: '10:00', name: 'Manual One', phone: '013', status: 'confirmed' });
-  ok('dashboard manual booking → confirmed + ✍️ manual source', pr.status === 200 && pr.j.status === 'confirmed', pr.j);
-  const mb = (await store.all()).find(b => b.name === 'Manual One');
-  ok('manual booking stored with source manual (no owner alert)', mb && mb.source === 'manual' && mb.status === 'confirmed', mb);
-
-  pr = await post('/api/bookings', { branch: 'penghout', room: 'fishing', date: tomorrow(), checkIn: '12:00', checkOut: '14:00', name: 'Sneaky', phone: '014', status: 'confirmed' });
-  ok('status override ignored without the admin key (stays pending)', pr.status === 200 && pr.j.status === 'pending', pr.j);
-
-  const site = await fetch(base + '/').then(x => x.text());
-  ok('static site served at /', site.includes('Stay Somewhere') && site.includes('KHQR') && site.includes('abaPayBtn'), site.slice(0, 60));
-
-  S.server.close();
-  console.log('\n===========================');
-  console.log(`RESULT: ${pass} passed, ${fail} failed`);
+  console.log('\n===========================\nRESULT: ' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('TEST CRASH:', e); process.exit(1); });

@@ -131,18 +131,18 @@ footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:spac
     <div class="stats" id="stats"></div>
 
     <div class="filters">
-      <input type="date" id="fDate" title="Filter by date">
-      <label class="chk"><input type="checkbox" id="fAllDates" checked> All dates</label>
-      <select id="fBranch">
-        <option value="">All branches</option>
-        <option value="cheasophara">Cheasophara</option>
-        <option value="penghout">Peng Hout</option>
-      </select>
+      <input type="date" id="fDate" title="Filter by date (from)">
+      <input type="date" id="fDateEnd" title="Filter by date (to — optional range)">
+      <button class="btn sm" id="fClear" title="Clear date filter">✕ Clear dates</button>
       <select id="fRoom">
         <option value="">All rooms</option>
-        <option value="burger">Burger Room</option>
-        <option value="vintage">Vintage Room</option>
-        <option value="fishing">Fishing Room</option>
+        <option value="pool">🏊 Pool Room</option>
+        <option value="vintage">Vintage</option><option value="shanghai">Shanghai</option>
+        <option value="classic">Classic</option><option value="london">London</option>
+        <option value="camping">Camping</option><option value="fishing">Fishing</option>
+        <option value="burger">Burger</option><option value="kuromi">Kuromi</option>
+        <option value="veggie">👑 Veggie VIP</option><option value="slayer">👑 Slayer VIP</option>
+        <option value="gaming">👑 Gaming VIP</option>
       </select>
       <select id="fStatus">
         <option value="">All statuses</option>
@@ -185,15 +185,20 @@ footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:spac
         <button class="btn sm" id="newClose">✕</button>
       </div>
       <div class="mgrid">
-        <label>Branch
-          <select id="nBranch"><option value="cheasophara">Cheasophara</option><option value="penghout">Peng Hout</option></select>
-        </label>
         <label>Room
-          <select id="nRoom"><option value="burger">Burger · $6.00/h</option><option value="vintage">Vintage · $7.00/h</option><option value="fishing">Fishing · $7.50/h</option></select>
+          <select id="nRoom">
+            <option value="pool">🏊 Pool · $5/h</option>
+            <option value="vintage">Vintage</option><option value="shanghai">Shanghai</option>
+            <option value="classic">Classic</option><option value="london">London</option>
+            <option value="camping">Camping</option><option value="fishing">Fishing</option>
+            <option value="burger">Burger</option><option value="kuromi">Kuromi</option>
+            <option value="veggie">👑 Veggie VIP (+$3)</option><option value="slayer">👑 Slayer VIP (+$3)</option>
+            <option value="gaming">👑 Gaming VIP (+$3)</option>
+          </select>
         </label>
         <label>Date<input type="date" id="nDate"></label>
         <label>Check-in<input type="time" id="nTime" value="14:00"></label>
-        <label>Hours<select id="nHours"></select></label>
+        <label>Hours / Overnight<select id="nHours"></select></label>
         <label>Status
           <select id="nStatus"><option value="confirmed">Confirmed (paid)</option><option value="pending">Pending</option></select>
         </label>
@@ -215,8 +220,7 @@ let KEY = sessionStorage.getItem('hh_admin_key') || '';
 let all = [];
 let timer = null;
 
-const ROOMS = { burger: 'Burger', vintage: 'Vintage', fishing: 'Fishing' };
-const BRANCHES = { cheasophara: 'Cheasophara', penghout: 'Peng Hout' };
+const ROOMS = { pool: 'Pool', vintage: 'Vintage', shanghai: 'Shanghai', classic: 'Classic', london: 'London', camping: 'Camping', fishing: 'Fishing', burger: 'Burger', kuromi: 'Kuromi', veggie: 'Veggie VIP', slayer: 'Slayer VIP', gaming: 'Gaming VIP' };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => '$' + Number(n).toFixed(2);
 const fmtT = t => { const p = t.split(':').map(Number); const ap = p[0] >= 12 ? 'PM' : 'AM'; const h = p[0] % 12 || 12; return h + ':' + String(p[1]).padStart(2,'0') + ' ' + ap; };
@@ -237,10 +241,11 @@ async function load() {
 
 function filtered() {
   const q = ($('#fSearch').value || '').toLowerCase().trim();
-  const date = $('#fAllDates').checked ? '' : ($('#fDate').value || '');
+  const from = $('#fDate').value || '';
+  const to = $('#fDateEnd').value || '';
+  /* strict: single date (from only) or range (from..to) — nothing outside it */
   return all.filter(b =>
-    (!date || b.date === date) &&
-    (!$('#fBranch').value || b.branch === $('#fBranch').value) &&
+    (!from || (b.date >= from && (!to || b.date <= to))) &&
     (!$('#fRoom').value || b.room === $('#fRoom').value) &&
     (!$('#fStatus').value || b.status === $('#fStatus').value) &&
     (!$('#fSource').value || b.source === $('#fSource').value) &&
@@ -263,13 +268,11 @@ function render() {
     <tr>
       <td class="ref">${esc(b.ref)}</td>
       <td>${esc(fmtD(b.date))}</td>
-      <td>${esc(BRANCHES[b.branch] || b.branch)}</td>
       <td>${esc(ROOMS[b.room] || b.room)}</td>
-      <td>${esc(fmtT(b.checkIn))}</td>
-      <td>${esc(fmtT(b.checkOut))}</td>
-      <td>${+b.hours}</td>
+      <td>${b.overnight ? '🌙 ' + esc(fmtT(b.checkIn)) + '→' + esc(fmtT(b.checkOut)) + '+1' : esc(fmtT(b.checkIn)) + '–' + esc(fmtT(b.checkOut))}</td>
+      <td>${b.overnight ? 'overnight' : +b.hours + 'h'}</td>
       <td class="money">${money(b.total)}</td>
-      <td>${esc(b.name)}</td>
+      <td>${esc(b.name)}${b.overnight ? (b.idCard ? ' <button class="btn sm" data-id="' + esc(b.ref) + '" title="View guest ID Card">🪪 ID</button>' : ' <span title="ID Card missing" style="color:var(--red)">🪪✗</span>') : ''}</td>
       <td>${esc(b.phone)}</td>
       <td class="src"><b>${b.source === 'telegram' ? '📱 Telegram' : b.source === 'manual' ? '✍️ Owner' : '🌐 Website'}</b></td>
       <td><span class="pill ${b.status}">${b.status}</span></td>
@@ -297,10 +300,9 @@ async function act(ref, status) {
 
 function exportCSV() {
   const list = filtered();
-  const cols = ['ref','date','branch','room','checkIn','checkOut','hours','rate','total','name','phone','contact','source','status','created'];
+  const cols = ['ref','date','room','checkIn','checkOut','hours','overnight','total','name','phone','contact','source','status','created'];
   const rows = [cols.join(',')].concat(list.map(b => cols.map(c => {
     let v = b[c] == null ? '' : b[c];
-    if (c === 'branch') v = BRANCHES[b.branch] || b.branch;
     if (c === 'room') v = ROOMS[b.room] || b.room;
     v = String(v).replace(/"/g, '""');
     return /[",\n]/.test(v) ? '"' + v + '"' : v;
@@ -352,33 +354,65 @@ $('#keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(
 $('#lockBtn').addEventListener('click', lock);
 $('#refreshBtn').addEventListener('click', load);
 $('#csvBtn').addEventListener('click', exportCSV);
-['fDate','fAllDates','fBranch','fRoom','fStatus','fSource','fSearch'].forEach(id =>
+['fDate','fDateEnd','fRoom','fStatus','fSource','fSearch'].forEach(id =>
   $('#' + id).addEventListener('input', render));
+$('#fClear').addEventListener('click', () => { $('#fDate').value = ''; $('#fDateEnd').value = ''; render(); });
 $('#rows').addEventListener('click', e => {
+  const idBtn = e.target.closest('[data-id]');
+  if (idBtn) {
+    const b = all.find(x => x.ref === idBtn.dataset.id);
+    if (b && b.idCard) { const w = window.open(); w.document.write('<img src="' + b.idCard + '" style="max-width:100%">'); }
+    return;
+  }
   const b = e.target.closest('[data-act]');
   if (b) act(b.dataset.ref, b.dataset.act);
 });
-
 /* auto-login if the key is remembered */
 if (KEY) { $('#keyInput').value = KEY; unlock(); }
 
 /* ============================================================
    NEW BOOKING MODAL — owner adds a booking taken in direct chat
    ============================================================ */
-const RATES = { burger: 6, vintage: 7, fishing: 7.5 };
 const nEl = id => $('#' + id);
+const PRICING = {
+  weekday: { 2: 10, 3: 12, 4: 14, 5: 18, 6: 20, overnight: 18 },
+  weekend: { 2: 12, 3: 15, 4: 18, 5: 20, 6: 23, overnight: 18 }
+};
+const isWeekend = d => { const w = new Date(d + 'T12:00:00').getDay(); return w === 0 || w === 6; };
+const isPool = r => r === 'pool';
+const isVip = r => r === 'veggie' || r === 'slayer' || r === 'gaming';
+function modalPrice(room, date, val) {
+  if (!date) return null;
+  if (val === 'ON') {
+    if (isPool(room)) return null;
+    return PRICING[isWeekend(date) ? 'weekend' : 'weekday'].overnight + (isVip(room) ? 3 : 0);
+  }
+  const h = parseInt(val, 10);
+  if (isPool(room)) return 5 * h;
+  const base = PRICING[isWeekend(date) ? 'weekend' : 'weekday'][h];
+  return base == null ? null : base + (isVip(room) ? 3 : 0);
+}
 (function buildHours() {
   const sel = nEl('nHours');
-  for (let i = 1; i <= 12; i++) {
-    const o = document.createElement('option');
-    o.value = i; o.textContent = i + (i === 1 ? ' hour' : ' hours');
-    if (i === 2) o.selected = true;
-    sel.appendChild(o);
-  }
+  sel.innerHTML = '';
+  const sync = () => {
+    const room = nEl('nRoom').value;
+    sel.innerHTML = '';
+    if (isPool(room)) {
+      for (let i = 1; i <= 12; i++) sel.insertAdjacentHTML('beforeend', '<option value="' + i + '">' + i + (i === 1 ? ' hour' : ' hours') + '</option>');
+    } else {
+      for (let i = 2; i <= 6; i++) sel.insertAdjacentHTML('beforeend', '<option value="' + i + '">' + i + ' hours</option>');
+      sel.insertAdjacentHTML('beforeend', '<option value="ON">🌙 Overnight (8PM–8AM)</option>');
+      sel.insertAdjacentHTML('beforeend', '<option value="ON9">🌙 Overnight (9PM–9AM)</option>');
+    }
+    newTotal();
+  };
+  nEl('nRoom').addEventListener('change', sync);
+  sync();
 })();
 function newTotal() {
-  const h = parseInt(nEl('nHours').value, 10) || 0;
-  nEl('nTotal').textContent = '$' + (h * (RATES[nEl('nRoom').value] || 0)).toFixed(2);
+  const p = modalPrice(nEl('nRoom').value, nEl('nDate').value, nEl('nHours').value);
+  nEl('nTotal').textContent = p == null ? '—' : '$' + p.toFixed(2);
 }
 function openNew() {
   const err = nEl('nErr'); err.style.display = 'none';
@@ -391,16 +425,26 @@ async function createNew() {
   const err = nEl('nErr'); err.style.display = 'none';
   const name = nEl('nName').value.trim(), phone = nEl('nPhone').value.trim();
   const date = nEl('nDate').value, checkIn = nEl('nTime').value || '';
-  const h = parseInt(nEl('nHours').value, 10) || 0;
+  const hv = nEl('nHours').value;
+  const isON = hv === 'ON' || hv === 'ON9';
+  const h = isON ? 12 : (parseInt(hv, 10) || 0);
+  const room = nEl('nRoom').value;
   if (!name || !phone) { err.textContent = 'Guest name and phone are required.'; err.style.display = 'block'; return; }
-  if (!date || !/^\d{2}:\d{2}$/.test(checkIn)) { err.textContent = 'Pick a date and a check-in time.'; err.style.display = 'block'; return; }
-  const p = checkIn.split(':').map(Number);
-  const out = p[0] * 60 + p[1] + h * 60;
-  if (out > 1440) { err.textContent = 'That would pass midnight — choose fewer hours or an earlier check-in.'; err.style.display = 'block'; return; }
-  const checkOut = String(Math.floor(out / 60)).padStart(2, '0') + ':' + String(out % 60).padStart(2, '0');
+  if (!date) { err.textContent = 'Pick a date.'; err.style.display = 'block'; return; }
+  let chkIn = checkIn, checkOut = '';
+  if (isON) {
+    chkIn = hv === 'ON' ? '20:00' : '21:00';
+    checkOut = hv === 'ON' ? '08:00' : '09:00';
+  } else {
+    if (!/^\d{2}:\d{2}$/.test(checkIn)) { err.textContent = 'Pick a check-in time.'; err.style.display = 'block'; return; }
+    const p = checkIn.split(':').map(Number);
+    const out = p[0] * 60 + p[1] + h * 60;
+    if (out > 1440) { err.textContent = 'That would pass midnight — choose fewer hours or overnight.'; err.style.display = 'block'; return; }
+    checkOut = String(Math.floor(out / 60)).padStart(2, '0') + ':' + String(out % 60).padStart(2, '0');
+  }
   const body = {
-    key: KEY, branch: nEl('nBranch').value, room: nEl('nRoom').value,
-    date, checkIn, checkOut, hours: h, name, phone,
+    key: KEY, room,
+    date, checkIn: chkIn, checkOut, hours: h, overnight: isON, name, phone,
     status: nEl('nStatus').value
   };
   const r = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
