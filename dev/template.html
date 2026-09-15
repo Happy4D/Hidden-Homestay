@@ -21,8 +21,7 @@
     </a>
     <nav class="header-nav">
       <a href="#rooms" data-i18n="navRooms">Rooms</a>
-      <a href="#book" data-i18n="navBook">Book</a>
-      <a href="#terms" data-i18n="navTerms">Terms</a>
+      <a href="#book" class="js-book-open" data-i18n="navBook">Book</a>
       <a href="#contact" data-i18n="navContact">Contact</a>
     </nav>
     <div class="lang-switch" role="group" aria-label="Language">
@@ -42,20 +41,16 @@
       <h1 data-i18n="heroTitle">Your next favourite room is waiting.</h1>
       <p class="hero-sub" data-i18n="heroSub">Pool, Standard and VIP rooms — by the hour or overnight. Pick a date, choose your room, and get your confirmation plus entry guide straight to your Telegram.</p>
       <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="#book" data-i18n="heroCta">Book Your Stay</a>
+        <a class="btn btn-primary btn-lg js-book-open" href="#book" data-i18n="heroCta">Book Your Stay</a>
         <a class="btn btn-ghost btn-lg" href="#rooms" data-i18n="heroCta2">See the 12 rooms</a>
       </div>
       <ul class="hero-facts">
         <li><span>🌙</span><span data-i18n="heroFact1">Overnight stays 8PM–8AM / 9PM–9AM</span></li>
         <li><span>⚡</span><span data-i18n="heroFact2">Instant Telegram confirmation &amp; entry guide</span></li>
-        <li><span>💳</span><span data-i18n="heroFact3">Pay with any Cambodian bank app (KHQR)</span></li>
       </ul>
     </div>
     <div class="hero-art">
-      <div class="hero-photo-main"><img src="assets/rooms/vintage.png" alt="Vintage Room — Hidden Homestay"></div>
-      <div class="hero-photo-p1"><img src="assets/rooms/pool.png" alt="Pool Room — Hidden Homestay"></div>
-      <div class="hero-photo-p2"><img src="assets/rooms/kuromi.png" alt="Kuromi Room — Hidden Homestay"></div>
-      <div class="hero-badge" data-i18n="heroBadge">12 rooms · 1 address · open daily</div>
+      <div class="showcase-frame" id="showcaseFrame" aria-live="polite"></div>
     </div>
   </div>
 </section>
@@ -70,15 +65,15 @@
     </div>
     <div class="room-groups">
       <div class="room-group">
-        <h3 class="group-title"><span class="gicon">🏊</span> <span data-i18n="grpPool">Pool Room</span> <small data-i18n="grpPoolSub">$5 / hour</small></h3>
+        <h3 class="group-title"><span class="gicon">🎱</span> <span data-i18n="grpPool">Pool Room</span></h3>
         <div class="room-grid" id="showPool"></div>
       </div>
       <div class="room-group">
-        <h3 class="group-title"><span class="gicon">🏠</span> <span data-i18n="grpStd">Standard Rooms</span> <small data-i18n="grpStdSub">8 rooms · from $10 / 2 hrs</small></h3>
+        <h3 class="group-title"><span class="gicon">🏠</span> <span data-i18n="grpStd">Standard Rooms</span></h3>
         <div class="room-grid" id="showStd"></div>
       </div>
       <div class="room-group">
-        <h3 class="group-title"><span class="gicon">👑</span> <span data-i18n="grpVip">VIP Rooms</span> <small data-i18n="grpVipSub">Standard price + $3 · VIP extras</small></h3>
+        <h3 class="group-title"><span class="gicon">👑</span> <span data-i18n="grpVip">VIP Rooms</span></h3>
         <div class="room-grid" id="showVip"></div>
       </div>
     </div>
@@ -112,13 +107,14 @@
   </div>
 </section>
 
-<!-- ======================== BOOKING ======================== -->
-<section class="book" id="book">
-  <div class="wrap">
+<!-- ======================== BOOKING OVERLAY ======================== -->
+<div class="booking-overlay" id="bookingOverlay" aria-hidden="true">
+  <div class="booking-card" id="book" role="dialog" aria-modal="true" aria-label="Book your stay">
+    <button class="booking-close" id="bookClose" type="button" aria-label="Close booking">✕</button>
     <div class="section-head">
       <p class="kicker" data-i18n="bookKicker">Reserve in two minutes</p>
       <h2 data-i18n="bookTitle">Book your stay</h2>
-      <p class="section-sub" data-i18n="bookSub">One address: No 235D, Road 777, Sangkat Jranh Chomres II, Khan Russey Keo, Phnom Penh.</p>
+      <p class="section-sub" data-i18n="bookSub">Pick your date, room and check-in time — it takes two minutes.</p>
     </div>
 
     <div class="wizard">
@@ -148,7 +144,7 @@
             <button type="button" data-dur="6">6 <span data-i18n="hrs">hrs</span></button>
             <button type="button" data-dur="ON8" class="chip-ov">🌙 8PM–8AM <span data-i18n="ovNight">overnight</span></button>
             <button type="button" data-dur="ON9" class="chip-ov">🌙 9PM–9AM <span data-i18n="ovNight">overnight</span></button>
-            <button type="button" data-dur="X">🏊 Pool · <span data-i18n="anyHours">1–12 hrs</span></button>
+            <button type="button" data-dur="X">🎱 Pool · <span data-i18n="anyHours">1–12 hrs</span></button>
           </div>
           <div class="pool-dur" id="poolDur" hidden>
             <label data-i18n="s1PoolHours">Pool Room — hours:</label>
@@ -260,43 +256,14 @@
       </div>
     </div>
   </div>
-</section>
-
-<!-- ======================== LOCATION ======================== -->
-<section class="loc" id="loc">
-  <div class="wrap loc-grid">
-    <div>
-      <p class="kicker" data-i18n="locKicker">One address</p>
-      <h2 data-i18n="locTitle">Hidden Homestay — Borey Vimean Phnom Penh</h2>
-      <address class="loc-addr">
-        <span data-i18n="locL1">No 235D, Road No 777</span><br>
-        <span data-i18n="locL2">Sangkat Jranh Chomres II, Khan Russey Keo</span><br>
-        <span data-i18n="locL3">Phnom Penh, Cambodia</span>
-      </address>
-      <p class="section-sub" data-i18n="locSub">Easy to find, calm streets, and space to park. The exact entry guideline and parking guide are sent to your Telegram with every booking.</p>
-    </div>
-    <div class="loc-art"><img src="assets/guides/parking.jpg" alt="Hidden Homestay parking guide" loading="lazy"></div>
-  </div>
-</section>
-
-<!-- ======================== TERMS ======================== -->
-<section class="terms" id="terms">
-  <div class="wrap">
-    <div class="section-head">
-      <p class="kicker" data-i18n="termsKicker">Please read before booking</p>
-      <h2 data-i18n="termsTitle">Terms &amp; Conditions</h2>
-    </div>
-    <div class="terms-box big">
-      <ol class="rules-list" id="termsListFull"></ol>
-    </div>
-  </div>
-</section>
+</div>
 
 <!-- ======================== CONTACT / FOOTER ======================== -->
 <footer class="contact" id="contact">
   <div class="wrap">
     <img class="foot-logo" src="{{LOGO}}" alt="Hidden Homestay logo">
     <p class="foot-tag" data-i18n="tagline">stay cosy. stay HIDDEN</p>
+    <p class="foot-addr"><strong>Hidden Homestay — Borey Vimean Phnom Penh</strong></p>
     <ul class="contact-list">
       <li>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>

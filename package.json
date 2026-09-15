@@ -1,6 +1,6 @@
 {
   "name": "hidden-homestay",
-  "version": "2.0.0",
+  "version": "2.2.3",
   "private": true,
   "description": "Hidden Homestay — website + booking API + Telegram bot (no dependencies)",
   "main": "server/server.js",

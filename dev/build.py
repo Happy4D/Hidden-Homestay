@@ -30,7 +30,7 @@ def main() -> None:
     qrlib = (DEV / 'qrcode.min.js').read_text(encoding='utf-8')
 
     # Khmer font lives next to the dev files (downloaded from Google Fonts)
-    font_path = DEV / 'khmer.woff2'
+    font_path = DEV / 'siemreap.woff2'
     if not font_path.exists():
         sys.exit('ERROR: dev/khmer.woff2 missing (Khmer font)')
     css = css.replace('{{KHMER_FONT}}',
