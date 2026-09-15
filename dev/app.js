@@ -131,6 +131,13 @@ const I18N = {
     flagPool: 'POOL', flagStd: 'STANDARD',
     bookThisRoom: 'Book this room',
     lblStd: 'Standard', lblVip: 'VIP', lblPool: 'Pool',
+    navMy: 'My Bookings', heroCta3: 'My Bookings', s5My: 'View My Bookings',
+    mbKicker: 'Your stays', mbTitle: 'My Bookings',
+    mbSub: 'Bookings made from this device. Tap “Telegram” to receive the confirmation again.',
+    mbEmpty: 'No bookings yet on this device. Make your first one — it only takes two minutes.',
+    mbRoom: 'Room', mbDate: 'Date', mbTimes: 'Check-in / out', mbGuest: 'Guest',
+    mbTgBtn: 'Telegram', mbRemove: 'Remove', mbRemoved: 'Booking removed from this device',
+    stPending: 'Pending', stConfirmed: 'Confirmed', stCancelled: 'Cancelled',
     howKicker: 'Effortless booking', howTitle: 'Three steps to your hideaway',
     how1T: 'Date & duration', how1P: 'Choose your date and how long you\u2019ll stay — 2 to 6 hours, or a full overnight (8PM–8AM / 9PM–9AM). The price shows instantly, weekday or weekend.',
     how2T: 'Pick your room', how2P: 'Twelve themed rooms, one address. Only rooms that are actually free for your slot are shown — no double bookings, ever.',
@@ -217,6 +224,13 @@ const I18N = {
     flagPool: 'ប៉ុល', flagStd: 'ស្តង់ដារ',
     bookThisRoom: 'កក់បន្ទប់នេះ',
     lblStd: 'ស្តង់ដារ', lblVip: 'VIP', lblPool: 'ប៉ុល',
+    navMy: 'ការកក់របស់ខ្ញុំ', heroCta3: 'ការកក់របស់ខ្ញុំ', s5My: 'មើលការកក់របស់ខ្ញុំ',
+    mbKicker: 'ការស្នាក់របស់អ្នក', mbTitle: 'ការកក់របស់ខ្ញុំ',
+    mbSub: 'ការកក់ដែលបានធ្វើពីឧបករណ៍នេះ។ ចុច “Telegram” ដើម្បីទទួលបានការបញ្ជាក់ម្តងទៀត។',
+    mbEmpty: 'មិនមានការកក់នៅលើឧបករណ៍នេះទេ។ កក់ដំបូងរបស់អ្នក — ចំណាយពេលតែពីរនាទីប៉ុណ្ណោះ។',
+    mbRoom: 'បន្ទប់', mbDate: 'កាលបរិច្ឆេទ', mbTimes: 'ចូល / ចេញ', mbGuest: 'អតិថិជន',
+    mbTgBtn: 'Telegram', mbRemove: 'លុប', mbRemoved: 'បានលុបការកក់ចេញពីឧបករណ៍នេះ',
+    stPending: 'រង់ចាំ', stConfirmed: 'បានបញ្ជាក់', stCancelled: 'បានបោះបង់',
  grpVipSub: 'តម្លៃ Standard + ៣$ · សេវាបន្ថែម VIP',
     howKicker: 'កក់ងាយស្រួល', howTitle: 'បីជំហាន ទៅកាន់កន្លែងសម្រាប់អ្នក',
     how1T: 'កាលបរិច្ឆេទ និងរយៈពេល', how1P: 'ជ្រើសរើសកាលបរិច្ឆេទ និងរយៈពេលស្នាក់ — ២ ទៅ ៦ ម៉ោង ឬពេញមួយយប់ (20:00–08:00 / 21:00–09:00)។ តម្លៃបង្ហាញភ្លាមៗ ថ្ងៃធ្វើការ ឬចុងសប្តាហ៍។',
@@ -586,9 +600,10 @@ function buildGuest() {
     });
     $('#actBack3').onclick = () => goStep(2);
     $('#actNext3').onclick = () => {
+      const onNow = state.dur === 'ON8' || state.dur === 'ON9';   // fresh — never a stale closure
       if (!state.name.trim()) { toast(t('tName'), ICON.info); return; }
       if (!phoneOk(state.phone)) { toast(t('tPhoneLen'), ICON.info); return; }
-      if (isON && !state.idCard) { toast(t('tId'), ICON.info); return; }
+      if (onNow && !state.idCard) { toast(t('tId'), ICON.info); return; }
       goStep(4);
     };
   }
@@ -695,6 +710,15 @@ async function confirmBooking() {
     if (resp.status === 409) { toast(t('tBusy'), ICON.cross); goStep(2); return; }
     if (!resp.ok || !j.ok) throw new Error('server error');
     state.ref = j.booking ? j.booking.ref : (j.ref || '');
+    saveMyBooking({
+      ref: state.ref,
+      status: j.booking ? j.booking.status : (j.status || 'pending'),
+      room: state.room, date: state.date,
+      checkIn: info.checkIn, checkOut: info.checkOut,
+      hours: info.hours, overnight: !!info.overnight,
+      name: state.name.trim(),
+      total: (j.booking ? j.booking.total : j.total) || priceFor(state.room, state.date, state.dur)
+    });
     toast(t('tDone'), ICON.ok);
     state.completed = true;
     goStep(5);
@@ -770,6 +794,8 @@ function resetBooking() {
   Object.assign(state, { step: 1, date: '', dur: '', poolHours: 2, poolCustom: false, start: '', room: '', name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
   $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = '';
   $('#idUpload').value = ''; $('#idPreview').hidden = true;
+  const ag = $('#agreedTerms');
+  if (ag) { ag.checked = false; $('#paySection').classList.remove('open'); }
 }
 function openBooking(e) {
   if (e) e.preventDefault();
@@ -795,7 +821,79 @@ function initBookingOverlay() {
   const x = $('#bookClose');
   if (x) x.addEventListener('click', closeBooking);
   ov.addEventListener('click', e => { if (e.target === ov) closeBooking(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && ov.classList.contains('open')) closeBooking(); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const mb = $('#myBookingsOverlay');
+    if (mb && mb.classList.contains('open')) { closeMyBookings(); return; }
+    if (ov.classList.contains('open')) closeBooking();
+  });
+}
+
+/* ============================================================
+   MY BOOKINGS (saved on this device, like the classic viewer)
+   ============================================================ */
+const MY_KEY = 'hh_my_bookings';
+function saveMyBooking(bk) {
+  const list = store.get(MY_KEY) || [];
+  if (!bk.ref || list.some(x => x.ref === bk.ref)) return;
+  list.push(bk);
+  store.set(MY_KEY, list.slice(-30));
+}
+function mbStatus(s) {
+  return s === 'confirmed' ? t('stConfirmed') : (s === 'cancelled' ? t('stCancelled') : t('stPending'));
+}
+function renderMyBookings() {
+  const box = $('#mbList');
+  if (!box) return;
+  const list = (store.get(MY_KEY) || []).slice().reverse();
+  if (!list.length) { box.innerHTML = '<div class="mb-empty">🗓️ ' + esc(t('mbEmpty')) + '</div>'; return; }
+  box.innerHTML = list.map(bk => {
+    const r = roomById(bk.room);
+    return '<div class="mb-item">' +
+      '<div class="mb-item-top"><b class="mb-ref">' + esc(bk.ref) + '</b><span class="mb-status ' + esc(bk.status || 'pending') + '">' + esc(mbStatus(bk.status)) + '</span></div>' +
+      '<div class="mb-rows">' +
+        '<div><span>' + esc(t('mbRoom')) + '</span><b>' + esc(r ? roomName(r) : bk.room) + '</b></div>' +
+        '<div><span>' + esc(t('mbDate')) + '</span><b>' + esc(bk.date) + '</b></div>' +
+        '<div><span>' + esc(t('mbTimes')) + '</span><b>' + esc(bk.checkIn) + ' – ' + esc(bk.checkOut) + (bk.overnight ? ' 🌙' : '') + '</b></div>' +
+        '<div><span>' + esc(t('mbGuest')) + '</span><b>' + esc(bk.name) + '</b></div>' +
+      '</div>' +
+      '<div class="mb-foot"><span class="mb-amt">' + money(bk.total) + '</span>' +
+        '<span class="mb-foot-btns">' +
+          '<a class="btn btn-tg btn-sm" target="_blank" rel="noopener" href="' + CONFIG.botUrl + '?start=' + encodeURIComponent(bk.ref) + '">📨 ' + esc(t('mbTgBtn')) + '</a>' +
+          '<button class="btn btn-ghost btn-sm mb-del" type="button" data-ref="' + esc(bk.ref) + '">' + esc(t('mbRemove')) + '</button>' +
+        '</span></div>' +
+    '</div>';
+  }).join('');
+  $$('.mb-del', box).forEach(btn => btn.addEventListener('click', () => {
+    store.set(MY_KEY, (store.get(MY_KEY) || []).filter(x => x.ref !== btn.dataset.ref));
+    renderMyBookings();
+    toast(t('mbRemoved'), ICON.ok);
+  }));
+}
+function openMyBookings(e) {
+  if (e) e.preventDefault();
+  const ov = $('#myBookingsOverlay');
+  if (!ov) return;
+  renderMyBookings();
+  ov.classList.add('open');
+  ov.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('booking-open');
+}
+function closeMyBookings() {
+  const ov = $('#myBookingsOverlay');
+  if (!ov) return;
+  ov.classList.remove('open');
+  ov.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('booking-open');
+}
+function initMyBookings() {
+  $$('.js-my-bookings').forEach(el => el.addEventListener('click', openMyBookings));
+  const x = $('#mbClose');
+  if (x) x.addEventListener('click', closeMyBookings);
+  const ov = $('#myBookingsOverlay');
+  if (ov) ov.addEventListener('click', e => { if (e.target === ov) closeMyBookings(); });
+  const s5 = $('#actMyBookings');
+  if (s5) s5.addEventListener('click', openMyBookings);
 }
 
 /* ============================================================
@@ -841,7 +939,7 @@ function renderStatic() {
    ============================================================ */
 (async function boot() {
   LANG = store.get('hh_lang') || 'en';
-  applyI18n(); renderShowcase(); renderStatic(); initShowcase(); initBookingOverlay();
+  applyI18n(); renderShowcase(); renderStatic(); initShowcase(); initBookingOverlay(); initMyBookings();
   $('#langEn').addEventListener('click', () => { LANG = 'en'; store.set('hh_lang', 'en'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step >= 4) buildReview(); if (state.step === 5) buildSuccess(); });
   $('#langKh').addEventListener('click', () => { LANG = 'kh'; store.set('hh_lang', 'kh'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step >= 4) buildReview(); if (state.step === 5) buildSuccess(); });
   initSchedule();

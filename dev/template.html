@@ -22,6 +22,7 @@
     <nav class="header-nav">
       <a href="#rooms" data-i18n="navRooms">Rooms</a>
       <a href="#book" class="js-book-open" data-i18n="navBook">Book</a>
+      <a href="#" class="js-my-bookings" data-i18n="navMy">My Bookings</a>
       <a href="#contact" data-i18n="navContact">Contact</a>
     </nav>
     <div class="lang-switch" role="group" aria-label="Language">
@@ -43,6 +44,7 @@
       <div class="hero-cta">
         <a class="btn btn-primary btn-lg js-book-open" href="#book" data-i18n="heroCta">Book Your Stay</a>
         <a class="btn btn-ghost btn-lg" href="#rooms" data-i18n="heroCta2">See the 12 rooms</a>
+        <a class="btn btn-ghost btn-lg js-my-bookings" href="#" data-i18n="heroCta3">My Bookings</a>
       </div>
       <ul class="hero-facts">
         <li><span>🌙</span><span data-i18n="heroFact1">Overnight stays 8PM–8AM / 9PM–9AM</span></li>
@@ -251,6 +253,7 @@
         <p class="field-note" id="s5RefNote"></p>
         <div class="receipt" id="successReceipt"></div>
         <div class="pane-nav">
+          <button class="btn btn-ghost" id="actMyBookings" type="button" data-i18n="s5My">View My Bookings</button>
           <button class="btn btn-ghost" id="actAgain" type="button" data-i18n="s5Again">Book another stay</button>
         </div>
       </div>
@@ -283,6 +286,19 @@
 </footer>
 
 </main>
+
+<!-- ================= MY BOOKINGS ================= -->
+<div class="booking-overlay" id="myBookingsOverlay" aria-hidden="true">
+  <div class="booking-card" role="dialog" aria-modal="true" aria-label="My bookings">
+    <button class="booking-close" id="mbClose" type="button" aria-label="Close">✕</button>
+    <div class="section-head">
+      <p class="kicker" data-i18n="mbKicker">Your stays</p>
+      <h2 data-i18n="mbTitle">My Bookings</h2>
+      <p class="section-sub" data-i18n="mbSub">Bookings made from this device. Tap “Telegram” to receive the confirmation again.</p>
+    </div>
+    <div id="mbList"></div>
+  </div>
+</div>
 
 <div class="toast-zone" id="toastZone"></div>
 
