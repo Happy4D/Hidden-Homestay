@@ -63,45 +63,45 @@ const CONFIG = {
 
 /* ---------- the 12 rooms ---------- */
 const ROOMS = [
-  { id: 'pool',     name: 'Pool Room',     nameKh: 'បន្ទប់Pool',     type: 'pool',     img: 'assets/rooms/pool.png',
+  { id: 'pool',     no: 501, name: 'Pool Room',     nameKh: 'បន្ទប់Pool',     type: 'pool',     img: 'assets/rooms/pool.png',
     blurb: 'Your own private 8-ball pool table — rack them up, break, and enjoy the game in your own themed room.', tags: ['8-Ball Table', 'Private Play', 'Cosy Seating'],
     blurbKh: '8Ball — Dart និងរីករាយជាមួយហ្គេម នៅក្នុងបន្ទប់ផ្ទាល់ខ្លួន។', tagsKh: ['8 Ball', 'ឯកជនភាព', 'Dart'] },
-  { id: 'vintage',  name: 'Vintage Room',  nameKh: 'បន្ទប់វីនតាក់',  type: 'standard', img: 'assets/rooms/vintage.png',
+  { id: 'vintage',  no: 1,   name: 'Vintage Room',  nameKh: 'បន្ទប់វីនតាក់',  type: 'standard', img: 'assets/rooms/vintage.png',
     blurb: 'Retro furniture, warm light and a nostalgic calm you can sink into and never want to leave.', tags: ['Retro Décor', 'Reading Corner', 'Record Player'],
     blurbKh: 'គ្រឿងសង្ហារិបបែបបុរាណ ពន្លឺទន់ភ្លន់ និងភាពស្ងប់ស្ងៀមដែលធ្វើឱ្យអ្នកមិនចង់ចាកចេញឡើយ។', tagsKh: ['ការតុបតែងបែបបុរាណ', 'អានសៀវភៅ', 'ម៉ាស៊ីនចាក់តន្ត្រី'] },
-  { id: 'shanghai', name: 'Shanghai Room', nameKh: 'បន្ទប់សាំងហៃ', type: 'standard', img: 'assets/rooms/shanghai.png',
+  { id: 'shanghai', no: 2,   name: 'Shanghai Room', nameKh: 'បន្ទប់សាំងហៃ', type: 'standard', img: 'assets/rooms/shanghai.png',
     blurb: 'Lantern light and oriental charm — a little piece of old Shanghai right here in Phnom Penh.', tags: ['Oriental Décor', 'Warm Lighting'],
     blurbKh: 'ពន្លឺចង្កៀងបែបបុរាណ និងសម្រស់បែបអាស៊ីបូព៌ា — នាំអារម្មណ៍ដូចបានធ្វើដំណើរត្រឡប់ទៅកាន់ទីក្រុងសៀងហៃសម័យមុន នៅកណ្ដាលរាជធានីភ្នំពេញ។', tagsKh: ['ការតុបតែងបែបបូព៌ន', 'ពន្លឺភ្លឺទន់'] },
-  { id: 'classic',  name: 'Classic Room',  nameKh: 'បន្ទប់ក្លាស៊ីក',  type: 'standard', img: 'assets/rooms/classic.png',
+  { id: 'classic',  no: 3,   name: 'Classic Room',  nameKh: 'បន្ទប់ក្លាស៊ីក',  type: 'standard', img: 'assets/rooms/classic.png',
     blurb: 'Timeless, clean and quietly elegant. The room that never goes out of style.', tags: ['Elegant Décor', 'Work Desk', 'Blackout Curtains'],
     blurbKh: 'សាមញ្ញ ស្អាត និងមានភាពប្រណិតបែបស្ងប់ស្ងាត់។ រចនាបថដែលមិនចេះចាស់ និងមិនដែលហួសសម័យ។', tagsKh: ['ការតុបតែងបែបធំទូលាយ', 'តុធ្វើការងារ', 'ស្រោមបង្អួចបិទពន្លឺ'] },
-  { id: 'london',   name: 'London Room',   nameKh: 'បន្ទប់ឡុងដ៍',   type: 'standard', img: 'assets/rooms/london.png',
+  { id: 'london',   no: 5,   name: 'London Room',   nameKh: 'បន្ទប់ឡុងដ៍',   type: 'standard', img: 'assets/rooms/london.png',
     blurb: 'Checkerboard floors, red-postbox reds and a cosy British mood — tea time, anyone?', tags: ['British Theme', 'Cosy Chairs'],
     blurbKh: 'ពណ៌ក្រហមដ៏លេចធ្លោ និងបរិយាកាសបែបប្រទេសអង់គ្លេស', tagsKh: ['រចនាបថអង់គ្លេស', 'កៅអីទន់ៗ'] },
-  { id: 'camping',  name: 'Camping Room',  nameKh: 'បន្ទប់កាំពីង',  type: 'standard', img: 'assets/rooms/camping.png',
+  { id: 'camping',  no: 102, name: 'Camping Room',  nameKh: 'បន្ទប់កាំពីង',  type: 'standard', img: 'assets/rooms/camping.png',
     blurb: 'A starry indoor camp — tent vibes, fairy lights and marshmallow dreams, no mosquitoes included.', tags: ['Tent Style', 'Fairy Lights', 'Floor Mattress'],
     blurbKh: 'បរិយាកាសដូចជាកំពុងបោះតង់ក្រោមមេឃពោរពេញដោយផ្កាយ — តង់តូចៗ ភ្លើងតុបតែងភ្លឺស្រទន់។', tagsKh: ['រចនាបថតែន', 'ពន្លឺផ្កាយតូចៗ', 'ពូកគ្រែលើជាន់'] },
-  { id: 'fishing',  name: 'Fishing Room',  nameKh: 'បន្ទប់នេសាទ',  type: 'standard', img: 'assets/rooms/fishing.png',
+  { id: 'fishing',  no: 202, name: 'Fishing Room',  nameKh: 'បន្ទប់នេសាទ',  type: 'standard', img: 'assets/rooms/fishing.png',
     blurb: 'Quietly cool and oddly calming. An underwater-inspired escape in soft blues.', tags: ['Blue Palette', 'Ambient Light', 'Aroma Diffuser'],
     blurbKh: 'សាមញ្ញ តែមានស្ទីល និងផ្តល់អារម្មណ៍ស្ងប់ស្ងាត់ប្លែកៗ។ បន្ទប់បែបពិភពក្រោមសមុទ្រ ជាមួយពណ៌ខៀវស្រទន់ដែលធ្វើឱ្យមានអារម្មណ៍ស្រស់ស្រាយ។', tagsKh: ['ពណ៌ខៀវ', 'ពន្លឺភ្លឺទន់', 'ឧបករណ៍ធ្វើឱ្យក្រអូប'] },
-  { id: 'burger',   name: 'Burger Room',   nameKh: 'បន្ទប់បឺរហ្គឺរ', type: 'standard', img: 'assets/rooms/burger.png',
+  { id: 'burger',   no: 302, name: 'Burger Room',   nameKh: 'បន្ទប់បឺរហ្គឺរ', type: 'standard', img: 'assets/rooms/burger.png',
     blurb: 'Bold, juicy and deliciously playful. A fast-food fantasy built for fun nights and laughter.', tags: ['Playful Décor', 'Smart TV', 'Bluetooth Speaker'],
     blurbKh: 'ក្រអូប ឆ្ងាញ់ និងគួរឱ្យចាប់អារម្មណ៍ខ្លាំង។ ពិភពម្ហូបរហ័ស សម្រាប់ពេលរាត្រីសប្បាយៗ និងសំណើចគួរឱ្យចូលចិត្ត។', tagsKh: ['ការតុបតែង', 'Smart TV', 'អូឌីយ៉ូ Bluetooth'] },
-  { id: 'kuromi',   name: 'Kuromi Room',   nameKh: 'បន្ទប់កូរ៉ូមី',  type: 'standard', img: 'assets/rooms/kuromi.png',
+  { id: 'kuromi',   no: 502, name: 'Kuromi Room',   nameKh: 'បន្ទប់កូរ៉ូមី',  type: 'standard', img: 'assets/rooms/kuromi.png',
     blurb: 'Sanrio\u2019s punky little rabbit takes over — black, pink and irresistibly cute.', tags: ['Kuromi Theme', 'Plush Pillows', 'Photo Corner'],
     blurbKh: 'កូរ៉ូមី ក្រុមបេឡែតតូចរបស់ Sanrio — ពណ៌ខ្មៅ ផ្កាឈូក និងគួរឱ្យស្រលាញ់ខ្លាំងពុំអាចទប់ទេ។', tagsKh: ['រចនាបថកូរ៉ូមី', 'ពូកទន់', 'មុំថតរូប'] },
-  { id: 'veggie',   name: 'Veggie Room',   nameKh: 'បន្ទប់បន្លែ',   type: 'vip',      img: 'assets/rooms/veggie.png',
+  { id: 'veggie',   no: 101, name: 'Veggie Room',   nameKh: 'បន្ទប់បន្លែ',   type: 'vip',      img: 'assets/rooms/veggie.png',
     blurb: 'Fresh greens and garden calm — a VIP breath of fresh air with everything upgraded.', tags: ['VIP Room', 'Garden Vibe', 'Extra Space'],
     blurbKh: 'ពណ៌បៃតងស្រស់ស្អាត និងបរិយាកាសស្ងប់ស្ងាត់ដូចសួនច្បារ — បន្ទប់ VIP សម្រាប់អ្នកដែលចង់សម្រាកក្នុងបរិយាកាសស្រស់ស្រាយ និងទទួលបានភាពពិសេសជាងមុន។', tagsKh: ['បន្ទប់ VIP', 'អារម្មណ៍សួនច្បារ', 'ទំហំធំជាង'] },
-  { id: 'slayer',   name: 'Slayer Room',   nameKh: 'បន្ទប់ស្លេយអ៊ែរ', type: 'vip',      img: 'assets/rooms/slayer.png',
+  { id: 'slayer',   no: 201, name: 'Slayer Room',   nameKh: 'បន្ទប់ស្លេយអ៊ែរ', type: 'vip',      img: 'assets/rooms/slayer.png',
     blurb: 'Dark, dramatic and boldly styled for those who like their comfort with an edge.', tags: ['VIP Room', 'Dramatic Décor', 'Extra Space'],
     blurbKh: 'បែបងងឹត មានភាពទាក់ទាញ និងរចនាយ៉ាងលេចធ្លោ — ស័ក្តិសមសម្រាប់អ្នកដែលចូលចិត្តភាពកក់ក្ដៅ ប៉ុន្តែចង់បានស្ទីលដ៏មានភាពខុសប្លែក។', tagsKh: ['បន្ទប់ VIP', 'ការតុបតែងខ្លាំងៗ', 'ទំហំធំជាង'] },
-  { id: 'gaming',   name: 'Gaming Room',   nameKh: 'បន្ទប់ហ្គេម',   type: 'vip',      img: 'assets/rooms/gaming.png',
+  { id: 'gaming',   no: 301, name: 'Gaming Room',   nameKh: 'បន្ទប់ហ្គេម',   type: 'vip',      img: 'assets/rooms/gaming.png',
     blurb: 'Big screens, fast internet and glow-in-the-dark vibes. Built for all-night gaming sessions.', tags: ['VIP Room', 'Gaming Setup', 'Fast Wi-Fi'],
     blurbKh: 'អេក្រង់ធំ អ៊ីនធឺណិតលឿន និងពន្លឺពណ៌នៅពេលយប់។ បង្កើតឡើងសម្រាប់ការលេងហ្គេមពេញមួយយប់។', tagsKh: ['បន្ទប់ VIP', 'គ្រឿងហ្គេមពេញលេញ', 'Wi-Fi លឿន'] }
 ];
 const roomById = id => ROOMS.find(r => r.id === id);
-const roomName = r => LANG === 'kh' ? (r.nameKh || r.name) : r.name;
+const roomName = r => (r && r.no != null ? '(' + r.no + ') ' : '') + (LANG === 'kh' ? (r.nameKh || r.name) : r.name);
 const roomTags = r => LANG === 'kh' ? (r.tagsKh || r.tags) : r.tags;
 const roomBlurb = r => LANG === 'kh' ? (r.blurbKh || r.blurb) : r.blurb;
 const VIP_INCLUDES = {
@@ -130,6 +130,7 @@ const I18N = {
     grpVip: 'VIP Rooms',
     flagPool: 'POOL', flagStd: 'STANDARD',
     bookThisRoom: 'Book this room',
+    csTitle: 'EZ Stay', csTag: 'Coming Soon · Peng Hout Boung Snour',
     lblStd: 'Standard', lblVip: 'VIP', lblPool: 'Pool',
     navMy: 'My Bookings', heroCta3: 'My Bookings', s5My: 'View My Bookings',
     mbKicker: 'Your stays', mbTitle: 'My Bookings',
@@ -148,6 +149,10 @@ const I18N = {
     s1Title: 'When would you like to stay?',
     s1Date: 'Date', hrs: 'hrs', ovNight: 'overnight',
     s1Dur: 'Duration', s1PoolHours: 'Pool Room — hours:', s1In: 'Check-in time', s1Ov: 'Overnight check-in / check-out',
+    roomLockLbl: 'Room', timeNA: 'unavailable',
+    slotNote: '🧹 1 hour cleaning between bookings · today: check-in until 21:00',
+    cleanNote: '🧹 1 hour cleaning between bookings',
+    tSlotGone: 'That option is no longer available — please pick another time or date.',
     s1OvLine: 'Check-in {in} (evening) · Check-out {out} (next morning)',
     s2Title: 'Choose your room',
     s2Note: '{n} of {t} rooms free for your slot', s2NoteDemo: 'Demo mode — availability checking is active on the live site',
@@ -179,14 +184,15 @@ const I18N = {
     roomTaken: 'Already booked for this slot',
     poolNoOvernight: 'Pool Room is hourly only (no overnight)',
     rules: [
-      '<b>No Smoking</b> — $50 penalty',
-      '<b>No Smelly Food</b> — $50 penalty',
-      '<b>Do not use towels to clean the floor</b> — $20 penalty',
+      '<b>No Smoking</b>',
+      '<b>No Smelly Food</b>',
+      '<b>Do not use towels to clean the floor</b>',
       'Please flush the toilet after use.',
       'Material damage will be charged accordingly.',
       'We do not accept guests under 18 years old.',
       'No illegal activities / No drugs.',
       'ID Card is required for overnight / gaming stays.',
+      '<b>Early check-in</b> must be arranged with the owner via Telegram.',
       'Late check-out — $5/hour',
       'No refund for cancellation.',
       'Full payment is required to confirm a booking.'
@@ -223,6 +229,7 @@ const I18N = {
     grpVip: 'បន្ទប់ VIP',
     flagPool: 'ប៉ុល', flagStd: 'ស្តង់ដារ',
     bookThisRoom: 'កក់បន្ទប់នេះ',
+    csTitle: 'EZ Stay', csTag: 'ជិតមកដល់ · Peng Hout Boung Snour',
     lblStd: 'ស្តង់ដារ', lblVip: 'VIP', lblPool: 'ប៉ុល',
     navMy: 'ការកក់របស់ខ្ញុំ', heroCta3: 'ការកក់របស់ខ្ញុំ', s5My: 'មើលការកក់របស់ខ្ញុំ',
     mbKicker: 'ការស្នាក់របស់អ្នក', mbTitle: 'ការកក់របស់ខ្ញុំ',
@@ -242,6 +249,10 @@ const I18N = {
     s1Title: 'តើអ្នកចង់ស្នាក់នៅពេលណា?',
     s1Date: 'កាលបរិច្ឆេទ', hrs: 'ម៉ោង', ovNight: 'ពេលយប់',
     s1Dur: 'រយៈពេល', s1PoolHours: 'បន្ទប់ Pool — ចំនួនម៉ោង:', s1In: 'ម៉ោងចូល', s1Ov: 'ចូល / ចេញ ពេលយប់',
+    roomLockLbl: 'បន្ទប់', timeNA: 'មិនទំនេរ',
+    slotNote: '🧹 សម្អាត ១ ម៉ោងរវាងការកក់ · ថ្ងៃនេះ កក់បានដល់ 21:00',
+    cleanNote: '🧹 សម្អាត ១ ម៉ោងរវាងការកក់',
+    tSlotGone: 'ជម្រើសនេះមិនទំនេរទេ — សូមជ្រើសរើសពេលវេលា ឬកាលបរិច្ឆេទផ្សេងទៀត។',
     s1OvLine: 'ចូលម៉ោង {in} (ល្ងាច) · ចេញម៉ោង {out} (ព្រឹកថ្ងៃក្រោយ)',
     s2Title: 'ជ្រើសរើសបន្ទប់របស់អ្នក',
     s2Note: 'មានបន្ទប់ {n} ក្នុងចំណោម {t} ទំនេងសម្រាប់ពេលរបស់អ្នក', s2NoteDemo: 'របៀបសាកល្បង — ការពិនិត្យភាពទំនេងដំណើរការនៅលើគេហទំព័រពិត',
@@ -273,14 +284,15 @@ const I18N = {
     roomTaken: 'បានកក់រួចហើយសម្រាប់ពេលនេះ',
     poolNoOvernight: 'បន្ទប់ Pool កក់តាមម៉ោងប៉ុណ្ណោះ (មិនមានពេលយប់)',
     rules: [
-      '<b>ហាមជក់បារី</b> — ពិន័យ ៥០ ដុល្លារ',
-      '<b>ហាមអាហារមានក្លិនខ្លាំង</b> — ពិន័យ ៥០ ដុល្លារ',
-      '<b>កុំប្រើកន្សែងជូតដី</b> — ពិន័យ ២០ ដុល្លារ',
+      '<b>ហាមជក់បារី</b>',
+      '<b>ហាមអាហារមានក្លិនខ្លាំង</b>',
+      '<b>កុំប្រើកន្សែងជូតដី</b>',
       'សូមបង្ហូរទឹកបង្គន់ បន្ទាប់ពីប្រើប្រាស់។',
       'ការខូចខាតសម្ភារៈ នឹងត្រូវទូទាត់តាមតម្លៃពិត។',
       'យើងមិនទទួលភ្ញៀវអាយុក្រោម ១៨ ឆ្នាំទេ។',
       'ហាមសកម្មភាពខុសច្បាប់ / ហាមគ្រឿងញៀន។',
       'តម្រូវឱ្យមានអត្តសញ្ញាណប័ណ្ណ សម្រាប់ការស្នាក់ពេលយប់ / លេងហ្គេម។',
+      'ការចូលមុនម៉ោង ត្រូវសម្របសម្រួលជាមួយម្ចាស់ផ្ទះតាម Telegram។',
       'ចេញយឺត — ៥ ដុល្លារ / ម៉ោង',
       'ការលុបចោលការកក់ នឹងមិនត្រូវបង់វិញទេ។',
       'ត្រូវបង់ប្រាក់ពេញលេញ ដើម្បីបញ្ជាក់ការកក់។'
@@ -424,6 +436,9 @@ const durInfo = () => {
   return { checkIn: state.start, checkOut: toHHMM(toMin(state.start) + h * 60), hours: h, overnight: false };
 };
 const toMin = hhmm => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
+/* Cambodia local time (UTC+7) — the clock the booking rules follow */
+const khNow = () => { const d = new Date(Date.now() + 7 * 3600e3); return { date: d.toISOString().slice(0, 10), min: d.getUTCHours() * 60 + d.getUTCMinutes() }; };
+const dayIdx = ds => Math.floor(Date.parse(ds + 'T00:00:00Z') / 864e5);
 const toHHMM = mins => { mins = ((mins % 1440) + 1440) % 1440; return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0'); };
 const scheduleValid = () => !!state.date && !!state.dur && (state.dur === 'ON8' || state.dur === 'ON9' ? true : !!state.start);
 
@@ -435,6 +450,7 @@ function goStep(n) {
     b.classList.toggle('active', s === n);
     b.classList.toggle('done', s < n);
   });
+  $$('.step-btn').forEach(b => { if (Number(b.dataset.step) === 2) b.style.display = state.roomLocked ? 'none' : ''; });
   if (n === 2) buildRoomGrid();
   if (n === 3) buildGuest();
   if (n === 4) buildReview();
@@ -447,12 +463,13 @@ function goStep(n) {
    ============================================================ */
 function initSchedule() {
   const d = $('#bkDate');
-  d.min = new Date().toLocaleDateString('en-CA');
+  d.min = khNow().date;
   if (!d.dataset.init) {
     d.dataset.init = '1';
     d.addEventListener('change', () => { state.date = d.value; syncSchedule(); });
     $$('#durChips button').forEach(chip => {
       chip.addEventListener('click', () => {
+        if (chip.classList.contains('unavail')) { toast(t('tSlotGone'), ICON.info); return; }
         $$('#durChips button').forEach(c => c.classList.remove('sel'));
         chip.classList.add('sel');
         state.dur = chip.dataset.dur;
@@ -466,7 +483,7 @@ function initSchedule() {
     $('#bkIn').addEventListener('change', () => { state.start = $('#bkIn').value; syncSchedule(); });
     $('#actNext1').addEventListener('click', () => {
       if (!scheduleValid()) { toast(t(state.dur ? 'tDur' : 'tDur'), ICON.info); return; }
-      goStep(2);
+      goStep(state.roomLocked ? 3 : 2);
     });
   }
   syncSchedule();
@@ -485,21 +502,65 @@ function syncSchedule() {
     $('#ovTimes').innerHTML = '<div>' + esc(t('s1OvLine', { in: info.checkIn, out: info.checkOut })) + '</div>';
   }
 
+  /* room is pre-locked (Book This Room) → show it, load its busy ranges */
+  const lockBar = $('#roomLockBar');
+  if (lockBar) {
+    const r = state.roomLocked ? roomById(state.room) : null;
+    lockBar.hidden = !r;
+    if (r) lockBar.innerHTML = '🏠 <b>' + esc(t('roomLockLbl')) + ':</b> ' + esc(roomName(r)) + ' ✓';
+  }
+  if (state.roomLocked && state.room && state.date && live.on) {
+    const key = state.room + '@' + state.date;
+    if (state.busyKey !== key) loadRoomBusy();
+  }
+
   /* build check-in hour options allowed for this duration */
   if (!isON && state.dur) {
     const h = state.poolCustom ? state.poolHours : Number(state.dur);
     const sel = $('#bkIn');
     const cur = state.start;
     const lastStart = 23 - h;                                  // check-out must be ≤ 23:00
+    const today = state.date === khNow().date;                 // Cambodia "today"
+    const nowMin = khNow().min;
+    const dStart = dayIdx(state.date) * 1440;
+    const busyHit = (s, e) => (state.busyRanges || []).some(b => b.s < e + 60 && s < b.e + 60);   // 1h cleaning
     let html = '<option value="" disabled selected>' + esc(t('s1In')) + '</option>';
     for (let hr = 8; hr <= lastStart; hr++) {
       const v = String(hr).padStart(2, '0') + ':00';
-      html += '<option value="' + v + '">' + v + '</option>';
+      const gone = (today && (hr * 60 < nowMin || hr * 60 > 21 * 60))              // passed / after 21:00 today
+                || (state.roomLocked && state.busyRanges && busyHit(dStart + hr * 60, dStart + hr * 60 + h * 60));
+      html += '<option value="' + v + '"' + (gone ? ' disabled' : '') + '>' + v + (gone ? ' — ' + esc(t('timeNA')) : '') + '</option>';
     }
     sel.innerHTML = html;
-    if (cur && toMin(cur) <= lastStart * 60) { sel.value = cur; }
-    else state.start = sel.value || '';
+    if (cur && toMin(cur) <= lastStart * 60 && !(([].slice.call(sel.options)).some(o => o.value === cur && !o.disabled))) {
+      state.start = '';                                        // current pick became unavailable
+    }
+    if (cur && toMin(cur) <= lastStart * 60) {
+      const opt = ([].slice.call(sel.options)).find(o => o.value === cur);
+      if (opt && !opt.disabled) sel.value = cur; else state.start = sel.value || '';
+    } else state.start = sel.value || '';
   }
+
+  /* same-day notes + overnight chips that are no longer possible */
+  const note2 = $('#slotNote');
+  if (note2) note2.textContent = state.date === khNow().date ? t('slotNote') : (state.roomLocked ? t('cleanNote') : '');
+  const onBlocked = code => {
+    const cin = code === 'ON8' ? 20 * 60 : 21 * 60;
+    if (state.date === khNow().date && cin < khNow().min) return true;           // tonight's check-in already passed
+    if (state.roomLocked && state.busyRanges) {
+      const dStart = dayIdx(state.date) * 1440;
+      return (state.busyRanges || []).some(b => b.s < dStart + cin + 720 + 60 && dStart + cin < b.e + 60);
+    }
+    return false;
+  };
+  const lockRoom = state.roomLocked ? roomById(state.room) : null;
+  $$('#durChips button').forEach(chip => {
+    const d = chip.dataset.dur;
+    if (d === 'ON8' || d === 'ON9') {
+      const blocked = onBlocked(d) || (lockRoom && lockRoom.type === 'pool');
+      chip.classList.toggle('unavail', blocked);
+    }
+  });
 
   /* live price note */
   if (state.date && state.dur) {
@@ -517,6 +578,24 @@ function syncSchedule() {
 
   const b = $('#actNext1');
   if (b) b.disabled = !scheduleValid();
+}
+
+/* busy ranges for the pre-locked room (Book This Room flow) */
+async function loadRoomBusy() {
+  if (!state.roomLocked || !state.room || !state.date || !live.on) { state.busyRanges = []; return; }
+  state.busyKey = state.room + '@' + state.date;
+  const key = state.busyKey;
+  try {
+    const base = CONFIG.api.baseUrl || '';
+    const r = await fetchTimeout(base + '/api/availability?room=' + encodeURIComponent(state.room) + '&date=' + encodeURIComponent(state.date), { method: 'GET' }, 6000);
+    const j = await r.json().catch(() => ({}));
+    if (state.busyKey !== key) return;                        // date changed meanwhile
+    state.busyRanges = (j.busy || []).map(b => ({
+      s: dayIdx(b.date) * 1440 + toMin(b.checkIn),
+      e: dayIdx(b.date) * 1440 + toMin(b.checkIn) + b.hours * 60
+    }));
+  } catch (e) { state.busyRanges = []; }
+  syncSchedule();
 }
 
 /* ============================================================
@@ -550,11 +629,11 @@ async function buildRoomGrid() {
     const busyTag = busy ? '<span class="room-flag busy">✕ ' + esc(t('roomTaken')) + '</span>' : '';
     const vipBox = r.type === 'vip' ? '<div class="vip-includes"><b>👑 ' + esc(t('vipIncludesTitle')) + '</b>' +
       VIP_INCLUDES[LANG === 'kh' ? 'kh' : 'en'].map(x => esc(x)).join(' · ') + '</div>' : '';
-    const tagsRow = LANG === 'kh' ? '' : '<div class="room-tags">' + r.tags.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>';
+
     return '<div class="room-card' + (state.room === r.id ? ' sel' : '') + (unavail ? ' unavail' : '') + '" data-room="' + r.id + '">' +
       '<div class="room-pic"><img src="' + r.img + '" alt="' + esc(roomName(r)) + '" loading="lazy">' + flag + busyTag + '</div>' +
       '<div class="room-body"><h4>' + esc(roomName(r)) + '</h4><p class="room-blurb">' + esc(roomBlurb(r)) + '</p>' +
-      tagsRow + vipBox + '</div></div>';
+      vipBox + '</div></div>';
   }).join('');
 
   $$('#roomGrid .room-card').forEach(card => {
@@ -598,7 +677,7 @@ function buildGuest() {
     $('#idClear').addEventListener('click', () => {
       state.idCard = ''; $('#idUpload').value = ''; $('#idPreview').hidden = true; guestValid();
     });
-    $('#actBack3').onclick = () => goStep(2);
+    $('#actBack3').onclick = () => goStep(state.roomLocked ? 1 : 2);
     $('#actNext3').onclick = () => {
       const onNow = state.dur === 'ON8' || state.dur === 'ON9';   // fresh — never a stale closure
       if (!state.name.trim()) { toast(t('tName'), ICON.info); return; }
@@ -707,8 +786,8 @@ async function confirmBooking() {
       })
     }, 12000);
     const j = await resp.json().catch(() => ({}));
-    if (resp.status === 409) { toast(t('tBusy'), ICON.cross); goStep(2); return; }
-    if (!resp.ok || !j.ok) throw new Error('server error');
+    if (resp.status === 409) { toast(t('tBusy'), ICON.cross); state.busyKey = ''; goStep(state.roomLocked ? 1 : 2); return; }
+    if (!resp.ok || !j.ok) { toast(j && j.message ? j.message : t('tServer'), ICON.cross); return; }
     state.ref = j.booking ? j.booking.ref : (j.ref || '');
     saveMyBooking({
       ref: state.ref,
@@ -752,6 +831,7 @@ function initShowcase() {
   const frame = $('#showcaseFrame');
   if (!frame) return;
   frame.innerHTML = ROOMS.map(r => '<div class="slide"><img src="' + r.img + '" alt="' + esc(roomName(r)) + '"></div>').join('') +
+    '<div class="slide slide-cs"><img src="assets/ez-stay.jpg" alt="EZ Stay — coming soon"></div>' +
     '<div class="showcase-chip" id="showcaseChip"><small>HIDDEN HOMESTAY</small><b id="chipName"></b><span id="chipType"></span></div>';
   const slides = $$('.slide', frame);
   let cur = -1, altZoom = false, timer = null;
@@ -762,8 +842,17 @@ function initShowcase() {
     slides.forEach((s, k) => s.classList.toggle('active', k === i));
     if (i >= 0) { slides[i].classList.toggle('zoom-out', altZoom); altZoom = !altZoom; }
     const r = ROOMS[i];
-    if (!r) return;
     const chip = $('#showcaseChip');
+    if (!r) {                                       /* the Coming Soon slide (index === ROOMS.length) */
+      chip.classList.add('swap');
+      setTimeout(() => {
+        const n = $('#chipName'), tp = $('#chipType');
+        if (n) n.textContent = t('csTitle');
+        if (tp) tp.textContent = t('csTag');
+        chip.classList.remove('swap');
+      }, 220);
+      return;
+    }
     chip.classList.add('swap');
     setTimeout(() => {
       const n = $('#chipName'), tp = $('#chipType');
@@ -791,7 +880,7 @@ function initShowcase() {
    BOOKING OVERLAY (opens like the classic pop-up booking screen)
    ============================================================ */
 function resetBooking() {
-  Object.assign(state, { step: 1, date: '', dur: '', poolHours: 2, poolCustom: false, start: '', room: '', name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
+  Object.assign(state, { step: 1, date: '', dur: '', poolHours: 2, poolCustom: false, start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
   $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = '';
   $('#idUpload').value = ''; $('#idPreview').hidden = true;
   const ag = $('#agreedTerms');
@@ -802,6 +891,10 @@ function openBooking(e) {
   const ov = $('#bookingOverlay');
   if (!ov) return;
   if (state.completed) resetBooking();          // fresh start after a finished booking
+  if (state.roomLockKeep) state.roomLockKeep = false;             // opened via Book This Room → keep the room
+  else if (state.roomLocked) {                                   // plain open after a locked flow → fresh start
+    state.room = ''; state.roomLocked = false; state.busyKey = ''; state.busyRanges = null; state.step = 1;
+  }
   ov.classList.add('open');
   ov.setAttribute('aria-hidden', 'false');
   document.body.classList.add('booking-open');
@@ -905,10 +998,9 @@ function renderShowcase() {
                : r.type === 'pool' ? '<span class="room-flag pool">' + esc(t('flagPool')) + '</span>'
                : '<span class="room-flag">' + esc(t('flagStd')) + '</span>';
     const vipBox = r.type === 'vip' ? '<div class="vip-includes"><b>👑 ' + esc(t('vipIncludesTitle')) + '</b>' + VIP_INCLUDES[LANG === 'kh' ? 'kh' : 'en'].map(esc).join(' · ') + '</div>' : '';
-    const tagsRow = LANG === 'kh' ? '' : '<div class="room-tags">' + r.tags.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>';
     return '<div class="room-card" data-room="' + r.id + '" role="button" tabindex="0" aria-label="' + esc(roomName(r)) + '"><div class="room-pic"><img src="' + r.img + '" alt="' + esc(roomName(r)) + '" loading="lazy">' + flag + '</div>' +
       '<div class="room-body"><h4>' + esc(roomName(r)) + '</h4><p class="room-blurb">' + esc(roomBlurb(r)) + '</p>' +
-      tagsRow + vipBox +
+      vipBox +
       '<button class="room-book" type="button">' + esc(t('bookThisRoom')) + ' →</button></div></div>';
   };
   $('#showPool').innerHTML = ROOMS.filter(r => r.type === 'pool').map(card).join('');
@@ -925,9 +1017,15 @@ function renderShowcase() {
 
 function bookFromRoom(roomId) {
   if (!roomById(roomId)) return;
-  state.room = roomId;
+  state.roomLockKeep = true;                    // openBooking must not wipe the room
   openBooking();
+  if (state.completed) resetBooking();          // finished earlier? fresh state, then re-lock
+  state.room = roomId;
+  state.roomLocked = true;
+  state.busyKey = ''; state.busyRanges = null;
+  state.step = 1;
   goStep(1);
+  syncSchedule();                               // paint the locked-room bar right away
 }
 
 function renderStatic() {
@@ -943,6 +1041,6 @@ function renderStatic() {
   $('#langEn').addEventListener('click', () => { LANG = 'en'; store.set('hh_lang', 'en'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step >= 4) buildReview(); if (state.step === 5) buildSuccess(); });
   $('#langKh').addEventListener('click', () => { LANG = 'kh'; store.set('hh_lang', 'kh'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step >= 4) buildReview(); if (state.step === 5) buildSuccess(); });
   initSchedule();
-  $$('.step-btn').forEach(b => b.addEventListener('click', () => { const s = Number(b.dataset.step); if (s < state.step && !state.completed) goStep(s); }));
+  $$('.step-btn').forEach(b => b.addEventListener('click', () => { const s = Number(b.dataset.step); if (s === 2 && state.roomLocked) return; if (s < state.step && !state.completed) goStep(s); }));
   await detectLive();
 })();

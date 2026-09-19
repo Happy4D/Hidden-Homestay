@@ -123,15 +123,43 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   r = await createBooking({ room: 'vintage', date: aWeekday, checkIn: '16:00', hours: 2, name: 'Clash', phone: '012345678' }, 'website');
   ok('overlapping hours same room → conflict', r.ok === false && r.error === 'conflict', r);
 
+  /* 1-hour cleaning gap between bookings */
+  r = await createBooking({ room: 'vintage', date: aWeekday, checkIn: '17:00', hours: 2, name: 'Too Soon', phone: '012345678' }, 'website');
+  ok('cleaning: 17:00 start blocked right after a 14:00-17:00 booking', r.ok === false && r.error === 'conflict', r);
+  r = await createBooking({ room: 'vintage', date: aWeekday, checkIn: '18:00', hours: 2, name: 'Clean Gap', phone: '012345678' }, 'website');
+  ok('cleaning: 18:00 start allowed (full 1h gap)', r.ok === true, r);
+
   /* ============================================================
      4 — BOT: OWNER LINK + COMMANDS
      ============================================================ */
+  console.log('== SAME-DAY RULES (Cambodia time, UTC+7) ==');
+  const kd = new Date(Date.now() + 7 * 3600e3);
+  const todayKH = kd.toISOString().slice(0, 10);
+  const nowMin = kd.getUTCHours() * 60 + kd.getUTCMinutes();
+  if (nowMin >= 10 * 60) {
+    const pastHH = String(Math.floor((nowMin - 90) / 60)).padStart(2, '0') + ':00';
+    r = await createBooking({ room: 'london', date: todayKH, checkIn: pastHH, hours: 2, name: 'Past Guest', phone: '012345678' }, 'website');
+    ok('website: past check-in time rejected today', r.ok === false && /passed/.test(r.message || ''), r);
+    r = await createBooking({ room: 'london', date: todayKH, checkIn: pastHH, hours: 2, name: 'Walk-in', phone: '012345678' }, 'telegram');
+    ok('owner bot: past times still allowed (walk-ins)', r.ok === true, r);
+  } else {
+    console.log('  SKIP  past-time tests (Cambodia clock before 10:00)');
+  }
+  if (nowMin >= 8 * 60 && nowMin < 21 * 60) {
+    r = await createBooking({ room: 'london', date: todayKH, checkIn: '22:00', hours: 2, name: 'Late Guest', phone: '012345678' }, 'website');
+    ok('website: same-day check-in after 21:00 rejected', r.ok === false && /21:00/.test(r.message || ''), r);
+  } else {
+    console.log('  SKIP  21:00 cap test (Cambodia clock outside 08:00-21:00)');
+  }
+
   console.log('== BOT COMMANDS ==');
   const tg = makeTg();
   await handleUpdate(upd(OWNER, '/start'), tg);
   await handleUpdate(upd(STRANGER, '/start'), tg);
-  ok('first /start links owner, second told private',
-    /Welcome/.test(texts(tg)[0] || '') && /private/.test(texts(tg)[1] || ''), texts(tg));
+  ok('first /start links owner',
+    /Welcome/.test(texts(tg)[0] || ''), texts(tg));
+  ok('customer /start gets the booking form directly',
+    /BOOKING FORM/.test(texts(tg)[1] || '') && /hidden-homestay/.test(texts(tg)[1] || ''), (texts(tg)[1] || '').slice(0, 120));
 
   await handleUpdate(upd(OWNER, '/template'), tg);
   const tplMsg = texts(tg).slice(-1)[0] || '';
@@ -141,6 +169,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   await handleUpdate(upd(OWNER, 'BOOKING\nRoom: London\nDate: ' + aWeekday + '\nCheck-in: 15:00\nHours: 4\nName: Template Guest\nPhone: 099887766'), tg);
   const tplDone = texts(tg).slice(-1)[0] || '';
   ok('owner template paste → confirmed booking', /HH-/.test(tplDone) && /London/.test(tplDone), tplDone.slice(0, 140));
+  ok('booking text shows "(5) London Room"', /\(5\) London Room/.test(tplDone), tplDone.slice(0, 140));
   ok('template reply includes customer link', /https:\/\/t\.me\/HiddenHomestayBot\?start=HH-/.test(tplDone), tplDone.slice(-160));
 
   /* template overnight (owner side) */
@@ -221,6 +250,27 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   /* /list and /busy work with 12 rooms */
   await handleUpdate(upd(OWNER, '/list ' + aWeekday), tg);
   ok('/list shows bookings with room names', /Vintage|Shanghai|Kuromi|London/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
+
+  /* /list sorted by room number, then check-in time */
+  const sortDate = nextDow(0);   // a Sunday with no other bookings
+  const s1r = await createBooking({ room: 'fishing', date: sortDate, checkIn: '13:00', hours: 2, name: 'A', phone: '012345678' }, 'telegram');
+  const s2r = await createBooking({ room: 'camping',  date: sortDate, checkIn: '15:00', hours: 2, name: 'B', phone: '012345678' }, 'telegram');
+  const s3r = await createBooking({ room: 'fishing', date: sortDate, checkIn: '10:00', hours: 2, name: 'C', phone: '012345678' }, 'telegram');
+  await handleUpdate(upd(OWNER, '/list ' + sortDate), tg);
+  const sortMsg = texts(tg).slice(-1)[0] || '';
+  const iCamp = sortMsg.indexOf(s2r.booking.ref);
+  const iFish10 = sortMsg.indexOf(s3r.booking.ref);
+  const iFish13 = sortMsg.indexOf(s1r.booking.ref);
+  ok('/list sorted: room number asc, then check-in asc', iCamp > -1 && iFish10 > -1 && iFish13 > -1 && iCamp < iFish10 && iFish10 < iFish13, sortMsg);
+
+  /* /book accepts "(502) Kuromi" display labels */
+  await handleUpdate(upd(OWNER, '/book (101) Veggie ' + aSaturday + ' 14:00 2 012345678 Label Test'), tg);
+  ok('/book accepts room display labels', /HH-/.test(texts(tg).slice(-1)[0] || '') && /\(101\) Veggie Room/.test(texts(tg).slice(-1)[0] || ''), (texts(tg).slice(-1)[0] || '').slice(0, 120));
+
+  /* customer template with a display label + overnight → pending + ID instruction */
+  await handleUpdate(upd(STRANGER, 'BOOKING\nRoom: (3) Classic\nDate: ' + sortDate + '\nCheck-in: 20:00\nHours: overnight\nName: Customer ON\nPhone: 099887766'), tg);
+  const custON = texts(tg).slice(-1)[0] || '';
+  ok('customer overnight template → pending + send ID instruction', /HH-/.test(custON) && /ID HH-/.test(custON) && /owner will confirm/i.test(custON), custON.slice(0, 160));
   await handleUpdate(upd(OWNER, '/busy ' + aWeekday), tg);
   const busyMsg = texts(tg).slice(-1)[0] || '';
   ok('/busy lists all 12 rooms', (busyMsg.match(/all free/g) || []).length + (busyMsg.match(/·/g) || []).length >= 12, busyMsg.slice(0, 100));

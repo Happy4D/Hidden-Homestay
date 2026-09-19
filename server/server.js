@@ -71,19 +71,40 @@ const customerLinkBlock = ref =>
    One branch: Borey Vimean Phnom Penh (No 235D, Road 777, Russey Keo).
    12 rooms: 1 pool ($5/h) + 8 standard (2-6h / overnight tables) + 3 VIP (+$3). */
 const ROOMS = {
-  pool:     { name: 'Pool Room',     type: 'pool' },
-  vintage:  { name: 'Vintage Room',  type: 'standard' },
-  shanghai: { name: 'Shanghai Room', type: 'standard' },
-  classic:  { name: 'Classic Room',  type: 'standard' },
-  london:   { name: 'London Room',   type: 'standard' },
-  camping:  { name: 'Camping Room',  type: 'standard' },
-  fishing:  { name: 'Fishing Room',  type: 'standard' },
-  burger:   { name: 'Burger Room',   type: 'standard' },
-  kuromi:   { name: 'Kuromi Room',   type: 'standard' },
-  veggie:   { name: 'Veggie Room',   type: 'vip' },
-  slayer:   { name: 'Slayer Room',   type: 'vip' },
-  gaming:   { name: 'Gaming Room',   type: 'vip' }
+  pool:     { name: 'Pool Room',     nameKh: 'បន្ទប់Pool',     no: 501, type: 'pool' },
+  vintage:  { name: 'Vintage Room',  nameKh: 'បន្ទប់វីនតាក់',  no: 1,   type: 'standard' },
+  shanghai: { name: 'Shanghai Room', nameKh: 'បន្ទប់សៀងហៃ',   no: 2,   type: 'standard' },
+  classic:  { name: 'Classic Room',  nameKh: 'បន្ទប់ក្លាស៊ីក',  no: 3,   type: 'standard' },
+  london:   { name: 'London Room',   nameKh: 'បន្ទប់ឡុងដ៍',     no: 5,   type: 'standard' },
+  camping:  { name: 'Camping Room',  nameKh: 'បន្ទប់កាំពីង',    no: 102, type: 'standard' },
+  fishing:  { name: 'Fishing Room',  nameKh: 'បន្ទប់នេសាទ',     no: 202, type: 'standard' },
+  burger:   { name: 'Burger Room',   nameKh: 'បន្ទប់បឺរហ្គឺរ',   no: 302, type: 'standard' },
+  kuromi:   { name: 'Kuromi Room',   nameKh: 'បន្ទប់កូរ៉ូមី',    no: 502, type: 'standard' },
+  veggie:   { name: 'Veggie Room',   nameKh: 'បន្ទប់បន្លែ',     no: 101, type: 'vip' },
+  slayer:   { name: 'Slayer Room',   nameKh: 'បន្ទប់ស្លេយអ៊ែរ',  no: 201, type: 'vip' },
+  gaming:   { name: 'Gaming Room',   nameKh: 'បន្ទប់ហ្គេម',      no: 301, type: 'vip' }
 };
+/* every room is displayed as "(number) Name" — e.g. (501) Pool Room */
+const roomLabel = (id, lang) => {
+  const r = ROOMS[id]; if (!r) return String(id);
+  return '(' + r.no + ') ' + (lang === 'kh' && r.nameKh ? r.nameKh : r.name);
+};
+const roomNo = id => (ROOMS[id] ? ROOMS[id].no : 9999);
+/* resolve anything the user types — id, plain name, or "(501) Pool Room" */
+const normTxt = x => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const resolveRoom = str => {
+  const n = normTxt(str); if (!n) return null;
+  const bare = n.replace(/^\d+/, '');            // "(3) Classic" → "classic"
+  const ids = Object.keys(ROOMS);
+  return ids.find(id => n === normTxt(id)) ||
+         ids.find(id => bare === normTxt(id)) ||
+         ids.find(id => n === normTxt(ROOMS[id].name)) ||
+         ids.find(id => bare === normTxt(ROOMS[id].name)) ||
+         ids.find(id => n === normTxt(roomLabel(id))) ||
+         ({ poolroom: 'pool' })[n] || null;
+};
+/* current Cambodia time (UTC+7) — { date: 'YYYY-MM-DD', min: minutes } */
+const khNow = () => { const d = new Date(Date.now() + 7 * 3600e3); return { date: d.toISOString().slice(0, 10), min: d.getUTCHours() * 60 + d.getUTCMinutes() }; };
 const ROOM_ORDER = Object.keys(ROOMS);
 const ADDRESS = 'No 235D, Road 777, Sangkat Jranh Chomres II, Khan Russey Keo, Phnom Penh';
 const PRICING = {
@@ -282,11 +303,11 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function roomRows() {
   return [
-    [{ text: '🏊 Pool · $5/h', callback_data: 'bk:room:pool' }],
-    [{ text: '📻 Vintage', callback_data: 'bk:room:vintage' }, { text: '🏮 Shanghai', callback_data: 'bk:room:shanghai' }, { text: '🎩 Classic', callback_data: 'bk:room:classic' }],
-    [{ text: '🇬🇧 London', callback_data: 'bk:room:london' }, { text: '⛺ Camping', callback_data: 'bk:room:camping' }, { text: '🎣 Fishing', callback_data: 'bk:room:fishing' }],
-    [{ text: '🍔 Burger', callback_data: 'bk:room:burger' }, { text: '🖤 Kuromi', callback_data: 'bk:room:kuromi' }],
-    [{ text: '👑 Veggie VIP', callback_data: 'bk:room:veggie' }, { text: '👑 Slayer VIP', callback_data: 'bk:room:slayer' }, { text: '👑 Gaming VIP', callback_data: 'bk:room:gaming' }]
+    [{ text: '🎱 (501) Pool · $5/h', callback_data: 'bk:room:pool' }],
+    [{ text: '(1) Vintage', callback_data: 'bk:room:vintage' }, { text: '(2) Shanghai', callback_data: 'bk:room:shanghai' }, { text: '(3) Classic', callback_data: 'bk:room:classic' }],
+    [{ text: '(5) London', callback_data: 'bk:room:london' }, { text: '(102) Camping', callback_data: 'bk:room:camping' }, { text: '(202) Fishing', callback_data: 'bk:room:fishing' }],
+    [{ text: '(302) Burger', callback_data: 'bk:room:burger' }, { text: '(502) Kuromi', callback_data: 'bk:room:kuromi' }],
+    [{ text: '👑 (101) Veggie VIP', callback_data: 'bk:room:veggie' }, { text: '👑 (201) Slayer VIP', callback_data: 'bk:room:slayer' }, { text: '👑 (301) Gaming VIP', callback_data: 'bk:room:gaming' }]
   ];
 }
 /* duration buttons depend on the room type */
@@ -357,7 +378,7 @@ function draftSummary(d) {
   const r = ROOMS[d.room];
   return '📋 <b>Please check the booking:</b>\n\n' +
     '🏡 ' + esc(ADDRESS) + '\n' +
-    '🛏 Room: ' + r.name + (r.type === 'vip' ? ' 👑 VIP (+' + VIP_UPGRADE + ')' : r.type === 'pool' ? ' 🏊' : '') + '\n' +
+    '🛏 Room: ' + roomLabel(d.room) + (r.type === 'vip' ? ' 👑 VIP (+' + VIP_UPGRADE + ')' : r.type === 'pool' ? ' 🎱' : '') + '\n' +
     '📅 Date: ' + fmtDate(d.date) + (isWeekend(d.date) ? ' (weekend rate)' : '') + '\n' +
     (d.overnight
       ? '🌙 Overnight: ' + fmtTime(d.checkIn) + ' → ' + fmtTime(d.checkOut) + ' next morning\n'
@@ -374,7 +395,7 @@ async function draftShow(chatId, tg, d, editMessageId) {
   if (d.step === 'room') {
     await send('🏠 <b>NEW BOOKING — step 1 of 6</b>\n\nOne address: ' + esc(ADDRESS) + '\n\n<b>Choose the room:</b>', kb(roomRows().concat([cancelRow])));
   } else if (d.step === 'date') {
-    await send('✅ ' + ROOMS[d.room].name + '\n\n📅 <b>Step 2 of 6 — the date:</b>\n\n' + await draftBusyLine(d), kb(dateRows().concat([cancelRow])));
+    await send('✅ ' + roomLabel(d.room) + '\n\n📅 <b>Step 2 of 6 — the date:</b>\n\n' + await draftBusyLine(d), kb(dateRows().concat([cancelRow])));
   } else if (d.step === 'time') {
     await send('📅 ' + fmtDate(d.date) + '\n\n🕐 <b>Step 3 of 6 — check-in time:</b>\n\n' + await draftBusyLine(d) + '\n\n<i>Or type a time like 19:30.</i>', kb(timeRows().concat([cancelRow])));
   } else if (d.step === 'dur') {
@@ -558,7 +579,8 @@ async function findConflicts(room, date, checkIn, hours) {
     if (b.room !== room || b.status === 'cancelled') return false;
     const bStart = dateIdx(b.date) * 1440 + toMin(b.checkIn);
     const bEnd = bStart + spanHours(b) * 60;
-    return bStart < aEnd && aStart < bEnd;
+    /* 1h cleaning between bookings: a gap of at least 60 min is required */
+    return bStart < aEnd + 60 && aStart < bEnd + 60;
   });
 }
 
@@ -600,6 +622,20 @@ async function createBooking(data, source, opts) {
   const total = priceFor(room, date, h, isON);
   if (total == null) return { ok: false, error: 'invalid', message: 'No price for that room/duration.' };
 
+  /* same-day rules for customer bookings (the owner can still register walk-ins via the bot):
+     - no check-in time already passed
+     - same-day check-in only until 21:00                       (Cambodia time, UTC+7) */
+  const isCustomer = source === 'website' || (source === 'telegram' && opts && opts.customer);
+  if (isCustomer && date === khNow().date) {
+    const now = khNow().min;
+    if (toMin(checkIn) < now)
+      return { ok: false, error: 'invalid', message: 'That check-in time has already passed — please pick a later time or a future date.' };
+    if (!isON && toMin(checkIn) > 21 * 60)
+      return { ok: false, error: 'invalid', message: 'Same-day check-in is available until 21:00 — please book for tomorrow.' };
+    if (isON && toMin(checkIn) < now)
+      return { ok: false, error: 'invalid', message: 'That overnight check-in time has already passed.' };
+  }
+
   const conflicts = await findConflicts(room, date, checkIn, h);
   if (conflicts.length) return { ok: false, error: 'conflict', busy: conflicts.map(b => ({ start: b.checkIn, end: b.checkOut, ref: b.ref, status: b.status })) };
 
@@ -626,7 +662,7 @@ function bookingText(b) {
   return (
     '🆕 New booking request — Hidden Homestay\n\n' +
     'Ref: ' + b.ref + '  (via ' + b.source + ')\n' +
-    'Room: ' + r.name + (r.type === 'vip' ? ' 👑 VIP' : r.type === 'pool' ? ' 🏊' : '') + '\n' +
+    'Room: ' + roomLabel(b.room) + (r.type === 'vip' ? ' 👑 VIP' : r.type === 'pool' ? ' 🎱' : '') + '\n' +
     'Date: ' + fmtDate(b.date) + (isWeekend(b.date) ? '  (weekend rate)' : '') + '\n' +
     (b.overnight
       ? '🌙 Overnight: ' + fmtTime(b.checkIn) + ' → ' + fmtTime(b.checkOut) + ' next morning\n' +
@@ -640,7 +676,7 @@ function bookingText(b) {
 function bookingLine(b) {
   const mark = b.status === 'confirmed' ? '✅' : b.status === 'cancelled' ? '🚫' : '⏳';
   const r = ROOMS[b.room] || { name: b.room };
-  return mark + ' ' + b.ref + ' · ' + r.name + ' · ' + fmtDate(b.date) + ' · ' +
+  return mark + ' ' + b.ref + ' · ' + roomLabel(b.room) + ' · ' + fmtDate(b.date) + ' · ' +
     (b.overnight ? '🌙 ' + fmtTime(b.checkIn) + '→' + fmtTime(b.checkOut) + '+1' : fmtTime(b.checkIn) + '–' + fmtTime(b.checkOut)) +
     ' · ' + money(b.total) + ' · ' + esc(b.name) + ' ' + esc(b.phone);
 }
@@ -729,8 +765,7 @@ function looksLikeTemplate(text) {
 async function handleTemplate(chatId, text, tg, isOwner) {
   const t = parseTemplate(text);
   const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const room = ROOM_ORDER.find(id => norm(id) === norm(t.room)) ||
-    { poolroom: 'pool', pool: 'pool' }[norm(t.room)] || null;
+  const room = resolveRoom(t.room);
   const hoursRaw = String(t.hours || '').toLowerCase().replace(/\s+/g, '');
   const overnight = hoursRaw === 'overnight' || hoursRaw === 'on8' || hoursRaw === '8pm-8am'
     ? 'ON8' : (hoursRaw === 'on9' || hoursRaw === '9pm-9am' || hoursRaw === 'overnight9' ? 'ON9' : '');
@@ -763,7 +798,7 @@ async function handleTemplate(chatId, text, tg, isOwner) {
     : 'pending';
   const res = await createBooking(
     { room, date: t.date, checkIn, checkOut, hours: overnight ? 12 : hours, overnight: !!overnight, name: t.name, phone: t.phone, contact: t.contact || '' },
-    'telegram', { status }
+    'telegram', { status, customer: !isOwner }
   );
   if (!res.ok) {
     if (res.error === 'conflict') {
@@ -783,6 +818,7 @@ async function handleTemplate(chatId, text, tg, isOwner) {
   } else {
     await tg.sendMessage(chatId, '\u{1F64F} Thank you ' + esc(t.name) + '! Your booking request was received:\n\n' +
       bookingText(res.booking).replace('\u{1F195} New booking request — Hidden Homestay\n\n', '') +
+      (res.booking.overnight ? '\n\n🪪 <b>Overnight stay</b> — please send a photo of your ID Card here with the caption <code>ID ' + res.booking.ref + '</code>.' : '') +
       '\n\nThe owner will confirm shortly.');
     notifyOwner(res.booking).catch(() => {});
   }
@@ -861,7 +897,21 @@ async function handleUpdate(update, tg) {
     } else if (String(chatId) === String(owner)) {
       await tg.sendMessage(chatId, 'Welcome back 👋 The website and this bot are connected. Send /help for commands.');
     } else {
-      await tg.sendMessage(chatId, 'This bot is private. 🙏');
+      await tg.sendMessage(chatId,
+        '👋 <b>Welcome to Hidden Homestay!</b>\n\n' +
+        'You can book a room in two ways:\n\n' +
+        '1️⃣ <b>On the website</b> (easiest — photos, prices, instant confirmation):\n' + CFG.publicUrl + '\n\n' +
+        '2️⃣ <b>Right here</b> — copy the form below, fill it in and send it back to me:\n\n' +
+        '📋 <b>BOOKING FORM</b>\n' +
+        'Room: vintage\n' +
+        'Date: 2026-09-25\n' +
+        'Check-in: 14:00\n' +
+        'Hours: 3\n' +
+        'Name: \n' +
+        'Phone: \n\n' +
+        'Rooms: pool, vintage, shanghai, classic, london, camping, fishing, burger, kuromi, veggie, slayer, gaming\n' +
+        'Hours: 2\u20136, or <b>overnight</b> (8PM\u20138AM / 9PM\u20139AM)\n\n' +
+        'The owner will confirm your booking right here. 🏠');
     }
     return;
   }
@@ -920,6 +970,7 @@ async function handleUpdate(update, tg) {
     if (which !== 'all') list = list.filter(b => b.date === which);
     else list = list.slice(0, 20);
     if (!list.length) { await tg.sendMessage(chatId, 'No bookings' + (which === 'all' ? ' yet.' : ' for ' + which + '.')); return; }
+    list.sort((a, b) => (roomNo(a.room) - roomNo(b.room)) || (toMin(a.checkIn) - toMin(b.checkIn)) || String(a.date).localeCompare(String(b.date)));
     await tg.sendMessage(chatId, '<b>📅 ' + (which === 'all' ? 'Recent bookings' : 'Bookings — ' + fmtDate(which)) + '</b>\n\n' + list.map(bookingLine).join('\n'));
     return;
   }
@@ -930,7 +981,7 @@ async function handleUpdate(update, tg) {
     const lines = [];
     for (const room of ROOM_ORDER) {
       const busy = list.filter(b => b.room === room).sort((a, b) => toMin(a.checkIn) - toMin(b.checkIn));
-      lines.push('<b>' + ROOMS[room].name + '</b>\n' + (busy.length ? busy.map(b => '· ' + fmtTime(b.checkIn) + ' – ' + fmtTime(b.checkOut) + ' (' + b.status + ')').join('\n') : '· all free ✨'));
+      lines.push('<b>' + roomLabel(room) + '</b>\n' + (busy.length ? busy.map(b => '· ' + fmtTime(b.checkIn) + ' – ' + fmtTime(b.checkOut) + ' (' + b.status + ')').join('\n') : '· all free ✨'));
     }
     await tg.sendMessage(chatId, '<b>📅 ' + fmtDate(date) + '</b>\n\n' + lines.join('\n\n'));
     return;
@@ -938,14 +989,16 @@ async function handleUpdate(update, tg) {
 
   if (cmd === '/book') {
     if (args.length < 7) return startDraft(chatId, tg);   // no args → guided flow with buttons
+    /* "(502) Kuromi" arrives as two tokens — merge them back into one */
+    const a2 = /^\(\d+\)$/.test(args[0]) && args.length > 7 ? [args[0] + args[1]].concat(args.slice(2)) : args;
     // /book <room> <date> <HH:MM> <hours> <phone> <name...>  (quick path)
     const norm = w => w.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const rIdx = ROOM_ORDER.find(id => norm(id) === norm(args[0]));
-    const date = args[1];
-    const checkIn = args[2];
-    const hoursRaw = args[3].toLowerCase();
-    const phone = args[4];
-    const name = args.slice(5).join(' ');
+    const rIdx = resolveRoom(a2[0]);
+    const date = a2[1];
+    const checkIn = a2[2];
+    const hoursRaw = a2[3].toLowerCase();
+    const phone = a2[4];
+    const name = a2.slice(5).join(' ');
     const overnight = /^(overnight8?|on8|8pm-8am|overnight)$/.test(hoursRaw.replace(/\s+/g, '')) ? 'ON8'
                     : /^(on9|9pm-9am|overnight9)$/.test(hoursRaw.replace(/\s+/g, '')) ? 'ON9' : '';
     if (!rIdx) { await tg.sendMessage(chatId, 'Room must be one of: ' + ROOM_ORDER.join(', ') + '.'); return; }
@@ -1011,7 +1064,7 @@ async function deliverConfirmation(chatId, ref, tg) {
   const txt =
     '✅ <b>BOOKING CONFIRMED — HIDDEN HOMESTAY</b>\n\n' +
     'Ref: <b>' + b.ref + '</b>\n' +
-    'Room: <b>' + esc(r.name) + '</b>' + (r.type === 'vip' ? ' 👑 VIP' : '') + '\n' +
+    'Room: <b>' + esc(roomLabel(b.room)) + '</b>' + (r.type === 'vip' ? ' 👑 VIP' : '') + '\n' +
     'Date: ' + fmtDate(b.date) + '\n' +
     (b.overnight
       ? '🌙 Overnight: ' + fmtTime(b.checkIn) + ' → ' + fmtTime(b.checkOut) + ' next morning\n'
@@ -1025,7 +1078,7 @@ async function deliverConfirmation(chatId, ref, tg) {
     '🍜 ការកក់ត្រូវបានទទួល — សូមមើលរូបភាពខាងក្រោមសម្រាប់មគ្គុទ្ទេសក៍ចូល និងមឺនុយអាហារ។\n\n' +
     'Below: your room \u{1F3E8}, how to enter \u{1F5FA}\uFE0F, parking \u{1F17F}\uFE0F and the food menu \u{1F35C}. Enjoy your stay!';
   await tg.sendMessage(chatId, txt);
-  const media = [{ type: 'photo', media: a.photo, caption: '🛏 ' + esc(r.name) }];
+  const media = [{ type: 'photo', media: a.photo, caption: '🛏 ' + esc(roomLabel(b.room)) }];
   if (ROOMS[b.room] && ROOMS[b.room].type !== 'pool') media.push({ type: 'photo', media: a.guide, caption: '🗺 How to enter & find your room' });
   media.push({ type: 'photo', media: a.parking, caption: '🅿️ Parking guide' });
   a.menus.forEach((m, i) => media.push({ type: 'photo', media: m, caption: '🍜 Food menu ' + (i + 1) + '/5' }));
@@ -1100,7 +1153,7 @@ function json(res, code, obj) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', c => { data += c; if (data.length > 1e5) { reject(new Error('too large')); req.destroy(); } });
+    req.on('data', c => { data += c; if (data.length > 7e6) { reject(new Error('too large')); req.destroy(); } });
     req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(new Error('bad json')); } });
     req.on('error', reject);
   });
@@ -1147,6 +1200,19 @@ const server = http.createServer(async (req, res) => {
       const date = url.searchParams.get('date') || '';
       const checkIn = url.searchParams.get('checkIn') || '';
       const hours = parseInt(url.searchParams.get('hours') || '', 10);
+      const room = url.searchParams.get('room') || '';
+      /* room mode: all busy ranges for ONE room (previous day..next day, covers overnight spill) */
+      if (room) {
+        if (!ROOMS[room] || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+          return json(res, 400, { ok: false, message: 'room and date are required' });
+        const mid = dateIdx(date);
+        const busy = (await store.all()).filter(b => {
+          if (b.status === 'cancelled' || b.room !== room) return false;
+          const di = dateIdx(b.date);
+          return di >= mid - 1 && di <= mid + 1;
+        }).map(b => ({ date: b.date, checkIn: b.checkIn, checkOut: b.checkOut, hours: spanHours(b), overnight: !!b.overnight, ref: b.ref, status: b.status }));
+        return json(res, 200, { ok: true, busy });
+      }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(checkIn) || !hours || hours < 1 || hours > 12)
         return json(res, 400, { ok: false, message: 'date, checkIn and hours (1-12) are required' });
       const aStart = dateIdx(date) * 1440 + toMin(checkIn);
@@ -1155,7 +1221,8 @@ const server = http.createServer(async (req, res) => {
         if (b.status === 'cancelled') return false;
         const bStart = dateIdx(b.date) * 1440 + toMin(b.checkIn);
         const bEnd = bStart + spanHours(b) * 60;
-        return bStart < aEnd && aStart < bEnd;
+        /* 1h cleaning between bookings: a gap of at least 60 min is required */
+        return bStart < aEnd + 60 && aStart < bEnd + 60;
       }).map(b => ({ room: b.room, start: b.checkIn, end: b.checkOut, ref: b.ref, status: b.status }));
       return json(res, 200, { ok: true, busy });
     }
@@ -1265,7 +1332,7 @@ function startDailyDigest() {
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.3.1 (customer links)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.4.0 (13 updates)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));

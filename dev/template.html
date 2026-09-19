@@ -130,6 +130,7 @@
       <!-- ============ STEP 1 : SCHEDULE ============ -->
       <div class="pane" id="pane1">
         <h3 class="pane-title" data-i18n="s1Title">When would you like to stay?</h3>
+        <div class="room-lock" id="roomLockBar" hidden></div>
         <div class="field">
           <label for="bkDate" data-i18n="s1Date">Date <span class="req">✦</span></label>
           <input type="date" id="bkDate" autocomplete="off">
@@ -162,6 +163,7 @@
         <div class="field" id="checkinField">
           <label for="bkIn" data-i18n="s1In">Check-in time <span class="req">✦</span></label>
           <select id="bkIn" autocomplete="off"></select>
+          <p class="field-note" id="slotNote"></p>
         </div>
         <div class="field" id="ovField" hidden>
           <label data-i18n="s1Ov">Overnight check-in / check-out</label>
