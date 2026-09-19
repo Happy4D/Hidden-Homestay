@@ -124,6 +124,13 @@ function priceFor(room, date, hours, overnight) {
   else { base = table[hours]; if (!base) return null; }
   return r.type === 'vip' ? base + VIP_UPGRADE : base;
 }
+/* ---------- room maintenance (Available / Unavailable) — one switch, synced everywhere ---------- */
+async function getDisabledRooms() {
+  try { return JSON.parse(await store.getKv('rooms_disabled') || '[]'); } catch (e) { return []; }
+}
+async function setDisabledRooms(list) { await store.setKv('rooms_disabled', JSON.stringify(list)); }
+const FOOD_ORDER = 'Food Order: 015 233 598';
+
 const roomAssets = room => ({
   photo: CFG.publicUrl + '/assets/rooms/' + room + '.png',
   guide: CFG.publicUrl + '/assets/guides/' + room + '.jpg',
@@ -439,6 +446,10 @@ async function draftCallback(cb, tg) {
   d.ts = Date.now();
 
   if (action === 'room' && ROOMS[val]) {
+    if ((await getDisabledRooms()).includes(val)) {
+      await tg.call('answerCallbackQuery', { callback_query_id: cb.id, text: '🔧 ' + roomLabel(val) + ' is under maintenance — pick another room' });
+      return;
+    }
     d.room = val; d.step = 'date';
   } else if (action === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(val) && val >= todayKH()) {
     d.date = val; d.step = 'time';
@@ -588,6 +599,8 @@ async function createBooking(data, source, opts) {
   const { room, date, checkIn, checkOut, hours, overnight, name, phone, contact, idCard } = data;
 
   if (!ROOMS[room]) return { ok: false, error: 'invalid', message: 'Unknown room.' };
+  if ((await getDisabledRooms()).includes(room))
+    return { ok: false, error: 'invalid', message: roomLabel(room) + ' is under maintenance — please choose another room.' };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return { ok: false, error: 'invalid', message: 'Date must be YYYY-MM-DD.' };
   if (!(name && String(name).trim())) return { ok: false, error: 'invalid', message: 'Guest name is required.' };
   const phoneDigits = String(phone || '').replace(/\D/g, '');
@@ -670,7 +683,8 @@ function bookingText(b) {
       : 'Check-in: ' + fmtTime(b.checkIn) + ' → Check-out: ' + fmtTime(b.checkOut) + '  (' + b.hours + ' hr' + (b.hours > 1 ? 's' : '') + ')\n') +
     'Total: ' + money(b.total) + '\n\n' +
     'Guest: ' + b.name + '\n' +
-    'Phone: ' + b.phone + (b.contact ? '\nContact: ' + b.contact : '')
+    'Phone: ' + b.phone + (b.contact ? '\nContact: ' + b.contact : '') + '\n\n' +
+    '📞 ' + FOOD_ORDER
   );
 }
 function bookingLine(b) {
@@ -897,6 +911,7 @@ async function handleUpdate(update, tg) {
     } else if (String(chatId) === String(owner)) {
       await tg.sendMessage(chatId, 'Welcome back 👋 The website and this bot are connected. Send /help for commands.');
     } else {
+      const disRooms = await getDisabledRooms();
       await tg.sendMessage(chatId,
         '👋 <b>Welcome to Hidden Homestay!</b>\n\n' +
         'You can book a room in two ways:\n\n' +
@@ -909,7 +924,7 @@ async function handleUpdate(update, tg) {
         'Hours: 3\n' +
         'Name: \n' +
         'Phone: \n\n' +
-        'Rooms: pool, vintage, shanghai, classic, london, camping, fishing, burger, kuromi, veggie, slayer, gaming\n' +
+        'Rooms: ' + ROOM_ORDER.map(id => roomLabel(id) + (disRooms.includes(id) ? ' 🔧 under maintenance' : '')).join(', ') + '\n' +
         'Hours: 2\u20136, or <b>overnight</b> (8PM\u20138AM / 9PM\u20139AM)\n\n' +
         'The owner will confirm your booking right here. 🏠');
     }
@@ -979,9 +994,11 @@ async function handleUpdate(update, tg) {
     const date = args[0] || todayKH();
     const list = (await store.all()).filter(b => b.date === date && b.status !== 'cancelled');
     const lines = [];
+    const disRooms = await getDisabledRooms();
     for (const room of ROOM_ORDER) {
       const busy = list.filter(b => b.room === room).sort((a, b) => toMin(a.checkIn) - toMin(b.checkIn));
-      lines.push('<b>' + roomLabel(room) + '</b>\n' + (busy.length ? busy.map(b => '· ' + fmtTime(b.checkIn) + ' – ' + fmtTime(b.checkOut) + ' (' + b.status + ')').join('\n') : '· all free ✨'));
+      const maint = disRooms.includes(room) ? '\n· 🔧 under maintenance' : '';
+      lines.push('<b>' + roomLabel(room) + '</b>\n' + (busy.length ? busy.map(b => '· ' + fmtTime(b.checkIn) + ' – ' + fmtTime(b.checkOut) + ' (' + b.status + ')').join('\n') : '· all free ✨') + maint);
     }
     await tg.sendMessage(chatId, '<b>📅 ' + fmtDate(date) + '</b>\n\n' + lines.join('\n\n'));
     return;
@@ -1061,6 +1078,23 @@ async function deliverConfirmation(chatId, ref, tg) {
   if (!b) { await tg.sendMessage(chatId, '🙏 I don\u2019t know the booking ' + esc(ref) + ' — please use the Telegram button on the website after booking.'); return; }
   const r = ROOMS[b.room] || { name: b.room, type: '?' };
   const a = roomAssets(b.room);
+  /* pending bookings: details only — the full guide unlocks once the owner confirms */
+  if (b.status !== 'confirmed') {
+    await tg.sendMessage(chatId,
+      '📥 <b>BOOKING RECEIVED — HIDDEN HOMESTAY</b>\n\n' +
+      'Ref: <b>' + b.ref + '</b>\n' +
+      'Room: <b>' + esc(roomLabel(b.room)) + '</b>' + (r.type === 'vip' ? ' 👑 VIP' : '') + '\n' +
+      'Date: ' + fmtDate(b.date) + '\n' +
+      (b.overnight
+        ? '🌙 Overnight: ' + fmtTime(b.checkIn) + ' → ' + fmtTime(b.checkOut) + ' next morning\n'
+        : '🕐 ' + fmtTime(b.checkIn) + ' → ' + fmtTime(b.checkOut) + ' (' + b.hours + 'h)\n') +
+      '💵 Total: <b>' + money(b.total) + '</b>\n' +
+      '🙋 Guest: ' + esc(b.name) + ' · ' + esc(b.phone) + '\n\n' +
+      '⏳ Status: <b>pending</b> — the owner will confirm your booking.\n' +
+      'Once the owner confirms, open this bot again (or check <b>My Booking</b> on the website) and you will receive the full information: room photo, how to enter, parking and the food menu. 🙏\n\n' +
+      '🍜 ការកក់ត្រូវបានទទួល — សូមរង់ចាំការបញ្ជាក់ពីម្ចាស់ផ្ទះ។ នៅពេលបញ្ជាក់រួចរាល់ សូមបើក Telegram នេះមកវិញ ដើម្បីទទួលព័ត៌មានពេញលេញ។');
+    return;
+  }
   const txt =
     '✅ <b>BOOKING CONFIRMED — HIDDEN HOMESTAY</b>\n\n' +
     'Ref: <b>' + b.ref + '</b>\n' +
@@ -1071,7 +1105,8 @@ async function deliverConfirmation(chatId, ref, tg) {
       : '🕐 ' + fmtTime(b.checkIn) + ' → ' + fmtTime(b.checkOut) + ' (' + b.hours + 'h)\n') +
     '💵 Total: <b>' + money(b.total) + '</b>\n' +
     '🙋 Guest: ' + esc(b.name) + ' · ' + esc(b.phone) + '\n\n' +
-    '📍 ' + esc(ADDRESS) + '\n\n' +
+    '📍 ' + esc(ADDRESS) + '\n' +
+    '📞 ' + FOOD_ORDER + '\n\n' +
     (b.status === 'confirmed'
       ? 'Your booking is <b>confirmed</b> ✅ — see you soon!\n'
       : '⏳ Status: <b>pending</b> — full payment confirms your booking.\n') +
@@ -1196,6 +1231,31 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    if (p === '/api/rooms' && req.method === 'GET') {
+      return json(res, 200, { ok: true, disabled: await getDisabledRooms() });
+    }
+
+    if (p === '/api/rooms/status' && req.method === 'POST') {
+      const body = await readBody(req);
+      if (!(CFG.adminKey && body.key === CFG.adminKey)) return json(res, 401, { ok: false, message: 'admin key required' });
+      const room = String(body.room || '');
+      if (!ROOMS[room]) return json(res, 400, { ok: false, message: 'unknown room' });
+      let dis = await getDisabledRooms();
+      dis = body.available ? dis.filter(r => r !== room) : (dis.includes(room) ? dis : dis.concat(room));
+      await setDisabledRooms(dis);
+      console.log('[rooms] ' + roomLabel(room) + ' → ' + (body.available ? 'AVAILABLE' : 'UNAVAILABLE (maintenance)'));
+      return json(res, 200, { ok: true, room, available: !!body.available, disabled: dis });
+    }
+
+    if (p === '/api/status' && req.method === 'GET') {
+      const refs = (url.searchParams.get('refs') || '').split(',').map(x => x.trim().toUpperCase())
+        .filter(x => /^HH-[A-Z0-9]{4,10}$/.test(x)).slice(0, 40);
+      const list = await store.all();
+      const statuses = {};
+      refs.forEach(r => { const b = list.find(x => String(x.ref).toUpperCase() === r); if (b) statuses[r] = b.status; });
+      return json(res, 200, { ok: true, statuses });
+    }
+
     if (p === '/api/availability' && req.method === 'GET') {
       const date = url.searchParams.get('date') || '';
       const checkIn = url.searchParams.get('checkIn') || '';
@@ -1211,7 +1271,7 @@ const server = http.createServer(async (req, res) => {
           const di = dateIdx(b.date);
           return di >= mid - 1 && di <= mid + 1;
         }).map(b => ({ date: b.date, checkIn: b.checkIn, checkOut: b.checkOut, hours: spanHours(b), overnight: !!b.overnight, ref: b.ref, status: b.status }));
-        return json(res, 200, { ok: true, busy });
+        return json(res, 200, { ok: true, busy, disabled: (await getDisabledRooms()).includes(room) ? [room] : [] });
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(checkIn) || !hours || hours < 1 || hours > 12)
         return json(res, 400, { ok: false, message: 'date, checkIn and hours (1-12) are required' });
@@ -1224,7 +1284,7 @@ const server = http.createServer(async (req, res) => {
         /* 1h cleaning between bookings: a gap of at least 60 min is required */
         return bStart < aEnd + 60 && aStart < bEnd + 60;
       }).map(b => ({ room: b.room, start: b.checkIn, end: b.checkOut, ref: b.ref, status: b.status }));
-      return json(res, 200, { ok: true, busy });
+      return json(res, 200, { ok: true, busy, disabled: await getDisabledRooms() });
     }
 
     if (p === '/api/bookings' && req.method === 'POST') {
@@ -1332,7 +1392,7 @@ function startDailyDigest() {
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.4.0 (13 updates)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.5.0 (6 updates)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));

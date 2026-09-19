@@ -137,7 +137,11 @@ const I18N = {
     mbSub: 'Bookings made from this device. Tap “Telegram” to receive the confirmation again.',
     mbEmpty: 'No bookings yet on this device. Make your first one — it only takes two minutes.',
     mbRoom: 'Room', mbDate: 'Date', mbTimes: 'Check-in / out', mbGuest: 'Guest',
-    mbTgBtn: 'Telegram', mbRemove: 'Remove', mbRemoved: 'Booking removed from this device',
+    mbTgBtn: 'Get all information via Telegram', mbRemove: 'Remove', mbRemoved: 'Booking removed from this device',
+    mbWait: 'Waiting for the owner to confirm your booking',
+    s4CheckMy: '📋 Please check <b>My Booking</b> later to see whether your booking has been confirmed by the owner.',
+    maintFlag: 'Under Maintenance', maintNote: 'Currently unavailable for booking.',
+    tMaint: 'This room is under maintenance — please choose another room.',
     stPending: 'Pending', stConfirmed: 'Confirmed', stCancelled: 'Cancelled',
     howKicker: 'Effortless booking', howTitle: 'Three steps to your hideaway',
     how1T: 'Date & duration', how1P: 'Choose your date and how long you\u2019ll stay — 2 to 6 hours, or a full overnight (8PM–8AM / 9PM–9AM). The price shows instantly, weekday or weekend.',
@@ -236,7 +240,11 @@ const I18N = {
     mbSub: 'ការកក់ដែលបានធ្វើពីឧបករណ៍នេះ។ ចុច “Telegram” ដើម្បីទទួលបានការបញ្ជាក់ម្តងទៀត។',
     mbEmpty: 'មិនមានការកក់នៅលើឧបករណ៍នេះទេ។ កក់ដំបូងរបស់អ្នក — ចំណាយពេលតែពីរនាទីប៉ុណ្ណោះ។',
     mbRoom: 'បន្ទប់', mbDate: 'កាលបរិច្ឆេទ', mbTimes: 'ចូល / ចេញ', mbGuest: 'អតិថិជន',
-    mbTgBtn: 'Telegram', mbRemove: 'លុប', mbRemoved: 'បានលុបការកក់ចេញពីឧបករណ៍នេះ',
+    mbTgBtn: 'ទទួលព័ត៌មានពេញលេញតាម Telegram', mbRemove: 'លុប', mbRemoved: 'បានលុបការកក់ចេញពីឧបករណ៍នេះ',
+    mbWait: 'កំពុងរង់ចាំម្ចាស់ផ្ទះបញ្ជាក់ការកក់របស់អ្នក',
+    s4CheckMy: '📋 សូមពិនិត្យមើល <b>ការកក់របស់ខ្ញុំ</b> នៅពេលក្រោយ ដើម្បីដឹងថាម្ចាស់ផ្ទះបានបញ្ជាក់ការកក់របស់អ្នកឬនៅ។',
+    maintFlag: 'កំពុងជួសជុល', maintNote: 'បច្ចុប្បន្នមិនអាចកក់បានទេ។',
+    tMaint: 'បន្ទប់នេះកំពុងជួសជុល — សូមជ្រើសរើសបន្ទប់ផ្សេង។',
     stPending: 'រង់ចាំ', stConfirmed: 'បានបញ្ជាក់', stCancelled: 'បានបោះបង់',
  grpVipSub: 'តម្លៃ Standard + ៣$ · សេវាបន្ថែម VIP',
     howKicker: 'កក់ងាយស្រួល', howTitle: 'បីជំហាន ទៅកាន់កន្លែងសម្រាប់អ្នក',
@@ -342,7 +350,7 @@ function priceFor(roomId, dateStr, dur) {
     const base = CONFIG.pricing[isWeekend(dateStr) ? 'weekend' : 'weekday'].overnight;
     return room.type === 'vip' ? base + CONFIG.vipUpgrade : base;
   }
-  const h = (dur === 'X' ? state.poolHours : Number(dur));
+  const h = Number(dur);
   if (!h || h < 1) return null;
   if (isPool) return CONFIG.poolRate * h;
   const table = CONFIG.pricing[isWeekend(dateStr) ? 'weekend' : 'weekday'];
@@ -423,7 +431,7 @@ async function detectLive() {
    STATE + WIZARD
    ============================================================ */
 const state = {
-  step: 1, date: '', dur: '', poolHours: 2, poolCustom: false,
+  step: 1, date: '', dur: '', disabledRooms: [],
   start: '', room: '', name: '', phone: '', agreed: false,
   idCard: '', ref: '', completed: false, avail: ''
 };
@@ -432,7 +440,7 @@ const D = $('#book');
 const durInfo = () => {
   if (state.dur === 'ON8') return { checkIn: '20:00', checkOut: '08:00', hours: 12, overnight: true };
   if (state.dur === 'ON9') return { checkIn: '21:00', checkOut: '09:00', hours: 12, overnight: true };
-  const h = state.poolCustom ? state.poolHours : Number(state.dur);
+  const h = Number(state.dur);
   return { checkIn: state.start, checkOut: toHHMM(toMin(state.start) + h * 60), hours: h, overnight: false };
 };
 const toMin = hhmm => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
@@ -473,13 +481,9 @@ function initSchedule() {
         $$('#durChips button').forEach(c => c.classList.remove('sel'));
         chip.classList.add('sel');
         state.dur = chip.dataset.dur;
-        state.poolCustom = (state.dur === 'X');
-        $('#poolDur').hidden = !state.poolCustom;
         syncSchedule();
       });
     });
-    $('#hrsMinus').addEventListener('click', () => { state.poolHours = Math.max(1, state.poolHours - 1); $('#hrsVal').textContent = state.poolHours; syncSchedule(); });
-    $('#hrsPlus').addEventListener('click', () => { state.poolHours = Math.min(12, state.poolHours + 1); $('#hrsVal').textContent = state.poolHours; syncSchedule(); });
     $('#bkIn').addEventListener('change', () => { state.start = $('#bkIn').value; syncSchedule(); });
     $('#actNext1').addEventListener('click', () => {
       if (!scheduleValid()) { toast(t(state.dur ? 'tDur' : 'tDur'), ICON.info); return; }
@@ -516,7 +520,7 @@ function syncSchedule() {
 
   /* build check-in hour options allowed for this duration */
   if (!isON && state.dur) {
-    const h = state.poolCustom ? state.poolHours : Number(state.dur);
+    const h = Number(state.dur);
     const sel = $('#bkIn');
     const cur = state.start;
     const lastStart = 23 - h;                                  // check-out must be ≤ 23:00
@@ -572,7 +576,7 @@ function syncSchedule() {
     if (std != null) parts.push(esc(t('lblStd')) + ' ' + money(std));
     if (vip != null) parts.push(esc(t('lblVip')) + ' ' + money(vip));
     if (pool != null) parts.push(esc(t('lblPool')) + ' ' + money(pool));
-    note.innerHTML = '💰 ' + esc(t(wk)) + (state.dur === 'ON8' || state.dur === 'ON9' ? ' · ' + esc(t('overnight')) : ' · ' + (state.poolCustom ? state.poolHours : state.dur) + ' ' + esc(t('hoursWord'))) +
+    note.innerHTML = '💰 ' + esc(t(wk)) + (state.dur === 'ON8' || state.dur === 'ON9' ? ' · ' + esc(t('overnight')) : ' · ' + state.dur + ' ' + esc(t('hoursWord'))) +
       ' → <b>' + parts.join(' · ') + '</b>';
   } else note.textContent = '';
 
@@ -613,6 +617,7 @@ async function buildRoomGrid() {
       const r = await fetchTimeout(base + '/api/availability' + q, { method: 'GET' }, 6000);
       const j = await r.json().catch(() => ({}));
       (j.busy || []).forEach(bk => { busyMap[bk.room] = true; });
+      if (j.disabled) state.disabledRooms = j.disabled;   // fresh maintenance state
     } catch (e) { /* offline → treat all as available */ }
   }
   const free = ROOMS.filter(r => !busyMap[r.id] && priceFor(r.id, state.date, state.dur) != null);
@@ -621,12 +626,14 @@ async function buildRoomGrid() {
 
   grid.innerHTML = ROOMS.map(r => {
     const p = priceFor(r.id, state.date, state.dur);
+    const maint = (state.disabledRooms || []).includes(r.id);
     const busy = !!busyMap[r.id];
-    const unavail = busy || p == null;
+    const unavail = busy || maint || p == null;
     const flag = r.type === 'vip' ? '<span class="room-flag vip">VIP</span>'
                : r.type === 'pool' ? '<span class="room-flag pool">' + esc(t('flagPool')) + '</span>'
                : '<span class="room-flag">' + esc(t('flagStd')) + '</span>';
-    const busyTag = busy ? '<span class="room-flag busy">✕ ' + esc(t('roomTaken')) + '</span>' : '';
+    const busyTag = maint ? '<span class="room-flag maint">🔧 ' + esc(t('maintFlag')) + '</span>'
+                   : busy ? '<span class="room-flag busy">✕ ' + esc(t('roomTaken')) + '</span>' : '';
     const vipBox = r.type === 'vip' ? '<div class="vip-includes"><b>👑 ' + esc(t('vipIncludesTitle')) + '</b>' +
       VIP_INCLUDES[LANG === 'kh' ? 'kh' : 'en'].map(x => esc(x)).join(' · ') + '</div>' : '';
 
@@ -737,7 +744,7 @@ function receiptHTML() {
          row(t('rcDur'), isON ? esc(t('overnight')) + ' (12h)' : info.hours + ' ' + esc(t('hoursWord'))) +
          row(t('rcGuest'), esc(state.name)) +
          row(t('rcPhone'), esc(state.phone)) +
-         row(t('rcId'), isON ? (state.idCard ? esc(t('rcIdYes')) : '—') : esc(t('rcIdNo'))) +
+         (isON ? row(t('rcId'), state.idCard ? esc(t('rcIdYes')) : '—') : '') +
          '<div class="rc-row rc-total"><span>' + esc(t('total')) + '</span><b>' + money(total) + '</b></div>';
 }
 
@@ -880,7 +887,7 @@ function initShowcase() {
    BOOKING OVERLAY (opens like the classic pop-up booking screen)
    ============================================================ */
 function resetBooking() {
-  Object.assign(state, { step: 1, date: '', dur: '', poolHours: 2, poolCustom: false, start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
+  Object.assign(state, { step: 1, date: '', dur: '', start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
   $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = '';
   $('#idUpload').value = ''; $('#idPreview').hidden = true;
   const ag = $('#agreedTerms');
@@ -935,6 +942,22 @@ function saveMyBooking(bk) {
 function mbStatus(s) {
   return s === 'confirmed' ? t('stConfirmed') : (s === 'cancelled' ? t('stCancelled') : t('stPending'));
 }
+let mbPollTimer = null;
+async function refreshMyStatuses() {
+  if (!live.on) return;
+  const list = store.get(MY_KEY) || [];
+  if (!list.length) return;
+  try {
+    const base = CONFIG.api.baseUrl || '';
+    const r = await fetchTimeout(base + '/api/status?refs=' + encodeURIComponent(list.map(b => b.ref).join(',')), { method: 'GET' }, 6000);
+    const j = await r.json().catch(() => ({}));
+    if (j && j.statuses) {
+      let changed = false;
+      const upd = list.map(b => { const st = j.statuses[String(b.ref).toUpperCase()]; if (st && st !== b.status) { changed = true; return Object.assign({}, b, { status: st }); } return b; });
+      if (changed) { store.set(MY_KEY, upd); renderMyBookings(); }
+    }
+  } catch (e) { /* offline → keep local statuses */ }
+}
 function renderMyBookings() {
   const box = $('#mbList');
   if (!box) return;
@@ -942,6 +965,7 @@ function renderMyBookings() {
   if (!list.length) { box.innerHTML = '<div class="mb-empty">🗓️ ' + esc(t('mbEmpty')) + '</div>'; return; }
   box.innerHTML = list.map(bk => {
     const r = roomById(bk.room);
+    const confirmed = bk.status === 'confirmed';
     return '<div class="mb-item">' +
       '<div class="mb-item-top"><b class="mb-ref">' + esc(bk.ref) + '</b><span class="mb-status ' + esc(bk.status || 'pending') + '">' + esc(mbStatus(bk.status)) + '</span></div>' +
       '<div class="mb-rows">' +
@@ -952,7 +976,9 @@ function renderMyBookings() {
       '</div>' +
       '<div class="mb-foot"><span class="mb-amt">' + money(bk.total) + '</span>' +
         '<span class="mb-foot-btns">' +
-          '<a class="btn btn-tg btn-sm" target="_blank" rel="noopener" href="' + CONFIG.botUrl + '?start=' + encodeURIComponent(bk.ref) + '">📨 ' + esc(t('mbTgBtn')) + '</a>' +
+          (confirmed
+            ? '<a class="btn btn-tg btn-sm" target="_blank" rel="noopener" href="' + CONFIG.botUrl + '?start=' + encodeURIComponent(bk.ref) + '">📨 ' + esc(t('mbTgBtn')) + '</a>'
+            : '<span class="mb-wait">⏳ ' + esc(t('mbWait')) + '</span>') +
           '<button class="btn btn-ghost btn-sm mb-del" type="button" data-ref="' + esc(bk.ref) + '">' + esc(t('mbRemove')) + '</button>' +
         '</span></div>' +
     '</div>';
@@ -968,11 +994,15 @@ function openMyBookings(e) {
   const ov = $('#myBookingsOverlay');
   if (!ov) return;
   renderMyBookings();
+  refreshMyStatuses();                                     // instant refresh + auto-poll while open
+  if (mbPollTimer) clearInterval(mbPollTimer);
+  mbPollTimer = setInterval(refreshMyStatuses, 5000);
   ov.classList.add('open');
   ov.setAttribute('aria-hidden', 'false');
   document.body.classList.add('booking-open');
 }
 function closeMyBookings() {
+  if (mbPollTimer) { clearInterval(mbPollTimer); mbPollTimer = null; }
   const ov = $('#myBookingsOverlay');
   if (!ov) return;
   ov.classList.remove('open');
@@ -998,10 +1028,15 @@ function renderShowcase() {
                : r.type === 'pool' ? '<span class="room-flag pool">' + esc(t('flagPool')) + '</span>'
                : '<span class="room-flag">' + esc(t('flagStd')) + '</span>';
     const vipBox = r.type === 'vip' ? '<div class="vip-includes"><b>👑 ' + esc(t('vipIncludesTitle')) + '</b>' + VIP_INCLUDES[LANG === 'kh' ? 'kh' : 'en'].map(esc).join(' · ') + '</div>' : '';
-    return '<div class="room-card" data-room="' + r.id + '" role="button" tabindex="0" aria-label="' + esc(roomName(r)) + '"><div class="room-pic"><img src="' + r.img + '" alt="' + esc(roomName(r)) + '" loading="lazy">' + flag + '</div>' +
+    const maint = (state.disabledRooms || []).includes(r.id);
+    const maintTag = maint ? '<span class="room-flag maint">🔧 ' + esc(t('maintFlag')) + '</span>' : '';
+    const bookBtn = maint
+      ? '<div class="room-unavail-note">🔴 ' + esc(t('maintNote')) + '</div>'
+      : '<button class="room-book" type="button">' + esc(t('bookThisRoom')) + ' →</button>';
+    return '<div class="room-card' + (maint ? ' maintenance' : '') + '" data-room="' + r.id + '" role="button" tabindex="0" aria-label="' + esc(roomName(r)) + '"><div class="room-pic"><img src="' + r.img + '" alt="' + esc(roomName(r)) + '" loading="lazy">' + flag + maintTag + '</div>' +
       '<div class="room-body"><h4>' + esc(roomName(r)) + '</h4><p class="room-blurb">' + esc(roomBlurb(r)) + '</p>' +
       vipBox +
-      '<button class="room-book" type="button">' + esc(t('bookThisRoom')) + ' →</button></div></div>';
+      bookBtn + '</div></div>';
   };
   $('#showPool').innerHTML = ROOMS.filter(r => r.type === 'pool').map(card).join('');
   $('#showStd').innerHTML  = ROOMS.filter(r => r.type === 'standard').map(card).join('');
@@ -1017,6 +1052,7 @@ function renderShowcase() {
 
 function bookFromRoom(roomId) {
   if (!roomById(roomId)) return;
+  if ((state.disabledRooms || []).includes(roomId)) { toast(t('tMaint'), ICON.info); return; }
   state.roomLockKeep = true;                    // openBooking must not wipe the room
   openBooking();
   if (state.completed) resetBooking();          // finished earlier? fresh state, then re-lock
@@ -1043,4 +1079,13 @@ function renderStatic() {
   initSchedule();
   $$('.step-btn').forEach(b => b.addEventListener('click', () => { const s = Number(b.dataset.step); if (s === 2 && state.roomLocked) return; if (s < state.step && !state.completed) goStep(s); }));
   await detectLive();
+  try {
+    if (live.on) {
+      const base = CONFIG.api.baseUrl || '';
+      const r = await fetchTimeout(base + '/api/rooms', { method: 'GET' }, 6000);
+      const j = await r.json().catch(() => ({}));
+      state.disabledRooms = (j && j.disabled) || [];
+      renderShowcase();                                    // repaint cards with 🔧 maintenance flags
+    }
+  } catch (e) { /* offline → all rooms available */ }
 })();

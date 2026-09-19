@@ -56,7 +56,7 @@ def run():
         page.on('console', lambda m: errors.append(m.text) if m.type == 'error' else None)
         page.on('pageerror', lambda e: errors.append(str(e)))
 
-        def mock_api(busy=None, ref='HH-TEST1', room_busy=None):
+        def mock_api(busy=None, ref='HH-TEST1', room_busy=None, statuses=None, disabled=None):
             def handler(route):
                 url = route.request.url
                 body = route.request.post_data_json if route.request.method == 'POST' else None
@@ -64,10 +64,14 @@ def run():
                     posted.append(body)
                 if '/api/health' in url:
                     route.fulfill(json={'ok': True, 'live': True, 'storage': 'json-file', 'botLinked': False, 'ownerLinked': False, 'bookings': 0, 'now': '2026-09-14T00:00:00Z'})
+                elif '/api/rooms' in url:
+                    route.fulfill(json={'ok': True, 'disabled': disabled or []})
+                elif '/api/status' in url:
+                    route.fulfill(json={'ok': True, 'statuses': statuses or {}})
                 elif '/api/availability' in url and 'room=' in url:
-                    route.fulfill(json={'ok': True, 'busy': room_busy or []})
+                    route.fulfill(json={'ok': True, 'busy': room_busy or [], 'disabled': (disabled or []) if 'room=' in url else []})
                 elif '/api/availability' in url:
-                    route.fulfill(json={'ok': True, 'busy': busy or []})
+                    route.fulfill(json={'ok': True, 'busy': busy or [], 'disabled': disabled or []})
                 elif url.endswith('/api/bookings') and route.request.method == 'POST':
                     route.fulfill(json={'ok': True, 'ref': ref, 'status': 'pending', 'total': (body or {}).get('total', 0)})
                 else:
@@ -91,7 +95,7 @@ def run():
         foot_txt = page.locator('footer.contact').inner_text()
         check('address in the footer (Road 777), exactly once', '777' in foot_txt and foot_txt.count('235D') == 1, foot_txt.count('235D'))
         check('logo present (data URI)', page.locator('.brand-logo').count() >= 1)
-        check('background is #FFD1FF light pink', page.evaluate("getComputedStyle(document.body).backgroundColor") == 'rgb(255, 209, 255)', page.evaluate("getComputedStyle(document.body).backgroundColor"))
+        check('background main color is #F0E1E1', page.evaluate("getComputedStyle(document.body).backgroundColor") == 'rgb(240, 225, 225)', page.evaluate("getComputedStyle(document.body).backgroundColor"))
         check('no KHQR bullet in hero', 'KHQR' not in page.locator('.hero-facts').inner_text(), page.locator('.hero-facts').inner_text())
         check('hero badge (12 rooms/1 address/open daily) removed', page.locator('.hero-badge').count() == 0)
         khmer_re = '[\u1780-\u17FF]'
@@ -112,11 +116,12 @@ def run():
         print('== HERO SLIDER ==')
         check('13 slides built (12 rooms + Coming Soon)', page.locator('#showcaseFrame .slide').count() == 13, page.locator('#showcaseFrame .slide').count())
         check('Coming Soon slide uses the EZ Stay photo', 'ez-stay.jpg' in (page.locator('#showcaseFrame .slide-cs img').get_attribute('src') or ''), page.locator('#showcaseFrame .slide-cs img').get_attribute('src'))
+        check('slideshow room name is bright white (readable)', page.evaluate("getComputedStyle(document.querySelector('#chipName')).color") == 'rgb(255, 255, 255)', page.evaluate("getComputedStyle(document.querySelector('#chipName')).color"))
         idx = page.evaluate("Array.from(document.querySelectorAll('#showcaseFrame .slide')).findIndex(s=>s.classList.contains('active'))")
         page.wait_for_timeout(3400)
         idx2 = page.evaluate("Array.from(document.querySelectorAll('#showcaseFrame .slide')).findIndex(s=>s.classList.contains('active'))")
         check('slider advances after ~3s (crossfade)', idx != idx2, f'{idx} -> {idx2}')
-        check('room name chip shows current room', 'Room' in page.locator('#chipName').inner_text(), page.locator('#chipName').inner_text())
+        check('room name chip shows current room (or Coming Soon)', ('Room' in page.locator('#chipName').inner_text()) or ('EZ Stay' in page.locator('#chipName').inner_text()), page.locator('#chipName').inner_text())
 
         print('== LANGUAGE SWITCH ==')
         page.click('#langKh')
@@ -228,6 +233,9 @@ def run():
         print('== REVIEW + PAY ==')
         receipt = page.locator('#reviewReceipt').inner_text()
         check('receipt shows room + total', 'Vintage' in receipt and '$12' in receipt, receipt[:120])
+        check('ID Card row hidden for hourly booking', 'ID Card' not in receipt, receipt[:140])
+        check('My Booking reminder on review pane', 'My Booking' in page.locator('.checkmy-note').inner_text() and 'confirmed by the owner' in page.locator('.checkmy-note').inner_text(), page.locator('.checkmy-note').inner_text()[:90])
+        check('Pool Anyhours removed (7 duration options)', page.locator('#durChips button').count() == 7, page.locator('#durChips button').count())
         check('12 house rules displayed (early check-in added)', page.locator('#termsList li').count() == 12, page.locator('#termsList li').count())
         _terms = page.locator('#termsList').inner_text()
         check('penalty amounts removed, rules kept', '$50' not in _terms and '$20' not in _terms and 'No Smoking' in _terms and 'Early check-in' in _terms, _terms[:90])
@@ -252,8 +260,13 @@ def run():
         mb_txt = page.locator('#mbList').inner_text()
         check('booking listed: ref + room + guest + total', 'HH-TEST1' in mb_txt and 'Vintage' in mb_txt and 'Sokha Pen' in mb_txt and '$12' in mb_txt, mb_txt[:110])
         check('status badge shows Pending', 'PENDING' in mb_txt.upper())
+        check('pending: waiting note, no Telegram button yet', 'Waiting' in mb_txt and page.locator('#mbList .mb-item a.btn-tg').count() == 0, mb_txt[:130])
+        mock_api(statuses={'HH-TEST1': 'confirmed'})          # owner confirms on the dashboard
+        page.wait_for_timeout(6800)                           # status poll runs every 5s
+        mb_txt2 = page.locator('#mbList').inner_text()
+        check('owner confirms → badge flips to CONFIRMED automatically', 'CONFIRMED' in mb_txt2.upper() and 'Waiting' not in mb_txt2, mb_txt2[:130])
         tg2 = page.locator('#mbList .mb-item a.btn-tg').get_attribute('href')
-        check('per-booking Telegram re-confirm link', tg2 == 'https://t.me/HiddenHomestayBot?start=HH-TEST1', tg2)
+        check('confirmed: Get all information via Telegram button', tg2 == 'https://t.me/HiddenHomestayBot?start=HH-TEST1', tg2)
         page.screenshot(path=str(SHOTS / '05-my-bookings.png'))
         page.click('#mbClose')
         page.wait_for_timeout(300)
@@ -304,21 +317,19 @@ def run():
         page.click('#actConfirm')
         page.wait_for_timeout(600)
         check('overnight POST payload has idCard + overnight flag', posted and posted[-1].get('overnight') is True and str(posted[-1].get('idCard', '')).startswith('data:image/'), {k: str(v)[:30] for k, v in (posted[-1] if posted else {}).items()})
+        s_receipt = page.locator('#successReceipt').inner_text()
+        check('ID Card row shown for overnight (Attached)', 'ID Card' in s_receipt and 'Attached' in s_receipt, s_receipt[:160])
         page.screenshot(path=str(SHOTS / '05-overnight-success.png'))
 
-        print('== BOOKING: POOL CUSTOM HOURS + WEEKEND ==')
+        print('== BOOKING: POOL (3H CHIP) + WEEKEND ==')
         page.click('#actAgain')
         page.wait_for_timeout(400)
         page.locator('#bkDate').fill(A_SATURDAY)
         page.locator('#durChips button[data-dur="3"]').click()
         page.wait_for_timeout(200)
         check('weekend pricing shown ($15)', 'Standard $15' in page.locator('#priceNote').inner_text(), page.locator('#priceNote').inner_text())
-        page.locator('#durChips button[data-dur="X"]').click()
-        page.wait_for_timeout(200)
-        check('pool stepper appears', page.locator('#poolDur').is_visible())
-        page.locator('#hrsPlus').click()
-        check('stepper at 3 hours', page.locator('#hrsVal').inner_text().strip() == '3', page.locator('#hrsVal').inner_text())
-        check('pool price for 3h = $15', 'Pool $15' in page.locator('#priceNote').inner_text(), page.locator('#priceNote').inner_text())
+        check('pool price for 3h = $15 (normal chip, no stepper)', 'Pool $15' in page.locator('#priceNote').inner_text(), page.locator('#priceNote').inner_text())
+        check('pool stepper gone', page.locator('#poolDur').count() == 0 and page.locator('#hrsVal').count() == 0)
         page.select_option('#bkIn', '10:00')
         page.click('#actNext1')
         page.wait_for_timeout(300)
@@ -346,6 +357,31 @@ def run():
         page.wait_for_timeout(600)
         check('busy room marked unavailable', 'unavail' in (page.locator('#roomGrid .room-card[data-room="vintage"]').get_attribute('class') or ''))
         check('free room still selectable', 'unavail' not in (page.locator('#roomGrid .room-card[data-room="classic"]').get_attribute('class') or ''))
+
+        print('== ROOM MAINTENANCE ==')
+        mock_api(disabled=['slayer'])
+        page.goto(base + '/', wait_until='load')
+        page.wait_for_timeout(1200)
+        slayer_card = '#showVip .room-card[data-room="slayer"]'
+        check('showcase: (201) Slayer flagged Under Maintenance', 'maintenance' in (page.locator(slayer_card).get_attribute('class') or '') and 'UNDER MAINTENANCE' in page.locator(slayer_card).inner_text().upper(), page.locator(slayer_card).inner_text()[:80])
+        check('showcase: book button replaced by unavailable note', page.locator(slayer_card + ' .room-book').count() == 0 and 'unavailable' in page.locator(slayer_card + ' .room-unavail-note').inner_text().lower(), page.locator(slayer_card + ' .room-unavail-note').inner_text())
+        page.locator(slayer_card).click()
+        page.wait_for_timeout(500)
+        check('clicking a maintenance room does not open booking', not page.locator('#bookingOverlay').evaluate("el=>el.classList.contains('open')"))
+        page.locator('.hero-cta .js-book-open').first.click()
+        page.wait_for_timeout(300)
+        page.locator('#bkDate').fill(A_WEEKDAY)
+        page.locator('#durChips button[data-dur="3"]').click()
+        page.select_option('#bkIn', '14:00')
+        page.click('#actNext1')
+        page.wait_for_timeout(600)
+        check('room grid: Slayer unavailable (🔧 maintenance)', 'unavail' in (page.locator('#roomGrid .room-card[data-room="slayer"]').get_attribute('class') or '') and 'UNDER MAINTENANCE' in page.locator('#roomGrid .room-card[data-room="slayer"]').inner_text().upper(), page.locator('#roomGrid .room-card[data-room="slayer"]').inner_text()[:80])
+        check('other rooms still selectable', 'unavail' not in (page.locator('#roomGrid .room-card[data-room="classic"]').get_attribute('class') or ''))
+        page.keyboard.press('Escape')
+        page.wait_for_timeout(300)
+        mock_api()
+        page.goto(base + '/', wait_until='load')
+        page.wait_for_timeout(1000)
 
         print('== MOBILE SNAPSHOT ==')
         mp = browser.new_page(viewport={'width': 390, 'height': 844})

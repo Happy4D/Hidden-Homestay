@@ -21,14 +21,14 @@
 
 :root {
   color-scheme: light;
-  --bg:        #FFD1FF;
-  --bg-2:      #FFF0FA;
-  --bg-3:      #F7C4F2;
+  --bg:        #F0E1E1;
+  --bg-2:      #FAF1F1;
+  --bg-3:      #E8CFCF;
   --card:      #FFFFFF;
-  --ink:       #3B1053;
-  --ink-soft:  #5E3A7E;
-  --muted:     #7A4E9E;
-  --line:      rgba(122, 44, 141, .18);
+  --ink:       #3D2135;
+  --ink-soft:  #6B4A5A;
+  --muted:     #7A5566;
+  --line:      rgba(122, 60, 80, .17);
 
   --violet:    #6D28D9;
   --violet-2:  #6D28D9;
@@ -42,8 +42,8 @@
   --grad:      linear-gradient(120deg, #8b5cf6 0%, #d946ef 55%, #22d3ee 130%);
   --grad-soft: linear-gradient(120deg, rgba(139, 92, 246, .16) 0%, rgba(217, 70, 239, .13) 55%, rgba(34, 211, 238, .12) 130%);
 
-  --shadow:    0 24px 60px -18px rgba(122, 44, 141, .30), 0 10px 30px -12px rgba(139, 92, 246, .22);
-  --shadow-sm: 0 10px 26px -12px rgba(122, 44, 141, .22), 0 4px 12px -6px rgba(139, 92, 246, .16);
+  --shadow:    0 24px 60px -18px rgba(120, 50, 70, .28), 0 10px 30px -12px rgba(139, 92, 246, .18);
+  --shadow-sm: 0 10px 26px -12px rgba(120, 50, 70, .20), 0 4px 12px -6px rgba(139, 92, 246, .14);
   --radius:    18px;
 
   --font: 'Khmer OS Siem Reap', 'Segoe UI', 'Leelawadee UI', system-ui, -apple-system, 'Noto Sans Khmer', 'Khmer OS Battambang', sans-serif;
@@ -54,9 +54,11 @@ html { scroll-behavior: smooth; }
 body {
   font-family: var(--font);
   background:
-    radial-gradient(900px 500px at 85% -5%, rgba(217, 70, 239, .16) 0%, transparent 60%),
-    radial-gradient(800px 500px at -10% 30%, rgba(139, 92, 246, .16) 0%, transparent 55%),
-    radial-gradient(700px 500px at 50% 110%, rgba(14, 116, 144, .08) 0%, transparent 55%),
+    radial-gradient(1100px 600px at 88% -8%, rgba(236, 112, 168, .15) 0%, transparent 62%),
+    radial-gradient(900px 560px at -12% 28%, rgba(139, 92, 246, .13) 0%, transparent 58%),
+    radial-gradient(900px 600px at 50% 112%, rgba(251, 191, 36, .11) 0%, transparent 56%),
+    radial-gradient(700px 460px at 8% 88%, rgba(34, 211, 238, .08) 0%, transparent 55%),
+    linear-gradient(160deg, rgba(255, 255, 255, .38) 0%, rgba(214, 130, 150, .10) 100%),
     var(--bg);
   color: var(--ink);
   line-height: 1.55;
@@ -73,7 +75,7 @@ h1, h2, h3, h4 { line-height: 1.22; letter-spacing: -.01em; }
 /* ================= HEADER ================= */
 .site-header {
   position: sticky; top: 0; z-index: 50;
-  background: rgba(255, 214, 255, .88);
+  background: rgba(250, 241, 241, .88);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--line);
 }
@@ -98,7 +100,7 @@ h1, h2, h3, h4 { line-height: 1.22; letter-spacing: -.01em; }
 .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
 .kicker {
   display: inline-block; font-size: .78rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
-  background: var(--grad-soft); color: var(--violet-2); border: 1px solid rgba(124, 58, 237, .25);
+  background: var(--grad-soft); color: var(--violet-2); border: 1px solid rgba(109, 40, 217, .28);
   padding: 7px 14px; border-radius: 999px; margin-bottom: 18px;
 }
 .hero h1 { font-size: clamp(2.1rem, 4.6vw, 3.4rem); font-weight: 800; }
@@ -113,9 +115,9 @@ h1, h2, h3, h4 { line-height: 1.22; letter-spacing: -.01em; }
 /* --- hero showcase slider (signature crossfade + Ken Burns) --- */
 .showcase-frame {
   position: relative; height: 100%; width: 100%; border-radius: 22px; overflow: hidden;
-  border: 1px solid rgba(122, 44, 141, .22);
+  border: 1px solid rgba(122, 60, 80, .24);
   background: var(--bg-3);
-  box-shadow: 0 40px 90px -24px rgba(122, 44, 141, .38), 0 0 0 1px rgba(217, 70, 239, .12), 0 24px 70px -18px rgba(139, 92, 246, .30);
+  box-shadow: 0 40px 90px -24px rgba(120, 50, 70, .35), 0 0 0 1px rgba(236, 112, 168, .12), 0 24px 70px -18px rgba(139, 92, 246, .22);
 }
 .showcase-frame .slide {
   position: absolute; inset: 0; opacity: 0; transition: opacity 1.15s ease; will-change: opacity, transform;
@@ -135,9 +137,9 @@ h1, h2, h3, h4 { line-height: 1.22; letter-spacing: -.01em; }
   background: rgba(15, 6, 32, .62); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 16px 40px -12px rgba(3, 0, 14, .8); transition: opacity .4s, transform .4s;
 }
-.showcase-chip small { font-size: .62rem; letter-spacing: .26em; text-transform: uppercase; color: var(--cyan); font-weight: 700; }
-.showcase-chip b { font-size: 1.28rem; font-weight: 700; letter-spacing: .01em; }
-.showcase-chip span { font-size: .86rem; color: var(--pink); font-weight: 650; }
+.showcase-chip small { font-size: .62rem; letter-spacing: .26em; text-transform: uppercase; color: #A5F3FC; font-weight: 700; }
+.showcase-chip b { font-size: 1.28rem; font-weight: 700; letter-spacing: .01em; color: #FFFFFF; text-shadow: 0 2px 10px rgba(0, 0, 0, .55); }
+.showcase-chip span { font-size: .86rem; color: #FBCFE8; font-weight: 650; text-shadow: 0 1px 6px rgba(0, 0, 0, .45); }
 .showcase-chip.swap { opacity: 0; transform: translateY(8px); }
 
 /* ================= BUTTONS ================= */
@@ -149,7 +151,7 @@ h1, h2, h3, h4 { line-height: 1.22; letter-spacing: -.01em; }
 .btn-primary { background: var(--grad); color: #fff; box-shadow: var(--shadow-sm); }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
-.btn-ghost { background: rgba(255, 255, 255, .55); color: var(--ink); border-color: rgba(122, 44, 141, .30); }
+.btn-ghost { background: rgba(255, 255, 255, .55); color: var(--ink); border-color: rgba(122, 60, 80, .30); }
 .btn-ghost:hover { border-color: var(--violet-2); color: var(--violet-2); }
 .btn-lg { padding: 15px 34px; font-size: 1.04rem; }
 .btn-sm { padding: 7px 14px; font-size: .82rem; }
@@ -161,7 +163,7 @@ section { padding: 64px 0; }
 .section-sub { color: var(--ink-soft); margin-top: 12px; }
 
 /* ================= ROOMS ================= */
-.rooms { background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, .38) 8%, rgba(255, 255, 255, .38) 92%, transparent 100%); }
+.rooms { background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, .42) 8%, rgba(255, 255, 255, .42) 92%, transparent 100%); }
 .room-groups { display: grid; gap: 44px; }
 .group-title { display: flex; align-items: baseline; gap: 10px; font-size: 1.3rem; margin-bottom: 18px; }
 .group-title small { color: var(--muted); font-weight: 500; font-size: .85rem; }
@@ -191,9 +193,15 @@ section { padding: 64px 0; }
   font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 5px 11px;
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
-.room-flag.vip { background: var(--gold); color: #2d1a02; border-color: transparent; }
+.room-flag.vip { background: #F59E0B; color: #2d1a02; border-color: transparent; }
 .room-flag.pool { background: #0E7490; color: #fff; border-color: transparent; }
 .room-flag.busy { background: #DC2626; color: #fff; border-color: transparent; }
+.room-flag.maint { background: #C2410C; color: #fff; border-color: transparent; }
+.room-card.maintenance .room-pic img { filter: grayscale(.75) brightness(.92); }
+.room-card.maintenance { cursor: not-allowed; }
+.room-unavail-note { margin-top: 4px; font-size: .84rem; font-weight: 700; color: var(--muted); background: rgba(220, 38, 38, .08); border: 1px dashed rgba(185, 28, 28, .35); border-radius: 999px; padding: 9px 14px; text-align: center; }
+.mb-wait { font-size: .8rem; font-weight: 650; color: var(--muted); font-style: italic; padding: 7px 4px; }
+.checkmy-note { background: var(--grad-soft); border: 1px solid rgba(109, 40, 217, .25); border-radius: 13px; padding: 11px 14px; font-size: .88rem; color: var(--ink-soft); margin: 14px 0 0; }
 .room-body { padding: 15px 16px 17px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .room-body h4 { font-size: 1.06rem; }
 .room-blurb { color: var(--ink-soft); font-size: .86rem; flex: 1; }
@@ -202,7 +210,7 @@ section { padding: 64px 0; }
   font-size: .68rem; font-weight: 700; background: rgba(255, 255, 255, .06); color: var(--ink-soft);
   border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px;
 }
-.vip-includes { background: rgba(251, 191, 36, .18); border: 1px solid rgba(180, 83, 9, .30); border-radius: 12px; padding: 9px 11px; font-size: .78rem; color: #7C4A03; }
+.vip-includes { background: rgba(251, 191, 36, .20); border: 1px solid rgba(180, 83, 9, .30); border-radius: 12px; padding: 9px 11px; font-size: .78rem; color: #7C4A03; }
 .vip-includes b { display: block; margin-bottom: 3px; color: var(--gold); }
 
 /* ================= HOW ================= */
@@ -218,19 +226,19 @@ section { padding: 64px 0; }
 /* ================= BOOKING OVERLAY ================= */
 .booking-overlay {
   position: fixed; inset: 0; z-index: 90; display: none;
-  background: rgba(59, 16, 83, .40);
+  background: rgba(61, 33, 53, .42);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   overflow-y: auto; padding: 4vh 16px 6vh;
 }
 .booking-overlay.open { display: block; }
 .booking-card {
   width: min(920px, 100%); margin: 0 auto; position: relative;
-  background: var(--bg-2); border: 1px solid rgba(122, 44, 141, .22); border-radius: 26px;
+  background: var(--bg-2); border: 1px solid rgba(122, 60, 80, .20); border-radius: 26px;
   box-shadow: var(--shadow); padding: 34px;
 }
 .booking-close {
   position: absolute; top: 16px; right: 16px; z-index: 5; width: 42px; height: 42px; border-radius: 50%;
-  border: 1px solid rgba(122, 44, 141, .25); background: rgba(255, 255, 255, .65); color: var(--ink);
+  border: 1px solid rgba(122, 60, 80, .28); background: rgba(255, 255, 255, .65); color: var(--ink);
   font-size: 1.05rem; cursor: pointer; transition: .18s;
 }
 .booking-close:hover { background: rgba(255, 255, 255, .95); transform: rotate(90deg); }
@@ -248,9 +256,9 @@ section { padding: 64px 0; }
   width: 26px; height: 26px; border-radius: 8px; background: rgba(255, 255, 255, .75); color: var(--ink-soft);
   display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; box-shadow: inset 0 0 0 2px var(--line);
 }
-.step-btn.active { background: rgba(255, 255, 255, .92); border-color: rgba(124, 58, 237, .35); color: var(--ink); box-shadow: var(--shadow-sm); }
+.step-btn.active { background: rgba(255, 255, 255, .92); border-color: rgba(109, 40, 217, .35); color: var(--ink); box-shadow: var(--shadow-sm); }
 .step-btn.active .step-num { background: var(--grad); color: #fff; box-shadow: none; }
-.step-btn.done .step-num { background: var(--green); color: #052e1b; box-shadow: none; }
+.step-btn.done .step-num { background: #10B981; color: #052e1b; box-shadow: none; }
 
 .pane-title { font-size: 1.3rem; margin-bottom: 20px; }
 .pane-nav { display: flex; gap: 12px; margin-top: 26px; align-items: center; }
@@ -260,23 +268,23 @@ section { padding: 64px 0; }
 .field label { display: block; font-weight: 700; font-size: .88rem; margin-bottom: 8px; }
 .field input, .field select {
   width: 100%; font-family: var(--font); font-size: 1rem; color: var(--ink);
-  background: rgba(255, 255, 255, .75); border: 2px solid var(--line); border-radius: 13px; padding: 12px 14px;
+  background: rgba(255, 255, 255, .78); border: 2px solid var(--line); border-radius: 13px; padding: 12px 14px;
 }
 .field input::placeholder { color: var(--muted); }
-.field input:focus, .field select:focus { outline: none; border-color: var(--violet); box-shadow: 0 0 0 4px rgba(124, 58, 237, .16); }
+.field input:focus, .field select:focus { outline: none; border-color: var(--violet); box-shadow: 0 0 0 4px rgba(109, 40, 217, .16); }
 .field select {
   background: var(--bg-3); color: var(--ink); font-weight: 700; font-size: 1.08rem; letter-spacing: .02em;
-  border: 2px solid rgba(122, 44, 141, .32); padding: 13px 14px;
+  border: 2px solid rgba(122, 60, 80, .32); padding: 13px 14px;
 }
 .field select option { background: var(--bg-2); color: var(--ink); font-weight: 600; }
 .field.invalid input, .field.invalid select { border-color: var(--red); }
 .req { color: var(--pink); }
 .field-note { color: var(--muted); font-size: .8rem; margin-top: 7px; }
-.field-note.tg-note { background: var(--grad-soft); border: 1px solid rgba(124, 58, 237, .18); padding: 9px 12px; border-radius: 11px; color: var(--ink-soft); font-size: .84rem; }
+.field-note.tg-note { background: var(--grad-soft); border: 1px solid rgba(109, 40, 217, .18); padding: 9px 12px; border-radius: 11px; color: var(--ink-soft); font-size: .84rem; }
 
 /* locked-room banner (Book This Room flow) */
 .room-lock {
-  background: rgba(255, 255, 255, .72); border: 1px solid rgba(124, 58, 237, .30); border-radius: 13px;
+  background: rgba(255, 255, 255, .72); border: 1px solid rgba(109, 40, 217, .30); border-radius: 13px;
   padding: 12px 15px; font-size: .95rem; margin-bottom: 18px;
 }
 .dur-chips button.unavail { opacity: .42; text-decoration: line-through; cursor: not-allowed; }
@@ -286,7 +294,7 @@ section { padding: 64px 0; }
 .dur-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 .dur-chips button {
   font-family: var(--font); font-weight: 700; font-size: .92rem; cursor: pointer;
-  background: rgba(255, 255, 255, .6); color: var(--ink-soft); border: 2px solid var(--line); border-radius: 999px; padding: 10px 18px; transition: .15s;
+  background: rgba(255, 255, 255, .60); color: var(--ink-soft); border: 2px solid var(--line); border-radius: 999px; padding: 10px 18px; transition: .15s;
 }
 .dur-chips button:hover { border-color: var(--violet-2); color: var(--violet-2); }
 .dur-chips button.sel { background: var(--grad); color: #fff; border-color: transparent; box-shadow: var(--shadow-sm); }
@@ -298,7 +306,7 @@ section { padding: 64px 0; }
 .stepper button { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--grad); color: #fff; font-family: var(--font); font-size: 1.15rem; font-weight: 800; cursor: pointer; }
 .stepper span { font-weight: 800; font-size: 1.1rem; min-width: 60px; text-align: center; }
 
-.ov-times { background: var(--grad-soft); border: 1px solid rgba(124, 58, 237, .18); border-radius: 13px; padding: 14px 16px; font-weight: 700; }
+.ov-times { background: var(--grad-soft); border: 1px solid rgba(109, 40, 217, .18); border-radius: 13px; padding: 14px 16px; font-weight: 700; }
 .ov-times small { display: block; color: var(--muted); font-weight: 600; }
 
 .status-line { border-radius: 13px; padding: 12px 15px; font-weight: 700; font-size: .9rem; margin: 8px 0 4px; }
@@ -308,16 +316,16 @@ section { padding: 64px 0; }
 
 /* receipt */
 .receipt {
-  background: rgba(255, 255, 255, .62); border: 1px dashed rgba(124, 58, 237, .38); border-radius: 16px; padding: 20px 22px;
+  background: rgba(255, 255, 255, .66); border: 1px dashed rgba(109, 40, 217, .35); border-radius: 16px; padding: 20px 22px;
   font-size: .95rem; display: grid; gap: 8px; margin: 14px 0;
 }
 .receipt .rc-row { display: flex; justify-content: space-between; gap: 18px; }
 .receipt .rc-row b { text-align: right; }
-.receipt .rc-total { border-top: 2px solid rgba(124, 58, 237, .38); padding-top: 10px; margin-top: 4px; font-size: 1.06rem; }
+.receipt .rc-total { border-top: 2px solid rgba(109, 40, 217, .35); padding-top: 10px; margin-top: 4px; font-size: 1.06rem; }
 .receipt .rc-total b { color: var(--violet-2); font-size: 1.2rem; }
 
 /* rules */
-.terms-box { background: rgba(251, 191, 36, .14); border: 1px solid rgba(180, 83, 9, .28); border-radius: 16px; padding: 20px 24px; margin: 18px 0; }
+.terms-box { background: rgba(251, 191, 36, .16); border: 1px solid rgba(180, 83, 9, .28); border-radius: 16px; padding: 20px 24px; margin: 18px 0; }
 .terms-box h4 { margin-bottom: 12px; color: var(--gold); }
 .terms-box.big { background: var(--card); border-color: var(--line); box-shadow: var(--shadow-sm); padding: 30px 36px; }
 .terms-box.big h4 { color: var(--ink); }
@@ -368,7 +376,7 @@ section { padding: 64px 0; }
 .foot-fine { color: #a99bcf; font-size: .78rem; }
 
 /* ================= MY BOOKINGS ================= */
-.mb-item { background: rgba(255, 255, 255, .62); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; display: grid; gap: 12px; }
+.mb-item { background: rgba(255, 255, 255, .66); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; display: grid; gap: 12px; }
 .mb-item-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .mb-ref { font-weight: 800; letter-spacing: .05em; }
 .mb-status { font-size: .7rem; font-weight: 800; padding: 5px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: .08em; }
@@ -549,15 +557,7 @@ section { padding: 64px 0; }
             <button type="button" data-dur="6">6 <span data-i18n="hrs">hrs</span></button>
             <button type="button" data-dur="ON8" class="chip-ov">🌙 8PM–8AM <span data-i18n="ovNight">overnight</span></button>
             <button type="button" data-dur="ON9" class="chip-ov">🌙 9PM–9AM <span data-i18n="ovNight">overnight</span></button>
-            <button type="button" data-dur="X">🎱 Pool · <span data-i18n="anyHours">1–12 hrs</span></button>
           </div>
-          <div class="pool-dur" id="poolDur" hidden>
-            <label data-i18n="s1PoolHours">Pool Room — hours:</label>
-            <div class="stepper">
-              <button type="button" id="hrsMinus" aria-label="less">−</button>
-              <span id="hrsVal">2</span>
-              <button type="button" id="hrsPlus" aria-label="more">+</button>
-            </div>
           </div>
           <p class="field-note" id="priceNote"></p>
         </div>
@@ -628,6 +628,8 @@ section { padding: 64px 0; }
             <span data-i18n="s4Agree">I have read and agree to the house rules above.</span>
           </label>
         </div>
+
+        <p class="checkmy-note" data-i18n="s4CheckMy">📋 Please check My Booking later to see whether your booking has been confirmed by the owner.</p>
 
         <div class="pay-section" id="paySection">
           <h4 data-i18n="s4PayTitle">Payment</h4>
@@ -3143,7 +3145,11 @@ const I18N = {
     mbSub: 'Bookings made from this device. Tap “Telegram” to receive the confirmation again.',
     mbEmpty: 'No bookings yet on this device. Make your first one — it only takes two minutes.',
     mbRoom: 'Room', mbDate: 'Date', mbTimes: 'Check-in / out', mbGuest: 'Guest',
-    mbTgBtn: 'Telegram', mbRemove: 'Remove', mbRemoved: 'Booking removed from this device',
+    mbTgBtn: 'Get all information via Telegram', mbRemove: 'Remove', mbRemoved: 'Booking removed from this device',
+    mbWait: 'Waiting for the owner to confirm your booking',
+    s4CheckMy: '📋 Please check <b>My Booking</b> later to see whether your booking has been confirmed by the owner.',
+    maintFlag: 'Under Maintenance', maintNote: 'Currently unavailable for booking.',
+    tMaint: 'This room is under maintenance — please choose another room.',
     stPending: 'Pending', stConfirmed: 'Confirmed', stCancelled: 'Cancelled',
     howKicker: 'Effortless booking', howTitle: 'Three steps to your hideaway',
     how1T: 'Date & duration', how1P: 'Choose your date and how long you\u2019ll stay — 2 to 6 hours, or a full overnight (8PM–8AM / 9PM–9AM). The price shows instantly, weekday or weekend.',
@@ -3242,7 +3248,11 @@ const I18N = {
     mbSub: 'ការកក់ដែលបានធ្វើពីឧបករណ៍នេះ។ ចុច “Telegram” ដើម្បីទទួលបានការបញ្ជាក់ម្តងទៀត។',
     mbEmpty: 'មិនមានការកក់នៅលើឧបករណ៍នេះទេ។ កក់ដំបូងរបស់អ្នក — ចំណាយពេលតែពីរនាទីប៉ុណ្ណោះ។',
     mbRoom: 'បន្ទប់', mbDate: 'កាលបរិច្ឆេទ', mbTimes: 'ចូល / ចេញ', mbGuest: 'អតិថិជន',
-    mbTgBtn: 'Telegram', mbRemove: 'លុប', mbRemoved: 'បានលុបការកក់ចេញពីឧបករណ៍នេះ',
+    mbTgBtn: 'ទទួលព័ត៌មានពេញលេញតាម Telegram', mbRemove: 'លុប', mbRemoved: 'បានលុបការកក់ចេញពីឧបករណ៍នេះ',
+    mbWait: 'កំពុងរង់ចាំម្ចាស់ផ្ទះបញ្ជាក់ការកក់របស់អ្នក',
+    s4CheckMy: '📋 សូមពិនិត្យមើល <b>ការកក់របស់ខ្ញុំ</b> នៅពេលក្រោយ ដើម្បីដឹងថាម្ចាស់ផ្ទះបានបញ្ជាក់ការកក់របស់អ្នកឬនៅ។',
+    maintFlag: 'កំពុងជួសជុល', maintNote: 'បច្ចុប្បន្នមិនអាចកក់បានទេ។',
+    tMaint: 'បន្ទប់នេះកំពុងជួសជុល — សូមជ្រើសរើសបន្ទប់ផ្សេង។',
     stPending: 'រង់ចាំ', stConfirmed: 'បានបញ្ជាក់', stCancelled: 'បានបោះបង់',
  grpVipSub: 'តម្លៃ Standard + ៣$ · សេវាបន្ថែម VIP',
     howKicker: 'កក់ងាយស្រួល', howTitle: 'បីជំហាន ទៅកាន់កន្លែងសម្រាប់អ្នក',
@@ -3348,7 +3358,7 @@ function priceFor(roomId, dateStr, dur) {
     const base = CONFIG.pricing[isWeekend(dateStr) ? 'weekend' : 'weekday'].overnight;
     return room.type === 'vip' ? base + CONFIG.vipUpgrade : base;
   }
-  const h = (dur === 'X' ? state.poolHours : Number(dur));
+  const h = Number(dur);
   if (!h || h < 1) return null;
   if (isPool) return CONFIG.poolRate * h;
   const table = CONFIG.pricing[isWeekend(dateStr) ? 'weekend' : 'weekday'];
@@ -3429,7 +3439,7 @@ async function detectLive() {
    STATE + WIZARD
    ============================================================ */
 const state = {
-  step: 1, date: '', dur: '', poolHours: 2, poolCustom: false,
+  step: 1, date: '', dur: '', disabledRooms: [],
   start: '', room: '', name: '', phone: '', agreed: false,
   idCard: '', ref: '', completed: false, avail: ''
 };
@@ -3438,7 +3448,7 @@ const D = $('#book');
 const durInfo = () => {
   if (state.dur === 'ON8') return { checkIn: '20:00', checkOut: '08:00', hours: 12, overnight: true };
   if (state.dur === 'ON9') return { checkIn: '21:00', checkOut: '09:00', hours: 12, overnight: true };
-  const h = state.poolCustom ? state.poolHours : Number(state.dur);
+  const h = Number(state.dur);
   return { checkIn: state.start, checkOut: toHHMM(toMin(state.start) + h * 60), hours: h, overnight: false };
 };
 const toMin = hhmm => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
@@ -3479,13 +3489,9 @@ function initSchedule() {
         $$('#durChips button').forEach(c => c.classList.remove('sel'));
         chip.classList.add('sel');
         state.dur = chip.dataset.dur;
-        state.poolCustom = (state.dur === 'X');
-        $('#poolDur').hidden = !state.poolCustom;
         syncSchedule();
       });
     });
-    $('#hrsMinus').addEventListener('click', () => { state.poolHours = Math.max(1, state.poolHours - 1); $('#hrsVal').textContent = state.poolHours; syncSchedule(); });
-    $('#hrsPlus').addEventListener('click', () => { state.poolHours = Math.min(12, state.poolHours + 1); $('#hrsVal').textContent = state.poolHours; syncSchedule(); });
     $('#bkIn').addEventListener('change', () => { state.start = $('#bkIn').value; syncSchedule(); });
     $('#actNext1').addEventListener('click', () => {
       if (!scheduleValid()) { toast(t(state.dur ? 'tDur' : 'tDur'), ICON.info); return; }
@@ -3522,7 +3528,7 @@ function syncSchedule() {
 
   /* build check-in hour options allowed for this duration */
   if (!isON && state.dur) {
-    const h = state.poolCustom ? state.poolHours : Number(state.dur);
+    const h = Number(state.dur);
     const sel = $('#bkIn');
     const cur = state.start;
     const lastStart = 23 - h;                                  // check-out must be ≤ 23:00
@@ -3578,7 +3584,7 @@ function syncSchedule() {
     if (std != null) parts.push(esc(t('lblStd')) + ' ' + money(std));
     if (vip != null) parts.push(esc(t('lblVip')) + ' ' + money(vip));
     if (pool != null) parts.push(esc(t('lblPool')) + ' ' + money(pool));
-    note.innerHTML = '💰 ' + esc(t(wk)) + (state.dur === 'ON8' || state.dur === 'ON9' ? ' · ' + esc(t('overnight')) : ' · ' + (state.poolCustom ? state.poolHours : state.dur) + ' ' + esc(t('hoursWord'))) +
+    note.innerHTML = '💰 ' + esc(t(wk)) + (state.dur === 'ON8' || state.dur === 'ON9' ? ' · ' + esc(t('overnight')) : ' · ' + state.dur + ' ' + esc(t('hoursWord'))) +
       ' → <b>' + parts.join(' · ') + '</b>';
   } else note.textContent = '';
 
@@ -3619,6 +3625,7 @@ async function buildRoomGrid() {
       const r = await fetchTimeout(base + '/api/availability' + q, { method: 'GET' }, 6000);
       const j = await r.json().catch(() => ({}));
       (j.busy || []).forEach(bk => { busyMap[bk.room] = true; });
+      if (j.disabled) state.disabledRooms = j.disabled;   // fresh maintenance state
     } catch (e) { /* offline → treat all as available */ }
   }
   const free = ROOMS.filter(r => !busyMap[r.id] && priceFor(r.id, state.date, state.dur) != null);
@@ -3627,12 +3634,14 @@ async function buildRoomGrid() {
 
   grid.innerHTML = ROOMS.map(r => {
     const p = priceFor(r.id, state.date, state.dur);
+    const maint = (state.disabledRooms || []).includes(r.id);
     const busy = !!busyMap[r.id];
-    const unavail = busy || p == null;
+    const unavail = busy || maint || p == null;
     const flag = r.type === 'vip' ? '<span class="room-flag vip">VIP</span>'
                : r.type === 'pool' ? '<span class="room-flag pool">' + esc(t('flagPool')) + '</span>'
                : '<span class="room-flag">' + esc(t('flagStd')) + '</span>';
-    const busyTag = busy ? '<span class="room-flag busy">✕ ' + esc(t('roomTaken')) + '</span>' : '';
+    const busyTag = maint ? '<span class="room-flag maint">🔧 ' + esc(t('maintFlag')) + '</span>'
+                   : busy ? '<span class="room-flag busy">✕ ' + esc(t('roomTaken')) + '</span>' : '';
     const vipBox = r.type === 'vip' ? '<div class="vip-includes"><b>👑 ' + esc(t('vipIncludesTitle')) + '</b>' +
       VIP_INCLUDES[LANG === 'kh' ? 'kh' : 'en'].map(x => esc(x)).join(' · ') + '</div>' : '';
 
@@ -3743,7 +3752,7 @@ function receiptHTML() {
          row(t('rcDur'), isON ? esc(t('overnight')) + ' (12h)' : info.hours + ' ' + esc(t('hoursWord'))) +
          row(t('rcGuest'), esc(state.name)) +
          row(t('rcPhone'), esc(state.phone)) +
-         row(t('rcId'), isON ? (state.idCard ? esc(t('rcIdYes')) : '—') : esc(t('rcIdNo'))) +
+         (isON ? row(t('rcId'), state.idCard ? esc(t('rcIdYes')) : '—') : '') +
          '<div class="rc-row rc-total"><span>' + esc(t('total')) + '</span><b>' + money(total) + '</b></div>';
 }
 
@@ -3886,7 +3895,7 @@ function initShowcase() {
    BOOKING OVERLAY (opens like the classic pop-up booking screen)
    ============================================================ */
 function resetBooking() {
-  Object.assign(state, { step: 1, date: '', dur: '', poolHours: 2, poolCustom: false, start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
+  Object.assign(state, { step: 1, date: '', dur: '', start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
   $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = '';
   $('#idUpload').value = ''; $('#idPreview').hidden = true;
   const ag = $('#agreedTerms');
@@ -3941,6 +3950,22 @@ function saveMyBooking(bk) {
 function mbStatus(s) {
   return s === 'confirmed' ? t('stConfirmed') : (s === 'cancelled' ? t('stCancelled') : t('stPending'));
 }
+let mbPollTimer = null;
+async function refreshMyStatuses() {
+  if (!live.on) return;
+  const list = store.get(MY_KEY) || [];
+  if (!list.length) return;
+  try {
+    const base = CONFIG.api.baseUrl || '';
+    const r = await fetchTimeout(base + '/api/status?refs=' + encodeURIComponent(list.map(b => b.ref).join(',')), { method: 'GET' }, 6000);
+    const j = await r.json().catch(() => ({}));
+    if (j && j.statuses) {
+      let changed = false;
+      const upd = list.map(b => { const st = j.statuses[String(b.ref).toUpperCase()]; if (st && st !== b.status) { changed = true; return Object.assign({}, b, { status: st }); } return b; });
+      if (changed) { store.set(MY_KEY, upd); renderMyBookings(); }
+    }
+  } catch (e) { /* offline → keep local statuses */ }
+}
 function renderMyBookings() {
   const box = $('#mbList');
   if (!box) return;
@@ -3948,6 +3973,7 @@ function renderMyBookings() {
   if (!list.length) { box.innerHTML = '<div class="mb-empty">🗓️ ' + esc(t('mbEmpty')) + '</div>'; return; }
   box.innerHTML = list.map(bk => {
     const r = roomById(bk.room);
+    const confirmed = bk.status === 'confirmed';
     return '<div class="mb-item">' +
       '<div class="mb-item-top"><b class="mb-ref">' + esc(bk.ref) + '</b><span class="mb-status ' + esc(bk.status || 'pending') + '">' + esc(mbStatus(bk.status)) + '</span></div>' +
       '<div class="mb-rows">' +
@@ -3958,7 +3984,9 @@ function renderMyBookings() {
       '</div>' +
       '<div class="mb-foot"><span class="mb-amt">' + money(bk.total) + '</span>' +
         '<span class="mb-foot-btns">' +
-          '<a class="btn btn-tg btn-sm" target="_blank" rel="noopener" href="' + CONFIG.botUrl + '?start=' + encodeURIComponent(bk.ref) + '">📨 ' + esc(t('mbTgBtn')) + '</a>' +
+          (confirmed
+            ? '<a class="btn btn-tg btn-sm" target="_blank" rel="noopener" href="' + CONFIG.botUrl + '?start=' + encodeURIComponent(bk.ref) + '">📨 ' + esc(t('mbTgBtn')) + '</a>'
+            : '<span class="mb-wait">⏳ ' + esc(t('mbWait')) + '</span>') +
           '<button class="btn btn-ghost btn-sm mb-del" type="button" data-ref="' + esc(bk.ref) + '">' + esc(t('mbRemove')) + '</button>' +
         '</span></div>' +
     '</div>';
@@ -3974,11 +4002,15 @@ function openMyBookings(e) {
   const ov = $('#myBookingsOverlay');
   if (!ov) return;
   renderMyBookings();
+  refreshMyStatuses();                                     // instant refresh + auto-poll while open
+  if (mbPollTimer) clearInterval(mbPollTimer);
+  mbPollTimer = setInterval(refreshMyStatuses, 5000);
   ov.classList.add('open');
   ov.setAttribute('aria-hidden', 'false');
   document.body.classList.add('booking-open');
 }
 function closeMyBookings() {
+  if (mbPollTimer) { clearInterval(mbPollTimer); mbPollTimer = null; }
   const ov = $('#myBookingsOverlay');
   if (!ov) return;
   ov.classList.remove('open');
@@ -4004,10 +4036,15 @@ function renderShowcase() {
                : r.type === 'pool' ? '<span class="room-flag pool">' + esc(t('flagPool')) + '</span>'
                : '<span class="room-flag">' + esc(t('flagStd')) + '</span>';
     const vipBox = r.type === 'vip' ? '<div class="vip-includes"><b>👑 ' + esc(t('vipIncludesTitle')) + '</b>' + VIP_INCLUDES[LANG === 'kh' ? 'kh' : 'en'].map(esc).join(' · ') + '</div>' : '';
-    return '<div class="room-card" data-room="' + r.id + '" role="button" tabindex="0" aria-label="' + esc(roomName(r)) + '"><div class="room-pic"><img src="' + r.img + '" alt="' + esc(roomName(r)) + '" loading="lazy">' + flag + '</div>' +
+    const maint = (state.disabledRooms || []).includes(r.id);
+    const maintTag = maint ? '<span class="room-flag maint">🔧 ' + esc(t('maintFlag')) + '</span>' : '';
+    const bookBtn = maint
+      ? '<div class="room-unavail-note">🔴 ' + esc(t('maintNote')) + '</div>'
+      : '<button class="room-book" type="button">' + esc(t('bookThisRoom')) + ' →</button>';
+    return '<div class="room-card' + (maint ? ' maintenance' : '') + '" data-room="' + r.id + '" role="button" tabindex="0" aria-label="' + esc(roomName(r)) + '"><div class="room-pic"><img src="' + r.img + '" alt="' + esc(roomName(r)) + '" loading="lazy">' + flag + maintTag + '</div>' +
       '<div class="room-body"><h4>' + esc(roomName(r)) + '</h4><p class="room-blurb">' + esc(roomBlurb(r)) + '</p>' +
       vipBox +
-      '<button class="room-book" type="button">' + esc(t('bookThisRoom')) + ' →</button></div></div>';
+      bookBtn + '</div></div>';
   };
   $('#showPool').innerHTML = ROOMS.filter(r => r.type === 'pool').map(card).join('');
   $('#showStd').innerHTML  = ROOMS.filter(r => r.type === 'standard').map(card).join('');
@@ -4023,6 +4060,7 @@ function renderShowcase() {
 
 function bookFromRoom(roomId) {
   if (!roomById(roomId)) return;
+  if ((state.disabledRooms || []).includes(roomId)) { toast(t('tMaint'), ICON.info); return; }
   state.roomLockKeep = true;                    // openBooking must not wipe the room
   openBooking();
   if (state.completed) resetBooking();          // finished earlier? fresh state, then re-lock
@@ -4049,6 +4087,15 @@ function renderStatic() {
   initSchedule();
   $$('.step-btn').forEach(b => b.addEventListener('click', () => { const s = Number(b.dataset.step); if (s === 2 && state.roomLocked) return; if (s < state.step && !state.completed) goStep(s); }));
   await detectLive();
+  try {
+    if (live.on) {
+      const base = CONFIG.api.baseUrl || '';
+      const r = await fetchTimeout(base + '/api/rooms', { method: 'GET' }, 6000);
+      const j = await r.json().catch(() => ({}));
+      state.disabledRooms = (j && j.disabled) || [];
+      renderShowcase();                                    // repaint cards with 🔧 maintenance flags
+    }
+  } catch (e) { /* offline → all rooms available */ }
 })();
 </script>
 </body>

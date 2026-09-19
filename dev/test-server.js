@@ -170,6 +170,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   const tplDone = texts(tg).slice(-1)[0] || '';
   ok('owner template paste → confirmed booking', /HH-/.test(tplDone) && /London/.test(tplDone), tplDone.slice(0, 140));
   ok('booking text shows "(5) London Room"', /\(5\) London Room/.test(tplDone), tplDone.slice(0, 140));
+  ok('owner booking info includes Food Order', /Food Order: 015 233 598/.test(tplDone), tplDone.slice(-120));
   ok('template reply includes customer link', /https:\/\/t\.me\/HiddenHomestayBot\?start=HH-/.test(tplDone), tplDone.slice(-160));
 
   /* template overnight (owner side) */
@@ -221,23 +222,38 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
      ============================================================ */
   console.log('== CUSTOMER CONFIRMATION ==');
   const onRef = ON1;
+  await store.update(onRef, { status: 'confirmed' });      // owner confirmed from the dashboard
   const tg3 = makeTg();
   await handleUpdate(upd(CUSTOMER, '/start ' + onRef), tg3);
   const cMsgs = texts(tg3);
   const cMedia = tg3.calls.filter(c => c.method === 'sendMediaGroup');
   ok('customer /start REF gets confirmation text', cMsgs.some(x => /BOOKING CONFIRMED/.test(x) && /Night Owl/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 140));
+  ok('confirmation includes Food Order number', cMsgs.some(x => /Food Order: 015 233 598/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 200));
+  ok('confirmation includes room label', cMsgs.some(x => /\(2\) Shanghai Room/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 200));
   ok('customer gets media album: room + guideline + parking + 5 menus', cMedia.length === 1 && cMedia[0].params.media.length === 8, cMedia[0] && cMedia[0].params.media.length);
   ok('media URLs use the public site', cMedia.length === 1 && cMedia[0].params.media.every(m => m.media.startsWith('https://')), cMedia[0] && cMedia[0].params.media[0]);
 
   /* pool booking → no guideline image (7 photos) */
   const tg3b = makeTg();
   const poolRes = await createBooking({ room: 'pool', date: aWeekday, checkIn: '15:00', hours: 2, name: 'Pool C', phone: '099887766' }, 'website');
+  await store.update(poolRes.booking.ref, { status: 'confirmed' });
   await handleUpdate(upd(CUSTOMER, '/start ' + poolRes.booking.ref), tg3b);
   const poolMedia = tg3b.calls.filter(c => c.method === 'sendMediaGroup');
   ok('pool confirmation: room + parking + 5 menus (no guideline)', poolMedia.length === 1 && poolMedia[0].params.media.length === 7, poolMedia[0] && poolMedia[0].params.media.length);
 
   await handleUpdate(upd(CUSTOMER, '/start HH-NOPE99'), tg3);
   ok('unknown ref → friendly message', /don.t know the booking/i.test(texts(tg3).slice(-1)[0] || ''), texts(tg3).slice(-1)[0]);
+
+  /* pending bookings: details only — the full guide unlocks after the owner confirms */
+  const pendRes = await createBooking({ room: 'classic', date: aSaturday, checkIn: '12:00', hours: 2, name: 'Pending P', phone: '099887766' }, 'website');
+  const tg3p = makeTg();
+  await handleUpdate(upd(CUSTOMER, '/start ' + pendRes.booking.ref), tg3p);
+  const pMsgs = texts(tg3p);
+  ok('pending /start REF → received message (no full guide yet)', pMsgs.some(x => /BOOKING RECEIVED/.test(x) && /pending/i.test(x)) && tg3p.calls.filter(c => c.method === 'sendMediaGroup').length === 0, pMsgs[0] && pMsgs[0].slice(0, 120));
+  await store.update(pendRes.booking.ref, { status: 'confirmed' });
+  const tg3p2 = makeTg();
+  await handleUpdate(upd(CUSTOMER, '/start ' + pendRes.booking.ref), tg3p2);
+  ok('after owner confirms → full package unlocks', texts(tg3p2).some(x => /BOOKING CONFIRMED/.test(x)) && tg3p2.calls.filter(c => c.method === 'sendMediaGroup').length === 1, texts(tg3p2)[0] && texts(tg3p2)[0].slice(0, 100));
 
   /* owner sends ID photo for a telegram-side overnight booking */
   const tg4 = makeTg();
@@ -325,6 +341,28 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   ok('server ignores client-sent total (computes $12 itself)', pr.status === 200 && pr.j.total === 12, pr.j);
 
   let list = await get('/api/bookings');
+  console.log('== ROOMS + STATUS API ==');
+  {
+    const rooms1 = await get('/api/rooms');
+    ok('GET /api/rooms lists disabled (empty at first)', rooms1.status === 200 && rooms1.j.ok && Array.isArray(rooms1.j.disabled), rooms1.j);
+    const noKey = await post('/api/rooms/status', { room: 'slayer', available: false });
+    ok('rooms/status without key → 401', noKey.status === 401, noKey.status);
+    const off = await post('/api/rooms/status', { key: 'test-key-123', room: 'slayer', available: false });
+    ok('owner disables (201) Slayer', off.status === 200 && off.j.ok && off.j.disabled.includes('slayer'), off.j);
+    const blocked = await createBooking({ room: 'slayer', date: aSaturday, checkIn: '14:00', hours: 2, name: 'Maint Test', phone: '012345678' }, 'telegram');
+    ok('booking a maintenance room → rejected', blocked.ok === false && /maintenance/.test(blocked.message || ''), blocked);
+    const rooms2 = await get('/api/rooms');
+    ok('GET /api/rooms reflects the switch', (rooms2.j.disabled || []).includes('slayer'), rooms2.j);
+    const avail = await get('/api/availability?date=' + aSaturday + '&checkIn=14%3A00&hours=2');
+    ok('availability marks the room disabled', (avail.j.disabled || []).includes('slayer'), avail.j);
+    const st = await get('/api/status?refs=' + poolRes.booking.ref + ',HH-NOPE99');
+    ok('GET /api/status returns live statuses', st.j.ok && st.j.statuses[poolRes.booking.ref] === 'confirmed' && !st.j.statuses['HH-NOPE99'], st.j);
+    const on = await post('/api/rooms/status', { key: 'test-key-123', room: 'slayer', available: true });
+    ok('owner re-enables (201) Slayer', on.status === 200 && !(on.j.disabled || []).includes('slayer'), on.j);
+    const okAgain = await createBooking({ room: 'slayer', date: aSaturday, checkIn: '14:00', hours: 2, name: 'Back Online', phone: '012345678' }, 'telegram');
+    ok('room bookable again after re-enable', okAgain.ok === true, okAgain);
+  }
+
   ok('GET /api/bookings blocked without key', list.status === 401 || list.status === 403, list.status);
   list = await get('/api/bookings?key=' + KEY);
   ok('GET /api/bookings with admin key works', list.status === 200 && list.j.ok && Array.isArray(list.j.bookings), list.status);
