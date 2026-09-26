@@ -108,7 +108,7 @@ const khNow = () => { const d = new Date(Date.now() + 7 * 3600e3); return { date
 const ROOM_ORDER = Object.keys(ROOMS);
 const ADDRESS = 'No 235D, Road 777, Sangkat Jranh Chomres II, Khan Russey Keo, Phnom Penh';
 const PRICING = {
-  weekday: { 2: 10, 3: 12, 4: 14, 5: 18, 6: 20, overnight: 18 },
+  weekday: { 2: 10, 3: 12, 4: 15, 5: 18, 6: 20, overnight: 18 },
   weekend: { 2: 12, 3: 15, 4: 18, 5: 20, 6: 23, overnight: 18 }
 };
 const VIP_UPGRADE = 3;
@@ -485,7 +485,7 @@ async function draftCallback(cb, tg) {
   } else if (action === 'ok' && d.step === 'review') {
     const res = await createBooking(
       { room: d.room, date: d.date, checkIn: d.checkIn, checkOut: d.checkOut, hours: d.hours, overnight: d.overnight, name: d.name, phone: d.phone },
-      'telegram');
+      'telegram', { customer: String(chatId) !== String(await store.getOwner()) });
     drafts.delete(chatId);
     if (res.ok) {
       await tg.call('answerCallbackQuery', { callback_query_id: cb.id, text: 'Booked ✅' });
@@ -625,6 +625,8 @@ async function createBooking(data, source, opts) {
     if (!h || h < 1) return { ok: false, error: 'invalid', message: 'Hours must be a whole number.' };
     if (r.type === 'standard' || r.type === 'vip') {
       if (h < 2 || h > 6) return { ok: false, error: 'invalid', message: 'Standard/VIP rooms: 2-6 hours, or overnight.' };
+    } else if (source === 'website' || (opts && opts.customer)) {
+      if (h > 4) return { ok: false, error: 'invalid', message: 'Pool Room: 1-4 hours only. For more than 5 hours, please contact the owner directly via Telegram.' };
     } else if (h > 12) return { ok: false, error: 'invalid', message: 'Pool Room: 1-12 hours.' };
     const outMin = toMin(checkIn) + h * 60;
     if (outMin > 1440) return { ok: false, error: 'invalid', message: 'Hourly stays must finish before midnight — book overnight instead.' };
@@ -925,7 +927,7 @@ async function handleUpdate(update, tg) {
         'Name: \n' +
         'Phone: \n\n' +
         'Rooms: ' + ROOM_ORDER.map(id => roomLabel(id) + (disRooms.includes(id) ? ' 🔧 under maintenance' : '')).join(', ') + '\n' +
-        'Hours: 2\u20136, or <b>overnight</b> (8PM\u20138AM / 9PM\u20139AM)\n\n' +
+        'Hours: 2\u20136, or <b>overnight</b> (8PM\u20138AM / 9PM\u20139AM) \u00b7 Pool Room: 1\u20134 hours\n\n' +
         'The owner will confirm your booking right here. 🏠');
     }
     return;
@@ -1392,7 +1394,7 @@ function startDailyDigest() {
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.5.0 (6 updates)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.6.0 (6 updates)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));

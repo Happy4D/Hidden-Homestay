@@ -54,7 +54,7 @@ const CONFIG = {
 
   /* weekday / weekend duration tables (Standard rooms) */
   pricing: {
-    weekday: { 2: 10, 3: 12, 4: 14, 5: 18, 6: 20, overnight: 18 },
+    weekday: { 2: 10, 3: 12, 4: 15, 5: 18, 6: 20, overnight: 18 },
     weekend: { 2: 12, 3: 15, 4: 18, 5: 20, 6: 23, overnight: 18 }
   },
   vipUpgrade: 3,          /* VIP = standard price + $3 */
@@ -168,7 +168,11 @@ const I18N = {
     s4Title: 'Review & confirm', s4Rules: 'House rules',
     s4Agree: 'I have read and agree to the house rules above.',
     s4PayTitle: 'Payment',
-    s4PayNote: 'Full payment is required to confirm your booking. Scan the KHQR below with any Cambodian banking app (ABA, ACLEDA, Wing, Bakong…).',
+    s4PayNote: 'Full payment is required to confirm your booking. Scan the QR code below with any Cambodian banking app (ABA, ACLEDA, Wing…), or download it to pay.',
+    s5hNote: 'If you would like to book for more than 5 hours, please contact the owner directly via Telegram.',
+    pool1h: 'Pool · 1 hr',
+    dlQr: 'Download QR Code',
+    tDurRoom: 'That duration is not available for this room — please choose another option.',
     s4PayDone: 'After you tap \u201CConfirm Booking\u201D, open Telegram to receive your confirmation, room photo, entry guideline and parking guide.',
     total: 'Total', confirmBtn: 'Confirm Booking ✓', back: '← Back', next: 'Next →',
     s5Title: 'Booking received!',
@@ -272,7 +276,11 @@ const I18N = {
     s4Title: 'ពិនិត្យ និងបញ្ជាក់', s4Rules: 'ច្បាប់ផ្ទះ',
     s4Agree: 'ខ្ញុំបានអាន ហើយយល់ព្រមនឹងច្បាប់ផ្ទះខាងលើ។',
     s4PayTitle: 'ការបង់ប្រាក់',
-    s4PayNote: 'ត្រូវបង់ប្រាក់ពេញលេញ ដើម្បីបញ្ជាក់ការកក់។ សូមស្កេន KHQR ខាងក្រោម ដោយកម្មវិធីធនាគារកម្ពុជាណាមួយ (ABA, ACLEDA, Wing, Bakong…)។',
+    s4PayNote: 'ត្រូវបង់ប្រាក់ពេញលេញ ដើម្បីបញ្ជាក់ការកក់។ សូមស្កេន QR កូដខាងក្រោម ដោយកម្មវិធីធនាគារកម្ពុជាណាមួយ (ABA, ACLEDA, Wing…) ឬទាញយកវាមកបង់ប្រាក់។',
+    s5hNote: 'ប្រសិនបើអ្នកចង់កក់លើសពី ៥ ម៉ោង សូមទាក់ទងម្ចាស់ផ្ទះដោយផ្ទាល់តាម Telegram។',
+    pool1h: 'បន្ទប់Pool · ១ ម៉ោង',
+    dlQr: 'ទាញយក QR Code',
+    tDurRoom: 'រយៈពេលនេះមិនមានសម្រាប់បន្ទប់នេះទេ — សូមជ្រើសរើសជម្រើសផ្សេងទៀត។',
     s4PayDone: 'បន្ទាប់ពីចុច \u201Cបញ្ជាក់ការកក់\u201D សូមបើក Telegram ដើម្បីទទួលការបញ្ជាក់ រូបបន្ទប់ មគ្គុទ្ទេសក៍ចូល និងមគ្គុទ្ទេសក៍ចត់ឡាន។',
     total: 'សរុប', confirmBtn: 'បញ្ជាក់ការកក់ ✓', back: '← ត្រឡប់', next: 'បន្ទាប់ →',
     s5Title: 'បានទទួលការកក់!',
@@ -352,7 +360,7 @@ function priceFor(roomId, dateStr, dur) {
   }
   const h = Number(dur);
   if (!h || h < 1) return null;
-  if (isPool) return CONFIG.poolRate * h;
+  if (isPool) return (h >= 1 && h <= 4) ? CONFIG.poolRate * h : null;   // pool: 1-4 hours only
   const table = CONFIG.pricing[isWeekend(dateStr) ? 'weekend' : 'weekday'];
   if (!table[h]) return null;                                   // only 2..6 for std/vip
   return room.type === 'vip' ? table[h] + CONFIG.vipUpgrade : table[h];
@@ -487,6 +495,7 @@ function initSchedule() {
     $('#bkIn').addEventListener('change', () => { state.start = $('#bkIn').value; syncSchedule(); });
     $('#actNext1').addEventListener('click', () => {
       if (!scheduleValid()) { toast(t(state.dur ? 'tDur' : 'tDur'), ICON.info); return; }
+      if (state.roomLocked && priceFor(state.room, state.date, state.dur) == null) { toast(t('tDurRoom'), ICON.info); return; }
       goStep(state.roomLocked ? 3 : 2);
     });
   }
@@ -559,12 +568,23 @@ function syncSchedule() {
   };
   const lockRoom = state.roomLocked ? roomById(state.room) : null;
   $$('#durChips button').forEach(chip => {
-    const d = chip.dataset.dur;
+    const d = chip.dataset.dur, h = Number(d);
+    let show = true;
+    if (lockRoom && lockRoom.type === 'pool') show = (d !== 'ON8' && d !== 'ON9' && h >= 1 && h <= 4);   // pool: 1-4h only
+    else if (lockRoom) show = (d !== 'ON8' && d !== 'ON9' && h !== 1);                                  // std/vip: no 1h
+    chip.style.display = show ? '' : 'none';
     if (d === 'ON8' || d === 'ON9') {
       const blocked = onBlocked(d) || (lockRoom && lockRoom.type === 'pool');
       chip.classList.toggle('unavail', blocked);
     }
   });
+  /* locked room can't take the selected duration -> fall back to the first valid chip */
+  if (lockRoom && state.dur && priceFor(lockRoom.id, state.date, state.dur) == null) {
+    const alt = $$('#durChips button').find(c => c.style.display !== 'none' && !c.classList.contains('unavail') && priceFor(lockRoom.id, state.date, c.dataset.dur) != null);
+    $$('#durChips button').forEach(c => c.classList.remove('sel'));
+    if (alt) { alt.classList.add('sel'); state.dur = alt.dataset.dur; }
+    else state.dur = '';
+  }
 
   /* live price note */
   if (state.date && state.dur) {
@@ -576,7 +596,7 @@ function syncSchedule() {
     if (std != null) parts.push(esc(t('lblStd')) + ' ' + money(std));
     if (vip != null) parts.push(esc(t('lblVip')) + ' ' + money(vip));
     if (pool != null) parts.push(esc(t('lblPool')) + ' ' + money(pool));
-    note.innerHTML = '💰 ' + esc(t(wk)) + (state.dur === 'ON8' || state.dur === 'ON9' ? ' · ' + esc(t('overnight')) : ' · ' + state.dur + ' ' + esc(t('hoursWord'))) +
+    note.innerHTML = '💰 ' + esc(t(wk)) + (state.dur === 'ON8' || state.dur === 'ON9' ? ' · ' + esc(t('overnight')) : ' · ' + state.dur + (state.dur === '1' && LANG === 'en' ? ' hr' : ' ' + esc(t('hoursWord')))) +
       ' → <b>' + parts.join(' · ') + '</b>';
   } else note.textContent = '';
 
@@ -756,7 +776,6 @@ function buildReview() {
   $('#paySection').classList.toggle('open', state.agreed);
   $('#payAmount').textContent = money(priceFor(state.room, state.date, state.dur));
   $('#payRef').textContent = '';
-  renderKHQR($('#khqrCanvas'), priceFor(state.room, state.date, state.dur));
   if (!ag.dataset.init) {
     ag.dataset.init = '1';
     ag.addEventListener('change', () => {

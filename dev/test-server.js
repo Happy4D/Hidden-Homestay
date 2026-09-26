@@ -80,6 +80,23 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   r = await createBooking({ room: 'pool', date: aWeekday, checkIn: '10:00', hours: 1, name: 'Pool Guest', phone: '012345678' }, 'website');
   ok('pool 1h ok at $5', r.ok === true && r.booking.total === 5, r);
 
+  const aThursday = nextDow(4);
+
+  r = await createBooking({ room: 'pool', date: aWeekday, checkIn: '18:00', hours: 4, name: 'Pool Four', phone: '012345678' }, 'website');
+  ok('pool 4h ok at $20', r.ok === true && r.booking.total === 20, r);
+
+  r = await createBooking({ room: 'pool', date: aWeekday, checkIn: '18:00', hours: 5, name: 'Pool Five', phone: '012345678' }, 'website');
+  ok('pool 5h rejected on website (1-4h only)', r.ok === false && /1-4 hours/.test(r.message), r);
+
+  r = await createBooking({ room: 'pool', date: aWeekday, checkIn: '18:00', hours: 5, name: 'Pool Five', phone: '012345678' }, 'telegram', { customer: true });
+  ok('pool 5h rejected for bot customers (1-4h only)', r.ok === false && /1-4 hours/.test(r.message), r);
+
+  r = await createBooking({ room: 'pool', date: aThursday, checkIn: '12:00', hours: 6, name: 'Pool Six', phone: '012345678' }, 'telegram', { customer: false });
+  ok('pool 6h still allowed for the owner ($30)', r.ok === true && r.booking.total === 30, r);
+
+  r = await createBooking({ room: 'classic', date: aWeekday, checkIn: '08:00', hours: 4, name: 'Weekday Four', phone: '012345678' }, 'website');
+  ok('weekday 4h standard = $15 (updated)', r.ok === true && r.booking.total === 15, r);
+
   r = await createBooking({ room: 'kuromi', date: aSaturday, checkIn: '14:00', hours: 3, name: 'Weekend Guest', phone: '012345678' }, 'website');
   ok('weekend price applied ($15)', r.ok === true && r.booking.total === 15, r);
 

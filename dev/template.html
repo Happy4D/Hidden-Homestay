@@ -103,7 +103,7 @@
       <div class="how-card">
         <div class="how-num">03</div>
         <h4 data-i18n="how3T">Confirm &amp; pay</h4>
-        <p data-i18n="how3P">Read the house rules, scan the KHQR with any bank app, and get your confirmation, room photo, entry guideline and parking guide in Telegram.</p>
+        <p data-i18n="how3P">Read the house rules, scan the QR code with any bank app, and get your confirmation, room photo, entry guideline and parking guide in Telegram.</p>
       </div>
     </div>
   </div>
@@ -140,6 +140,7 @@
         <div class="field">
           <label data-i18n="s1Dur">Duration <span class="req">✦</span></label>
           <div class="dur-chips" id="durChips">
+            <button type="button" data-dur="1">🎱 <span data-i18n="pool1h">Pool · 1 hr</span></button>
             <button type="button" data-dur="2">2 <span data-i18n="hrs">hrs</span></button>
             <button type="button" data-dur="3">3 <span data-i18n="hrs">hrs</span></button>
             <button type="button" data-dur="4">4 <span data-i18n="hrs">hrs</span></button>
@@ -148,6 +149,7 @@
             <button type="button" data-dur="ON8" class="chip-ov">🌙 8PM–8AM <span data-i18n="ovNight">overnight</span></button>
             <button type="button" data-dur="ON9" class="chip-ov">🌙 9PM–9AM <span data-i18n="ovNight">overnight</span></button>
           </div>
+          <p class="field-note" data-i18n="s5hNote">If you would like to book for more than 5 hours, please contact the owner directly via Telegram.</p>
           </div>
           <p class="field-note" id="priceNote"></p>
         </div>
@@ -223,13 +225,14 @@
 
         <div class="pay-section" id="paySection">
           <h4 data-i18n="s4PayTitle">Payment</h4>
-          <p data-i18n="s4PayNote">Full payment is required to confirm your booking. Scan the KHQR below with any Cambodian banking app (ABA, ACLEDA, Wing, Bakong…).</p>
+          <p data-i18n="s4PayNote">Full payment is required to confirm your booking. Scan the QR code below with any Cambodian banking app (ABA, ACLEDA, Wing…), or download it to pay.</p>
           <div class="pay-row">
-            <div class="qr-holder"><canvas id="khqrCanvas"></canvas></div>
+            <div class="qr-holder"><img id="payQrImg" src="assets/payment-qr.jpg" alt="Payment QR code" width="220" height="220"></div>
             <div class="pay-info">
               <div class="pay-amount"><span data-i18n="total">Total</span>: <b id="payAmount">$0</b></div>
               <div class="pay-ref" id="payRef"></div>
               <p class="field-note" data-i18n="s4PayDone">After you tap “Confirm Booking”, open Telegram to receive your confirmation, room photo, entry guideline and parking guide.</p>
+              <a class="btn btn-ghost" id="dlQrBtn" href="assets/payment-qr.jpg" download="Hidden-Homestay-QR.jpg">⬇ <span data-i18n="dlQr">Download QR Code</span></a>
             </div>
           </div>
         </div>
