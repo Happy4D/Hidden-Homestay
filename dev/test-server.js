@@ -378,6 +378,16 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
     ok('owner re-enables (201) Slayer', on.status === 200 && !(on.j.disabled || []).includes('slayer'), on.j);
     const okAgain = await createBooking({ room: 'slayer', date: aSaturday, checkIn: '14:00', hours: 2, name: 'Back Online', phone: '012345678' }, 'telegram');
     ok('room bookable again after re-enable', okAgain.ok === true, okAgain);
+
+  /* #8: maintenance must never delete existing bookings */
+  const surv = await createBooking({ room: 'london', date: aThursday, checkIn: '13:00', hours: 3, name: 'Survivor', phone: '099887766' }, 'website');
+  ok('booking created before maintenance toggle', surv.ok === true, surv);
+  const offL = await post('/api/rooms/status', { key: 'test-key-123', room: 'london', available: false });
+  ok('London switched to Under Maintenance', offL.j.ok && offL.j.disabled.includes('london'), offL.j);
+  const listL = await get('/api/bookings?key=test-key-123&date=');
+  ok('existing booking NOT deleted by maintenance', (listL.j.bookings || []).some(b => b.ref === surv.booking.ref), 'ref not found');
+  const onL = await post('/api/rooms/status', { key: 'test-key-123', room: 'london', available: true });
+  ok('London re-enabled', onL.j.ok && !(onL.j.disabled || []).includes('london'), onL.j);
   }
 
   ok('GET /api/bookings blocked without key', list.status === 401 || list.status === 403, list.status);

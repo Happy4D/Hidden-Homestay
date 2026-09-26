@@ -39,8 +39,8 @@ function toast(msg, icon) {
    ============================================================ */
 const CONFIG = {
   brand: 'Hidden Homestay',
-  telegram: '@Hppy4D',
-  telegramUrl: 'https://t.me/Hppy4D',
+  telegram: '@hiddenhomestay',
+  telegramUrl: 'https://t.me/hiddenhomestay',
   botUrl: 'https://t.me/HiddenHomestayBot',        // confirmation delivery only
   address: 'No 235D, Road No 777, Sangkat Jranh Chomres II, Khan Russey Keo, Phnom Penh',
   api: { baseUrl: '' },                            // '' → auto-detect (same origin)
@@ -172,6 +172,8 @@ const I18N = {
     s5hNote: 'If you would like to book for more than 5 hours, please contact the owner directly via Telegram.',
     pool1h: 'Pool · 1 hr',
     dlQr: 'Download QR Code',
+    qrMiss: '⚠️ QR code for this amount is not available yet — please contact the owner on Telegram: @hiddenhomestay',
+    phoneLabel: 'Phone',
     tDurRoom: 'That duration is not available for this room — please choose another option.',
     s4PayDone: 'After you tap \u201CConfirm Booking\u201D, open Telegram to receive your confirmation, room photo, entry guideline and parking guide.',
     total: 'Total', confirmBtn: 'Confirm Booking ✓', back: '← Back', next: 'Next →',
@@ -280,6 +282,8 @@ const I18N = {
     s5hNote: 'ប្រសិនបើអ្នកចង់កក់លើសពី ៥ ម៉ោង សូមទាក់ទងម្ចាស់ផ្ទះដោយផ្ទាល់តាម Telegram។',
     pool1h: 'បន្ទប់Pool · ១ ម៉ោង',
     dlQr: 'ទាញយក QR Code',
+    qrMiss: '⚠️ កំឡី QR ដើម្បីតម្រោរនេងមិនទាងជាដេងអស្គារនិងម្លាតងដើម្បី Telegram របូបក្នុងផ្នើស្មើ: @hiddenhomestay',
+    phoneLabel: 'ទុរស្ពើ',
     tDurRoom: 'រយៈពេលនេះមិនមានសម្រាប់បន្ទប់នេះទេ — សូមជ្រើសរើសជម្រើសផ្សេងទៀត។',
     s4PayDone: 'បន្ទាប់ពីចុច \u201Cបញ្ជាក់ការកក់\u201D សូមបើក Telegram ដើម្បីទទួលការបញ្ជាក់ រូបបន្ទប់ មគ្គុទ្ទេសក៍ចូល និងមគ្គុទ្ទេសក៍ចត់ឡាន។',
     total: 'សរុប', confirmBtn: 'បញ្ជាក់ការកក់ ✓', back: '← ត្រឡប់', next: 'បន្ទាប់ →',
@@ -774,7 +778,20 @@ function buildReview() {
   const ag = $('#agreedTerms');
   ag.checked = state.agreed;
   $('#paySection').classList.toggle('open', state.agreed);
-  $('#payAmount').textContent = money(priceFor(state.room, state.date, state.dur));
+  const payTotal = priceFor(state.room, state.date, state.dur);
+  $('#payAmount').textContent = money(payTotal);
+  /* QR code is selected by the FINAL price: assets/qr/<price>.jpg */
+  const qrImg = $('#payQrImg'), dlBtn = $('#dlQrBtn'), qrMiss = $('#qrMissing');
+  if (qrImg && dlBtn) {
+    const qrFile = 'assets/qr/' + payTotal + '.jpg';
+    qrMiss.style.display = 'none';
+    qrImg.style.display = '';
+    dlBtn.style.display = '';
+    qrImg.onerror = () => { qrImg.style.display = 'none'; dlBtn.style.display = 'none'; qrMiss.style.display = ''; };
+    qrImg.src = qrFile;
+    dlBtn.href = qrFile;
+    dlBtn.setAttribute('download', 'Hidden-Homestay-QR-$' + payTotal + '.jpg');
+  }
   $('#payRef').textContent = '';
   if (!ag.dataset.init) {
     ag.dataset.init = '1';
@@ -894,11 +911,15 @@ function initShowcase() {
     cur = i;
     show(cur);
   }
-  next();
-  timer = setInterval(next, 3000);
+  const CS = slides.length - 1;                    /* the Peng Hout (EZ Stay) coming-soon slide */
+  const slideDur = i => (i === CS ? 4000 : 3000);  /* Peng Hout: minimum 3 seconds, never faster */
+  function schedule() { clearTimeout(timer); timer = setTimeout(() => { next(); schedule(); }, slideDur(cur)); }
+  /* first open: the Peng Hout branch appears in the very first transition — no reload needed */
+  show(CS);
+  schedule();
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { clearInterval(timer); timer = null; }
-    else if (!timer) { next(); timer = setInterval(next, 3000); }
+    if (document.hidden) { clearTimeout(timer); timer = null; }
+    else if (!timer) { next(); schedule(); }
   });
 }
 
