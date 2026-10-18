@@ -1376,12 +1376,16 @@ async function sendOwnerAccessPackage(b, tg, via) {
     '📍 ' + esc(ADDRESS) + '\n' +
     '📞 ' + FOOD_ORDER + '\n\n' +
     '💳 <b>Next step (owner):</b> contact the customer to arrange payment' +
-    (Array.isArray(b.food) && b.food.length ? ' (room + food: ' + money(foodTotal(b)) + ')' : '') +
-    ', then forward the entry guideline and parking guide below to them manually.';
+    (Array.isArray(b.food) && b.food.length ? ' (room + food: ' + money(foodTotal(b)) + ')' : '') + '.\n\n' +
+    '📨 <b>Send the information to the customer:</b>\n' +
+    '1. Forward the pictures below (room info + food menu) to them, or\n' +
+    '2. Send them this link — they tap it and get the full confirmation with photos:\n' +
+    botDeepLink(b.ref);
   await tg.sendMessage(owner, txt);
   const media = [{ type: 'photo', media: a.photo, caption: '🛏 ' + esc(roomLabel(b.room)) }];
   if (ROOMS[b.room] && ROOMS[b.room].type !== 'pool') media.push({ type: 'photo', media: a.guide, caption: '🗺 Entry guideline — ' + esc(roomLabel(b.room)) });
   media.push({ type: 'photo', media: a.parking, caption: '🅿️ Parking guide' });
+  media.push(...menuMedia());   /* the food menu pictures — forward everything to the customer in one go */
   try { await tg.sendMediaGroup(owner, media); }
   catch (e) { console.error('[bot] owner access media failed:', e.message); }
 }
@@ -1647,7 +1651,7 @@ process.on('uncaughtException', e => console.error('[warn] uncaught exception:',
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.11.0 (11 updates)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.12.0 (12 updates)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));

@@ -197,7 +197,8 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   const tplON = texts(tg).slice(-2).join('\n---\n');
   ok('template overnight → booked + ID prompt', /HH-/.test(tplON) && /ID/.test(tplON), tplON.slice(0, 160));
   ok('owner paste → room information package in the same chat', /ROOM ACCESS INFORMATION/.test(tplON) && /\(502\) Kuromi Room/.test(tplON), tplON.slice(0, 200));
-  ok('owner paste → package pictures (room + guideline + parking)', tg.calls.filter(c => c.method === 'sendMediaGroup').slice(-1)[0] && tg.calls.filter(c => c.method === 'sendMediaGroup').slice(-1)[0].params.media.length === 3, 'no media');
+  const pasteAlbum = tg.calls.filter(c => c.method === 'sendMediaGroup').slice(-1)[0];
+  ok('owner paste → package pictures: room info (3) + food menu (5) in one album', pasteAlbum && pasteAlbum.params.media.length === 8 && pasteAlbum.params.media.some(m => m.media.includes('/assets/rooms/kuromi')) && pasteAlbum.params.media.some(m => m.media.includes('/assets/guides/kuromi')) && pasteAlbum.params.media.some(m => m.media.includes('parking')) && pasteAlbum.params.media.filter(m => m.media.includes('/assets/menu/')).length === 5, pasteAlbum && pasteAlbum.params.media.map(m => m.media.split('/assets/')[1]));
 
   /* quick /book path */
   await handleUpdate(upd(OWNER, '/book gaming ' + aWeekday + ' 14:00 3 011122233 Quick VIP'), tg);
@@ -240,7 +241,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
     const guidedAll = texts(tg2).join('\n');
     ok('guided flow → room information package to the owner chat', /ROOM ACCESS INFORMATION/.test(guidedAll), guidedAll.slice(0, 120));
     const guidedMedia = tg2.calls.filter(c => c.method === 'sendMediaGroup');
-    ok('guided flow package includes guideline + parking pictures', guidedMedia.length === 1 && guidedMedia[0].params.media.length === 3, guidedMedia.length);
+    ok('guided flow package: room info (3) + food menu (5) pictures', guidedMedia.length === 1 && guidedMedia[0].params.media.length === 8 && guidedMedia[0].params.media.filter(m => m.media.includes('/assets/menu/')).length === 5, guidedMedia[0] && guidedMedia[0].params.media.length);
   }
 
   /* ============================================================
@@ -304,9 +305,9 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   const pkg = texts(tgC).join('\n');
   ok('owner access package text present', /ROOM ACCESS INFORMATION/.test(pkg), pkg.slice(0, 140));
   ok('package: customer, phone, email, price, ref, address, food order', /Confirm Me/.test(pkg) && /099887766/.test(pkg) && /confirm@example\.com/.test(pkg) && /\$15/.test(pkg) && pcRes.booking.ref && pkg.includes(pcRes.booking.ref) && /235D/.test(pkg) && /Food Order: 015 233 598/.test(pkg), pkg.slice(0, 320));
-  ok('package tells owner to arrange payment + forward manually', /arrange payment/.test(pkg) && /forward/.test(pkg), pkg.slice(0, 320));
+  ok('package tells owner to arrange payment + how to forward (pictures or link)', /arrange payment/.test(pkg) && /Forward the pictures below/.test(pkg) && /t.me\/HiddenHomestayBot\?start=/.test(pkg), pkg.slice(0, 320));
   const pkgMedia = tgC.calls.filter(c => c.method === 'sendMediaGroup');
-  ok('owner media: room photo + guideline + parking (3 photos, NO menus)', pkgMedia.length === 1 && pkgMedia[0].params.media.length === 3, pkgMedia[0] && pkgMedia[0].params.media.length);
+  ok('owner media: room info (3) + food menu (5) = 8 photos, one album', pkgMedia.length === 1 && pkgMedia[0].params.media.length === 8 && pkgMedia[0].params.media.filter(m => m.media.includes('/assets/menu/')).length === 5, pkgMedia[0] && pkgMedia[0].params.media.length);
   ok('owner media uses public https URLs', pkgMedia.length === 1 && pkgMedia[0].params.media.every(m => m.media.startsWith('https://')), pkgMedia[0] && pkgMedia[0].params.media[0]);
   ok('everything goes to the OWNER chat — never the customer', tgC.calls.every(c => c.params.chat_id === undefined || String(c.params.chat_id) === String(OWNER)), tgC.calls.map(c => c.params.chat_id));
   ok('store now shows confirmed', (await store.all()).find(b => b.ref === pcRes.booking.ref).status === 'confirmed');
@@ -328,7 +329,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   const tgP = makeTg();
   await handleUpdate(cbk(OWNER, 'confirm:' + pkRes.booking.ref), tgP);
   const pkMedia = tgP.calls.filter(c => c.method === 'sendMediaGroup');
-  ok('pool owner package: room + parking (2 photos, no guideline)', pkMedia.length === 1 && pkMedia[0].params.media.length === 2, pkMedia[0] && pkMedia[0].params.media.length);
+  ok('pool owner package: room + parking + food menu (7 photos, no guideline)', pkMedia.length === 1 && pkMedia[0].params.media.length === 7 && pkMedia[0].params.media.filter(m => m.media.includes('/assets/menu/')).length === 5, pkMedia[0] && pkMedia[0].params.media.length);
 
   /* confirm unknown ref */
   const tgN = makeTg();
@@ -441,7 +442,8 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
     ok('package shows the food order + combined total', /Food Order/.test(opkg) && /2× Fried Gyoza/.test(opkg) && /less spicy please/.test(opkg) && /Total \(room \+ food\)/.test(opkg), opkg.slice(0, 400));
     ok('package shows room + number + date + times + duration + price', /\(101\) Veggie Room/.test(opkg) && /Date: /.test(opkg) && /Check-in: /.test(opkg) && /Check-out: /.test(opkg) && /Duration: 2 hours/.test(opkg) && /\$15/.test(opkg), opkg.slice(0, 300));
     ok('package: entry + parking instruction lines + address + food-order phone', /Room access:/.test(opkg) && /Parking:/.test(opkg) && /235D/.test(opkg) && /Food Order: 015 233 598/.test(opkg), opkg.slice(0, 400));
-    ok('package media: room + guideline + parking (3 pictures)', tgo.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tgo.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 3, 'media');
+    ok('package media: room info (3) + food menu (5) = one forwardable album of 8', tgo.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tgo.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 8 && tgo.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.some(m => m.media.includes('/assets/rooms/veggie')) && tgo.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.filter(m => m.media.includes('/assets/menu/')).length === 5, 'media');
+    ok('package includes the customer link to forward', /Forward the pictures below/.test(opkg) && /https:\/\/t\.me\/HiddenHomestayBot\?start=/.test(opkg), opkg.slice(-200));
 
     /* customer opens the bot with the ref — sees their food order, no pictures */
     const tgc2 = makeTg();
@@ -453,7 +455,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
     /* /resend — retry mechanism */
     const tgr = makeTg();
     await handleUpdate(upd(OWNER, '/resend ' + wfb.ref), tgr);
-    ok('/resend re-sends the room information package', /Re-sent the room information/.test(texts(tgr).slice(-1)[0] || '') && /ROOM ACCESS INFORMATION/.test(texts(tgr).join('\n')) && tgr.calls.filter(c => c.method === 'sendMediaGroup').length === 1, texts(tgr).slice(-1)[0]);
+    ok('/resend re-sends the room information package (8 pictures incl. food menu)', /Re-sent the room information/.test(texts(tgr).slice(-1)[0] || '') && /ROOM ACCESS INFORMATION/.test(texts(tgr).join('\n')) && tgr.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tgr.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 8, texts(tgr).slice(-1)[0]);
     const tgr2 = makeTg();
     await handleUpdate(upd(OWNER, '/resend HH-NOPE99'), tgr2);
     ok('/resend unknown ref → not found', /No booking/.test(texts(tgr2).slice(-1)[0] || ''), texts(tgr2).slice(-1)[0]);

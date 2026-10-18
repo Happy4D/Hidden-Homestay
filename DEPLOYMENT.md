@@ -269,6 +269,25 @@ This server now keeps itself awake automatically:
 
 > ⚠️ Storage warning: if the Render log line says `storage: JSON file`, bookings are stored inside the container and Render free restarts wipe them. Ask me and I'll switch you to the built-in Supabase cloud-storage mode (also free).
 
+## v3.20 — owner-first: forward room info + food menu to the customer (NO new SQL)
+
+Nothing to do in Supabase. Push the new code, done.
+
+The final flow, for bookings from the **website and Telegram**:
+
+1. Guest books → the booking alert arrives in **your** bot chat first (unchanged).
+2. You confirm (✅ button, dashboard, `/confirm`, `/book`) → **you receive ONE package** in your bot chat:
+   - the booking details text, ending with **how to send the information to the customer**,
+   - **one picture album** with everything: room photo + entry guideline + parking guide + **the 5 food menu pictures**.
+3. Send it to the customer your way — either:
+   - **forward the album + text** to them directly (one forward = room info + food menu), or
+   - **send them the customer link** (it is printed in the package text and also available via `/link HH-XXXXXX`) — they tap it and the bot shows them the full confirmation with the same pictures.
+4. The customer can also open that link themselves from the website success screen (**Open Telegram** button) — same full information.
+
+The owner package always lands in **your** chat first — nothing goes to the customer unless you forward it or they open the link.
+
+After pushing, check the Render log for: `BUILD v2.12.0 (12 updates)`.
+
 ## v3.19 — customer receives the room info + food menu pictures after confirmation (NO new SQL)
 
 Nothing to do in Supabase. Push the new code, done.
