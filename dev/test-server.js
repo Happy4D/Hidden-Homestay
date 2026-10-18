@@ -257,15 +257,17 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   ok('confirmation includes room label', cMsgs.some(x => /\(2\) Shanghai Room/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 200));
   ok('customer text mentions payment arranged with owner', cMsgs.some(x => /arrange payment/i.test(x)), cMsgs[0] && cMsgs[0].slice(0, 240));
   const cMenus = tg3.calls.filter(c => c.method === 'sendMediaGroup');
-  ok('customer gets the food menu pictures (5 photos, like the previous version)', cMenus.length === 1 && cMenus[0].params.media.length === 5 && cMenus[0].params.media.every(m => m.media.includes('/assets/menu/')), cMenus[0] && cMenus[0].params.media.map(m => m.media.split('/').pop()));
-  ok('customer gets NO room/guideline/parking photos (owner forwards those)', cMenus.length === 1 && cMenus[0].params.media.every(m => !m.media.includes('/rooms/') && !m.media.includes('/guides/')), cMenus[0] && cMenus[0].params.media[0]);
+  ok('customer gets the room information pictures + food menu pictures after confirmation', cMenus.length === 2 && cMenus[0].params.media.length === 3 && cMenus[0].params.media.some(m => m.media.includes('/assets/rooms/shanghai')) && cMenus[0].params.media.some(m => m.media.includes('/assets/guides/shanghai')) && cMenus[0].params.media.some(m => m.media.includes('parking')) && cMenus[1].params.media.length === 5 && cMenus[1].params.media.every(m => m.media.includes('/assets/menu/')), cMenus.map(c => c.params.media.map(m => m.media.split('/assets/')[1])));
+  ok('room info album has the right captions (room + entry guideline + parking)', cMenus[0].params.media[0].caption.includes('(2) Shanghai Room') && /Entry guideline/.test(cMenus[0].params.media[1].caption) && /Parking guide/.test(cMenus[0].params.media[2].caption), cMenus[0].params.media.map(m => m.caption));
+  ok('customer text points to the pictures (room access + parking + food menu)', cMsgs.some(x => /Room access:/.test(x) && /Parking:/.test(x) && /Food menu:/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 240));
 
   /* pool booking → also text only */
   const tg3b = makeTg();
   const poolRes = await createBooking({ room: 'pool', date: aWeekday, checkIn: '15:00', hours: 2, name: 'Pool C', phone: '099887766' }, 'website');
   await store.update(poolRes.booking.ref, { status: 'confirmed' });
   await handleUpdate(upd(CUSTOMER, '/start ' + poolRes.booking.ref), tg3b);
-  ok('pool confirmation: text + food menu pictures', /BOOKING CONFIRMED/.test(texts(tg3b)[0] || '') && tg3b.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tg3b.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 5, texts(tg3b)[0] && texts(tg3b)[0].slice(0, 100));
+  const poolAlbums = tg3b.calls.filter(c => c.method === 'sendMediaGroup');
+  ok('pool confirmation: room info (photo + parking, no guideline) + food menu pictures', /BOOKING CONFIRMED/.test(texts(tg3b)[0] || '') && poolAlbums.length === 2 && poolAlbums[0].params.media.length === 2 && poolAlbums[0].params.media.some(m => m.media.includes('/assets/rooms/pool')) && poolAlbums[0].params.media.some(m => m.media.includes('parking')) && poolAlbums[1].params.media.length === 5 && poolAlbums[1].params.media.every(m => m.media.includes('/assets/menu/')), poolAlbums.map(c => c.params.media.map(m => m.media.split('/assets/')[1])));
 
   await handleUpdate(upd(CUSTOMER, '/start HH-NOPE99'), tg3);
   ok('unknown ref → friendly message', /don.t know the booking/i.test(texts(tg3).slice(-1)[0] || ''), texts(tg3).slice(-1)[0]);
@@ -279,7 +281,8 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   await store.update(pendRes.booking.ref, { status: 'confirmed' });
   const tg3p2 = makeTg();
   await handleUpdate(upd(CUSTOMER, '/start ' + pendRes.booking.ref), tg3p2);
-  ok('after owner confirms → confirmation text + food menu pictures', texts(tg3p2).some(x => /BOOKING CONFIRMED/.test(x)) && tg3p2.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tg3p2.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 5, texts(tg3p2)[0] && texts(tg3p2)[0].slice(0, 100));
+  const pAlbums = tg3p2.calls.filter(c => c.method === 'sendMediaGroup');
+  ok('after owner confirms → room information + food menu pictures', texts(tg3p2).some(x => /BOOKING CONFIRMED/.test(x)) && pAlbums.length === 2 && pAlbums[0].params.media.some(m => m.media.includes('/assets/rooms/')) && pAlbums[0].params.media.some(m => m.media.includes('parking')) && pAlbums[1].params.media.length === 5 && pAlbums[1].params.media.every(m => m.media.includes('/assets/menu/')), pAlbums.map(c => c.params.media.map(m => m.media.split('/assets/')[1])));
 
   /* ============================================================
      5b — OWNER-CONFIRMED BOOKINGS (button → recheck → access package to OWNER)
@@ -444,7 +447,8 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
     const tgc2 = makeTg();
     await handleUpdate(upd(CUSTOMER, '/start ' + wfb.ref), tgc2);
     const ctxt = texts(tgc2).join('\n');
-    ok('customer confirmation shows food + combined total + menu pictures', /BOOKING CONFIRMED/.test(ctxt) && /2× Fried Gyoza/.test(ctxt) && /Total \(room \+ food\)/.test(ctxt) && tgc2.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tgc2.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 5 && tgc2.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.every(m => m.media.includes('/assets/menu/')), ctxt.slice(0, 200));
+    const gAlbums = tgc2.calls.filter(c => c.method === 'sendMediaGroup');
+    ok('customer confirmation: food order in text + room info pictures + menu pictures', /BOOKING CONFIRMED/.test(ctxt) && /2× Fried Gyoza/.test(ctxt) && /Total \(room \+ food\)/.test(ctxt) && gAlbums.length === 2 && gAlbums[0].params.media.some(m => m.media.includes('/assets/rooms/')) && gAlbums[0].params.media.some(m => m.media.includes('parking')) && gAlbums[1].params.media.length === 5 && gAlbums[1].params.media.every(m => m.media.includes('/assets/menu/')), ctxt.slice(0, 200));
 
     /* /resend — retry mechanism */
     const tgr = makeTg();

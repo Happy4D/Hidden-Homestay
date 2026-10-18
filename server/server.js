@@ -1273,12 +1273,20 @@ async function deliverConfirmation(chatId, ref, tg) {
     '🙋 Guest: ' + esc(b.name) + ' · ' + esc(b.phone) + '\n\n' +
     '📍 ' + esc(ADDRESS) + '\n' +
     '📞 ' + FOOD_ORDER + '\n\n' +
+    '🔑 <b>Room access:</b> follow the entry guideline picture below (room number is on it).\n' +
+    '🅿️ <b>Parking:</b> see the parking guide picture below.\n' +
+    '🍜 <b>Food menu:</b> see the menu pictures below — order by phone.\n\n' +
     '💳 The owner will contact you directly to arrange payment.\n' +
     '✅ Your booking is confirmed — see you soon!\n' +
     '🍜 ការកក់របស់អ្នកត្រូវបានបញ្ជាក់រួចរាល់ — សូមរង់ចាំម្ចាស់ផ្ទះទាក់ទងអ្នកដោយផ្ទាល់។ សូមស្នាក់នៅដោយសុខដុម!';
   await tg.sendMessage(chatId, txt);
-  /* no room/access pictures to the customer — the owner forwards those manually.
-     the food menu pictures are restored, like the previous version. */
+  /* the owner confirmed → drop the full information to the customer:
+     room info pictures (room + entry guideline + parking), then the food menu pictures */
+  const info = [{ type: 'photo', media: a.photo, caption: '🛏 ' + esc(roomLabel(b.room)) }];
+  if (ROOMS[b.room] && ROOMS[b.room].type !== 'pool') info.push({ type: 'photo', media: a.guide, caption: '🗺 Entry guideline — ' + esc(roomLabel(b.room)) });
+  info.push({ type: 'photo', media: a.parking, caption: '🅿️ Parking guide' });
+  try { await tg.sendMediaGroup(chatId, info); }
+  catch (e) { console.error('[bot] customer room info pictures failed:', e.message); }
   try { await tg.sendMediaGroup(chatId, menuMedia()); }
   catch (e) { console.error('[bot] customer menu pictures failed:', e.message); }
 }
@@ -1639,7 +1647,7 @@ process.on('uncaughtException', e => console.error('[warn] uncaught exception:',
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.10.0 (10 updates)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.11.0 (11 updates)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));
