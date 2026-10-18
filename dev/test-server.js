@@ -12,7 +12,7 @@ process.env.BOT_TOKEN = 'test-disabled';   // disables polling
 process.env.ADMIN_KEY = 'test-key-123';    // protects GET /api/bookings
 
 const S = require('../server/server.js');
-const { createBooking, handleUpdate, store, digestText, sendDailyDigest, deliverConfirmation, priceFor, ROOMS } = S;
+const { createBooking, handleUpdate, store, digestText, sendDailyDigest, deliverConfirmation, priceFor, ROOMS, bookingText, confirmBookingRef } = S;
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => {
@@ -243,20 +243,18 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   const tg3 = makeTg();
   await handleUpdate(upd(CUSTOMER, '/start ' + onRef), tg3);
   const cMsgs = texts(tg3);
-  const cMedia = tg3.calls.filter(c => c.method === 'sendMediaGroup');
   ok('customer /start REF gets confirmation text', cMsgs.some(x => /BOOKING CONFIRMED/.test(x) && /Night Owl/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 140));
   ok('confirmation includes Food Order number', cMsgs.some(x => /Food Order: 015 233 598/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 200));
   ok('confirmation includes room label', cMsgs.some(x => /\(2\) Shanghai Room/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 200));
-  ok('customer gets media album: room + guideline + parking + 5 menus', cMedia.length === 1 && cMedia[0].params.media.length === 8, cMedia[0] && cMedia[0].params.media.length);
-  ok('media URLs use the public site', cMedia.length === 1 && cMedia[0].params.media.every(m => m.media.startsWith('https://')), cMedia[0] && cMedia[0].params.media[0]);
+  ok('customer text mentions payment arranged with owner', cMsgs.some(x => /arrange payment/i.test(x)), cMsgs[0] && cMsgs[0].slice(0, 240));
+  ok('customer gets NO media album (owner sends access info manually)', tg3.calls.filter(c => c.method === 'sendMediaGroup').length === 0, tg3.calls.length);
 
-  /* pool booking → no guideline image (7 photos) */
+  /* pool booking → also text only */
   const tg3b = makeTg();
   const poolRes = await createBooking({ room: 'pool', date: aWeekday, checkIn: '15:00', hours: 2, name: 'Pool C', phone: '099887766' }, 'website');
   await store.update(poolRes.booking.ref, { status: 'confirmed' });
   await handleUpdate(upd(CUSTOMER, '/start ' + poolRes.booking.ref), tg3b);
-  const poolMedia = tg3b.calls.filter(c => c.method === 'sendMediaGroup');
-  ok('pool confirmation: room + parking + 5 menus (no guideline)', poolMedia.length === 1 && poolMedia[0].params.media.length === 7, poolMedia[0] && poolMedia[0].params.media.length);
+  ok('pool confirmation: text only, no media album', /BOOKING CONFIRMED/.test(texts(tg3b)[0] || '') && tg3b.calls.filter(c => c.method === 'sendMediaGroup').length === 0, texts(tg3b)[0] && texts(tg3b)[0].slice(0, 100));
 
   await handleUpdate(upd(CUSTOMER, '/start HH-NOPE99'), tg3);
   ok('unknown ref → friendly message', /don.t know the booking/i.test(texts(tg3).slice(-1)[0] || ''), texts(tg3).slice(-1)[0]);
@@ -270,7 +268,58 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   await store.update(pendRes.booking.ref, { status: 'confirmed' });
   const tg3p2 = makeTg();
   await handleUpdate(upd(CUSTOMER, '/start ' + pendRes.booking.ref), tg3p2);
-  ok('after owner confirms → full package unlocks', texts(tg3p2).some(x => /BOOKING CONFIRMED/.test(x)) && tg3p2.calls.filter(c => c.method === 'sendMediaGroup').length === 1, texts(tg3p2)[0] && texts(tg3p2)[0].slice(0, 100));
+  ok('after owner confirms → confirmation text, still no media album', texts(tg3p2).some(x => /BOOKING CONFIRMED/.test(x)) && tg3p2.calls.filter(c => c.method === 'sendMediaGroup').length === 0, texts(tg3p2)[0] && texts(tg3p2)[0].slice(0, 100));
+
+  /* ============================================================
+     5b — OWNER-CONFIRMED BOOKINGS (button → recheck → access package to OWNER)
+     ============================================================ */
+  console.log('== OWNER CONFIRM FLOW ==');
+  const pcRes = await createBooking({ room: 'classic', date: aSaturday, checkIn: '15:00', hours: 3, name: 'Confirm Me', phone: '099887766', email: 'confirm@example.com' }, 'website');
+  const pcRec = (await store.all()).find(b => b.ref === pcRes.booking.ref);
+  ok('website booking starts as Pending Confirmation', pcRes.ok && pcRes.booking.status === 'pending', pcRes.booking && pcRes.booking.status);
+  ok('email stored on the booking', pcRec.email === 'confirm@example.com', pcRec.email);
+  const bt = bookingText(pcRec);
+  ok('bookingText: Customer/Room/Date/Time/Duration/Price lines', /Customer: <b>Confirm Me<\/b>/.test(bt) && /Room: \(3\) Classic Room/.test(bt) && /Time: 3:00 PM – 6:00 PM/.test(bt) && /Duration: 3 hours/.test(bt) && /Price: \$15/.test(bt), bt.slice(0, 200));
+  ok('bookingText: Email + Phone + Ref(via) + Pending Confirmation', /Email: confirm@example\.com/.test(bt) && /Phone: 099887766/.test(bt) && /via website/.test(bt) && /Pending Confirmation/.test(bt), bt.slice(0, 240));
+  ok('bookingText: date format 30-Sep-2026 style', /Date: \d{2}-[A-Z][a-z]{2}-\d{4}/.test(bt), bt.match(/Date: [^\n]*/));
+
+  const tgC = makeTg();
+  await handleUpdate(cbk(OWNER, 'confirm:' + pcRes.booking.ref), tgC);
+  ok('owner button → answerCallbackQuery "Confirmed ✅"', tgC.calls.some(c => c.method === 'answerCallbackQuery' && /Confirmed ✅/.test(c.params.text)), tgC.calls[0] && tgC.calls[0].params);
+  ok('owner gets ✅ Confirmed message with ref', texts(tgC).some(x => new RegExp('Confirmed: ' + pcRes.booking.ref).test(x)), texts(tgC).join(' | ').slice(0, 160));
+  const pkg = texts(tgC).join('\n');
+  ok('owner access package text present', /ROOM ACCESS INFORMATION/.test(pkg), pkg.slice(0, 140));
+  ok('package: customer, phone, email, price, ref, address, food order', /Confirm Me/.test(pkg) && /099887766/.test(pkg) && /confirm@example\.com/.test(pkg) && /\$15/.test(pkg) && pcRes.booking.ref && pkg.includes(pcRes.booking.ref) && /235D/.test(pkg) && /Food Order: 015 233 598/.test(pkg), pkg.slice(0, 320));
+  ok('package tells owner to arrange payment + forward manually', /arrange payment/.test(pkg) && /forward/.test(pkg), pkg.slice(0, 320));
+  const pkgMedia = tgC.calls.filter(c => c.method === 'sendMediaGroup');
+  ok('owner media: room photo + guideline + parking (3 photos, NO menus)', pkgMedia.length === 1 && pkgMedia[0].params.media.length === 3, pkgMedia[0] && pkgMedia[0].params.media.length);
+  ok('owner media uses public https URLs', pkgMedia.length === 1 && pkgMedia[0].params.media.every(m => m.media.startsWith('https://')), pkgMedia[0] && pkgMedia[0].params.media[0]);
+  ok('everything goes to the OWNER chat — never the customer', tgC.calls.every(c => c.params.chat_id === undefined || String(c.params.chat_id) === String(OWNER)), tgC.calls.map(c => c.params.chat_id));
+  ok('store now shows confirmed', (await store.all()).find(b => b.ref === pcRes.booking.ref).status === 'confirmed');
+
+  /* double confirm rejected */
+  const tgDbl = makeTg();
+  await handleUpdate(cbk(OWNER, 'confirm:' + pcRes.booking.ref), tgDbl);
+  ok('double-confirm rejected (already confirmed)', tgDbl.calls.some(c => c.method === 'answerCallbackQuery' && /already confirmed/.test(c.params.text)) && texts(tgDbl).some(x => /Could not confirm/.test(x)), texts(tgDbl).join(' | ').slice(0, 180));
+
+  /* cancel then confirm rejected */
+  const cxRes = await createBooking({ room: 'classic', date: aSaturday, checkIn: '09:00', hours: 2, name: 'Cancel Me', phone: '099887766' }, 'website');
+  await handleUpdate(cbk(OWNER, 'cancel:' + cxRes.booking.ref), makeTg());
+  const tgE = makeTg();
+  await handleUpdate(cbk(OWNER, 'confirm:' + cxRes.booking.ref), tgE);
+  ok('confirm after cancel → rejected', texts(tgE).some(x => /Could not confirm/.test(x) && /cancelled/i.test(x)), texts(tgE).join(' | ').slice(0, 180));
+
+  /* pool room package: room + parking only (2 photos) */
+  const pkRes = await createBooking({ room: 'pool', date: aSaturday, checkIn: '12:00', hours: 2, name: 'Pool Owner', phone: '099887766' }, 'website');
+  const tgP = makeTg();
+  await handleUpdate(cbk(OWNER, 'confirm:' + pkRes.booking.ref), tgP);
+  const pkMedia = tgP.calls.filter(c => c.method === 'sendMediaGroup');
+  ok('pool owner package: room + parking (2 photos, no guideline)', pkMedia.length === 1 && pkMedia[0].params.media.length === 2, pkMedia[0] && pkMedia[0].params.media.length);
+
+  /* confirm unknown ref */
+  const tgN = makeTg();
+  await handleUpdate(cbk(OWNER, 'confirm:HH-NOPE99'), tgN);
+  ok('confirm unknown ref → not found', texts(tgN).some(x => /Could not confirm/.test(x) && /not found/.test(x)), texts(tgN).join(' | ').slice(0, 180));
 
   /* owner sends ID photo for a telegram-side overnight booking */
   const tg4 = makeTg();
@@ -393,6 +442,20 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   ok('GET /api/bookings blocked without key', list.status === 401 || list.status === 403, list.status);
   list = await get('/api/bookings?key=' + KEY);
   ok('GET /api/bookings with admin key works', list.status === 200 && list.j.ok && Array.isArray(list.j.bookings), list.status);
+
+  /* dashboard PATCH confirm → same shared path as the Telegram button */
+  const patch = (p, body) => fetch(base + p, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(async x => ({ status: x.status, j: await x.json().catch(() => ({})) }));
+  const wb = await post('/api/bookings', { room: 'veggie', date: aWeekday, checkIn: '10:00', hours: 2, name: 'Dash Conf', phone: '099887766', email: 'dash@example.com' });
+  ok('POST booking stores email (dashboard flow)', wb.status === 200 && (await store.all()).find(b => b.ref === wb.j.ref).email === 'dash@example.com', wb.j);
+  let pc2 = await patch('/api/bookings?key=' + KEY + '&ref=' + wb.j.ref, { status: 'confirmed' });
+  ok('PATCH confirm via dashboard → 200 confirmed', pc2.status === 200 && pc2.j.ok && pc2.j.status === 'confirmed', pc2);
+  pc2 = await patch('/api/bookings?key=' + KEY + '&ref=' + wb.j.ref, { status: 'confirmed' });
+  ok('PATCH double-confirm → 409 already confirmed', pc2.status === 409 && /already confirmed/.test(pc2.j.message || ''), pc2);
+  const wf = await post('/api/bookings', { room: 'veggie', date: aWeekday, checkIn: '13:00', hours: 2, name: 'Later Slot', phone: '099887766' });
+  await store.add({ ref: 'HH-ZZZ999', room: 'veggie', date: aWeekday, checkIn: '14:00', checkOut: '16:00', hours: 2, overnight: false, rate: 10, total: 10, name: 'Manual Override', phone: '012345678', email: '', contact: '', idCard: '', status: 'confirmed', source: 'manual', created: new Date().toISOString() });
+  pc2 = await patch('/api/bookings?key=' + KEY + '&ref=' + wf.j.ref, { status: 'confirmed' });
+  ok('PATCH confirm with slot taken → 409 + busy list', pc2.status === 409 && /no longer available/.test(pc2.j.message || '') && Array.isArray(pc2.j.busy) && pc2.j.busy.some(x => x.ref === 'HH-ZZZ999'), pc2);
+  await patch('/api/bookings?key=' + KEY + '&ref=HH-ZZZ999', { status: 'cancelled' });
 
   const html = await fetch(base + '/admin').then(x => x.text());
   ok('admin dashboard served at /admin', /Hidden Homestay/.test(html));

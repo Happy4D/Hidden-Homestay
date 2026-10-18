@@ -191,6 +191,10 @@
           <input type="text" id="bkName" maxlength="60" autocomplete="name">
         </div>
         <div class="field">
+          <label for="bkEmail" data-i18n="s3Email">Email <span class="req">✦</span></label>
+          <input type="email" id="bkEmail" maxlength="120" autocomplete="email" placeholder="name@gmail.com">
+        </div>
+        <div class="field">
           <label for="bkPhone" data-i18n="s3Phone">Telegram phone number <span class="req">✦</span></label>
           <input type="tel" id="bkPhone" inputmode="numeric" pattern="[0-9]*" maxlength="16" autocomplete="tel" placeholder="0123456789">
           <p class="field-note tg-note" data-i18n="s3PhoneNote">📱 Please enter the phone number registered with your Telegram account — your booking confirmation and entry guideline will be sent there.</p>
@@ -223,20 +227,6 @@
 
         <p class="checkmy-note" data-i18n="s4CheckMy">📋 Please check My Booking later to see whether your booking has been confirmed by the owner.</p>
 
-        <div class="pay-section" id="paySection">
-          <h4 data-i18n="s4PayTitle">Payment</h4>
-          <p data-i18n="s4PayNote">Full payment is required to confirm your booking. Scan the QR code below with any Cambodian banking app (ABA, ACLEDA, Wing…), or download it to pay.</p>
-          <div class="pay-row">
-            <div class="qr-holder"><img id="payQrImg" alt="Payment QR code" width="220" height="220"></div>
-            <div class="pay-info">
-              <div class="pay-amount"><span data-i18n="total">Total</span>: <b id="payAmount">$0</b></div>
-              <div class="pay-ref" id="payRef"></div>
-              <p class="field-note" data-i18n="s4PayDone">After you tap “Confirm Booking”, open Telegram to receive your confirmation, room photo, entry guideline and parking guide.</p>
-              <a class="btn btn-ghost" id="dlQrBtn" href="#">⬇ <span data-i18n="dlQr">Download QR Code</span></a>
-              <p class="field-note" id="qrMissing" style="display:none" data-i18n="qrMiss">⚠️ QR code for this amount is not available yet — please contact the owner on Telegram: @hiddenhomestay</p>
-            </div>
-          </div>
-        </div>
 
         <div class="pane-nav">
           <button class="btn btn-ghost" id="actBack4" type="button" data-i18n="back">← Back</button>
@@ -247,9 +237,9 @@
       <!-- ============ SUCCESS ============ -->
       <div class="pane pane-success" id="pane5" hidden>
         <div class="success-emoji">🎉</div>
-        <h3 data-i18n="s5Title">Booking received!</h3>
-        <p data-i18n="s5Sub">Your request is in. One last tap — open Telegram and press START to receive your confirmation, your room's photo, the entry guideline, the parking guide and the food menu.</p>
-        <a class="btn btn-primary btn-lg btn-tg" id="tgConfirmBtn" href="#" target="_blank" rel="noopener">📨 <span data-i18n="s5Btn">Get my confirmation in Telegram</span></a>
+        <h3 data-i18n="s5Title">Booking Request Submitted</h3>
+        <p data-i18n="s5Sub">Thank you for your booking request. The owner will contact you directly to arrange payment. Your booking is not confirmed until the owner confirms it.</p>
+        <a class="btn btn-primary btn-lg btn-tg" id="tgConfirmBtn" href="#" target="_blank" rel="noopener">📨 <span data-i18n="s5Btn">Open Telegram</span></a>
         <p class="field-note" id="s5RefNote"></p>
         <div class="receipt" id="successReceipt"></div>
         <div class="pane-nav">

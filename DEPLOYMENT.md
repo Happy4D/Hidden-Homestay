@@ -268,3 +268,20 @@ This server now keeps itself awake automatically:
 - The never-sleeps alternative: Render **Starter** plan ($7/month) — no pinger needed at all.
 
 > ⚠️ Storage warning: if the Render log line says `storage: JSON file`, bookings are stored inside the container and Render free restarts wipe them. Ask me and I'll switch you to the built-in Supabase cloud-storage mode (also free).
+
+## v3.16 — Owner-confirmed bookings: ONE required SQL step
+
+The website no longer takes online payment. Customers submit a booking request (name + **email** + phone), the owner confirms it from the dashboard or Telegram, and the bot sends the room access information **to the owner only**.
+
+Before deploying, run this **once** in Supabase so the new `email` column exists:
+
+1. Go to `https://supabase.com` → your project → **SQL Editor** → **New query**.
+2. Paste exactly this and click **Run**:
+
+```sql
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS email text;
+```
+
+3. You should see `Success. No rows returned`.
+
+If you skip this step the site still works (the server detects the missing column and saves the booking without email), but customer emails will not be stored — so run it.

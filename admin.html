@@ -178,7 +178,7 @@ footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:spac
       </select>
       <select id="fStatus">
         <option value="">All statuses</option>
-        <option value="pending">Pending</option>
+        <option value="pending">Pending Confirmation</option>
         <option value="confirmed">Confirmed</option>
         <option value="cancelled">Cancelled</option>
       </select>
@@ -194,7 +194,7 @@ footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:spac
       <table>
         <thead><tr>
           <th>Ref</th><th>Date</th><th>Branch</th><th>Room</th><th>Check-in</th><th>Check-out</th>
-          <th>Hrs</th><th>Total</th><th>Guest</th><th>Phone</th><th>Source</th><th>Status</th><th>Actions</th>
+          <th>Hrs</th><th>Total</th><th>Guest</th><th>Phone</th><th>Email</th><th>Source</th><th>Status</th><th>Actions</th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
@@ -231,7 +231,7 @@ footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:spac
         <label>Check-in<input type="time" id="nTime" value="14:00"></label>
         <label>Hours / Overnight<select id="nHours"></select></label>
         <label>Status
-          <select id="nStatus"><option value="confirmed">Confirmed (paid)</option><option value="pending">Pending</option></select>
+          <select id="nStatus"><option value="pending">Pending Confirmation</option><option value="confirmed">Confirmed</option></select>
         </label>
         <label>Guest name<input id="nName" placeholder="Guest name" autocomplete="off"></label>
         <label>Phone<input id="nPhone" placeholder="012 345 678" autocomplete="off"></label>
@@ -378,10 +378,11 @@ function render() {
       <td class="money">${money(b.total)}</td>
       <td>${esc(b.name)}${b.overnight ? (b.idCard ? ' <button class="btn sm" data-id="' + esc(b.ref) + '" title="View guest ID Card">🪪 ID</button>' : ' <span title="ID Card missing" style="color:var(--red)">🪪✗</span>') : ''}</td>
       <td>${esc(b.phone)}</td>
+      <td>${b.email ? esc(b.email) : '—'}</td>
       <td class="src"><b>${b.source === 'telegram' ? '📱 Telegram' : b.source === 'manual' ? '✍️ Owner' : '🌐 Website'}</b></td>
-      <td><span class="pill ${b.status}">${b.status}</span></td>
+      <td><span class="pill ${b.status}">${b.status === 'pending' ? 'Pending Confirmation' : b.status === 'confirmed' ? 'Confirmed' : 'Cancelled'}</span></td>
       <td><div class="actions">
-        ${b.status === 'pending' ? `<button class="btn sm ok" data-act="confirmed" data-ref="${esc(b.ref)}">✓ Confirm</button>` : ''}
+        ${b.status === 'pending' ? `<button class="btn sm ok" data-act="confirmed" data-ref="${esc(b.ref)}">✓ Confirm Booking</button>` : ''}
         ${b.status !== 'cancelled' ? `<button class="btn sm err" data-act="cancelled" data-ref="${esc(b.ref)}">✕ Cancel</button>` : ''}
         ${b.status === 'cancelled' ? '<span style="color:var(--muted);font-size:.8rem">—</span>' : ''}
       </div></td>
@@ -396,15 +397,16 @@ async function act(ref, status) {
     const r = await fetch('/api/bookings?key=' + encodeURIComponent(KEY) + '&ref=' + encodeURIComponent(ref), {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
     });
-    if (!r.ok) throw new Error();
-    toast((status === 'confirmed' ? 'Confirmed ' : 'Cancelled ') + ref);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { toast('⚠ ' + (j && j.message ? j.message : 'Action failed — try again')); return; }
+    toast((status === 'confirmed' ? '✓ Confirmed ' : 'Cancelled ') + ref);
     load();
   } catch (e) { toast('Action failed — try again'); }
 }
 
 function exportCSV() {
   const list = filtered();
-  const cols = ['ref','date','room','checkIn','checkOut','hours','overnight','total','name','phone','contact','source','status','created'];
+  const cols = ['ref','date','room','checkIn','checkOut','hours','overnight','total','name','phone','email','contact','source','status','created'];
   const rows = [cols.join(',')].concat(list.map(b => cols.map(c => {
     let v = b[c] == null ? '' : b[c];
     if (c === 'room') v = roomLabel(b.room);

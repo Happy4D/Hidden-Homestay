@@ -178,14 +178,14 @@ const sbRowToBooking = r => ({
   ref: r.ref, source: r.source, branch: r.branch, room: r.room,
   date: r.date, checkIn: r.check_in, checkOut: r.check_out,
   hours: +r.hours, overnight: !!(r.overnight), rate: +r.rate, total: +r.total,
-  name: r.name, phone: r.phone, contact: r.contact || '',
+  name: r.name, phone: r.phone, contact: r.contact || '', email: r.email || '',
   status: r.status, created: r.created_at, idCard: r.id_card || ''
 });
 const bookingToSbRow = b => ({
   ref: b.ref, source: b.source, room: b.room,
   date: b.date, check_in: b.checkIn, check_out: b.checkOut,
   hours: b.hours, overnight: b.overnight ? true : false, rate: b.rate, total: b.total,
-  name: b.name, phone: b.phone, contact: b.contact,
+  name: b.name, phone: b.phone, contact: b.contact, email: b.email || '',
   status: b.status, id_card: b.idCard || ''
 });
 
@@ -218,10 +218,20 @@ const store = {
       this._writeJSON(d);
       return booking;
     }
-    const r = await fetch(CFG.supabaseUrl + '/rest/v1/bookings', {
+    let row = bookingToSbRow(booking);
+    let r = await fetch(CFG.supabaseUrl + '/rest/v1/bookings', {
       method: 'POST', headers: sbHeaders({ Prefer: 'return=representation' }),
-      body: JSON.stringify(bookingToSbRow(booking))
+      body: JSON.stringify(row)
     });
+    if (!r.ok && r.status === 400 && 'email' in row) {
+      /* live table missing the email column — run the SQL from DEPLOYMENT.md */
+      console.error('[supabase] insert failed — retrying without email. Run: ALTER TABLE bookings ADD COLUMN email text;');
+      delete row.email;
+      r = await fetch(CFG.supabaseUrl + '/rest/v1/bookings', {
+        method: 'POST', headers: sbHeaders({ Prefer: 'return=representation' }),
+        body: JSON.stringify(row)
+      });
+    }
     if (!r.ok && r.status === 409) throw new Error('duplicate ref');
     if (!r.ok) throw new Error('supabase insert failed ' + r.status);
     return booking;
@@ -663,6 +673,7 @@ async function createBooking(data, source, opts) {
     room, date, checkIn, checkOut: out,
     hours: h, overnight: isON, rate: total, total,
     name: String(name).trim(), phone: phoneDigits, contact: String(contact || '').trim(),
+    email: String((data && data.email) || '').trim().slice(0, 120),
     idCard: isON ? String(idCard) : '',
     status: (opts && (opts.status === 'confirmed' || opts.status === 'pending')) ? opts.status
       : (source === 'telegram' ? 'confirmed' : 'pending'),
@@ -672,20 +683,29 @@ async function createBooking(data, source, opts) {
   return { ok: true, booking };
 }
 
+function fmtDShort(d) {
+  const p = String(d).split('-'); const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return p[2] + '-' + M[+p[1] - 1] + '-' + p[0];
+}
+
 function bookingText(b) {
   const r = ROOMS[b.room] || { name: b.room, type: '?' };
   return (
-    '🆕 New booking request — Hidden Homestay\n\n' +
-    'Ref: ' + b.ref + '  (via ' + b.source + ')\n' +
+    '🆕 <b>New Booking Request</b> — Hidden Homestay\n\n' +
+    'Customer: <b>' + esc(b.name) + '</b>\n' +
     'Room: ' + roomLabel(b.room) + (r.type === 'vip' ? ' 👑 VIP' : r.type === 'pool' ? ' 🎱' : '') + '\n' +
-    'Date: ' + fmtDate(b.date) + (isWeekend(b.date) ? '  (weekend rate)' : '') + '\n' +
+    'Date: ' + fmtDShort(b.date) + (isWeekend(b.date) ? ' (weekend rate)' : '') + '\n' +
     (b.overnight
       ? '🌙 Overnight: ' + fmtTime(b.checkIn) + ' → ' + fmtTime(b.checkOut) + ' next morning\n' +
         '🪪 ID Card: ' + (b.idCard ? 'attached ✓' : 'MISSING') + '\n'
-      : 'Check-in: ' + fmtTime(b.checkIn) + ' → Check-out: ' + fmtTime(b.checkOut) + '  (' + b.hours + ' hr' + (b.hours > 1 ? 's' : '') + ')\n') +
-    'Total: ' + money(b.total) + '\n\n' +
-    'Guest: ' + b.name + '\n' +
-    'Phone: ' + b.phone + (b.contact ? '\nContact: ' + b.contact : '') + '\n\n' +
+      : 'Time: ' + fmtTime(b.checkIn) + ' – ' + fmtTime(b.checkOut) + '\n' +
+        'Duration: ' + b.hours + ' hour' + (b.hours > 1 ? 's' : '') + '\n') +
+    'Price: ' + money(b.total) + '\n' +
+    'Phone: ' + esc(b.phone) + '\n' +
+    (b.email ? 'Email: ' + esc(b.email) + '\n' : '') +
+    (b.contact ? 'Contact: ' + esc(b.contact) + '\n' : '') +
+    'Ref: ' + b.ref + '  (via ' + b.source + ')\n' +
+    'Status: <b>Pending Confirmation</b>\n\n' +
     '📞 ' + FOOD_ORDER
   );
 }
@@ -828,12 +848,12 @@ async function handleTemplate(chatId, text, tg, isOwner) {
   }
   if (isOwner) {
     await tg.sendMessage(chatId, '✅ Booking saved — the website now shows these hours as taken.\n\n' +
-      bookingText(res.booking).replace('\u{1F195} New booking request — Hidden Homestay\n\n', '') +
+      bookingText(res.booking).replace('🆕 <b>New Booking Request</b> — Hidden Homestay\n\n', '') +
       (res.booking.overnight ? '\n\n🪪 <b>Overnight booking</b> — send the guest\'s ID Card photo with caption <code>ID ' + res.booking.ref + '</code>' : '') +
       customerLinkBlock(res.booking.ref));
   } else {
     await tg.sendMessage(chatId, '\u{1F64F} Thank you ' + esc(t.name) + '! Your booking request was received:\n\n' +
-      bookingText(res.booking).replace('\u{1F195} New booking request — Hidden Homestay\n\n', '') +
+      bookingText(res.booking).replace('🆕 <b>New Booking Request</b> — Hidden Homestay\n\n', '') +
       (res.booking.overnight ? '\n\n🪪 <b>Overnight stay</b> — please send a photo of your ID Card here with the caption <code>ID ' + res.booking.ref + '</code>.' : '') +
       '\n\nThe owner will confirm shortly.');
     notifyOwner(res.booking).catch(() => {});
@@ -850,11 +870,17 @@ async function handleUpdate(update, tg) {
     if (owner && chatId !== owner) { await tg.call('answerCallbackQuery', { callback_query_id: cb.id, text: 'Not allowed' }); return; }
     const [action, ref] = (cb.data || '').split(':');
     if (action !== 'confirm' && action !== 'cancel') return;
-    const status = action === 'confirm' ? 'confirmed' : 'cancelled';
-    await store.update(ref, { status });
-    await tg.call('answerCallbackQuery', { callback_query_id: cb.id, text: action === 'confirm' ? 'Confirmed ✅' : 'Cancelled' });
-    await tg.sendMessage(chatId, (action === 'confirm' ? '✅ Confirmed: ' : '🚫 Cancelled: ') + ref +
-      (action === 'cancel' ? ' — those hours are free again.' : ''), { reply_markup: { inline_keyboard: [] } });
+    if (action === 'cancel') {
+      await store.update(ref, { status: 'cancelled' });
+      await tg.call('answerCallbackQuery', { callback_query_id: cb.id, text: 'Cancelled' });
+      await tg.sendMessage(chatId, '🚫 Cancelled: ' + ref + ' — those hours are free again.');
+      return;
+    }
+    const res = await confirmBookingRef(ref, 'telegram', tg);
+    await tg.call('answerCallbackQuery', { callback_query_id: cb.id, text: res.ok ? 'Confirmed ✅' : String(res.message || 'Failed').slice(0, 180) });
+    await tg.sendMessage(chatId, res.ok
+      ? '✅ Confirmed: ' + ref + ' — the dashboard is updated, and the room access information is below. 👇'
+      : '⚠️ Could not confirm ' + ref + ': ' + res.message);
     return;
   }
 
@@ -976,7 +1002,7 @@ async function handleUpdate(update, tg) {
       'Room: pool, vintage, shanghai, classic, london, camping, fishing, burger, kuromi, veggie, slayer, gaming\n' +
       'Hours: <b>2–6</b> or <b>overnight</b> (8PM-8AM / 9PM-9AM) · Date: year-month-day\n\n' +
       'The moment you send it back, the booking is saved and those hours show as <b>taken on the website</b>.\n' +
-      'Add <code>Status: pending</code> if the guest hasn\u2019t paid yet (default is confirmed).\n' +
+      'Add <code>Status: pending</code> to save it as Pending Confirmation (default is confirmed).\n' +
       'You can also send this form to the guest — if <i>they</i> paste it filled, you get an alert to confirm.');
     return;
   }
@@ -1039,7 +1065,7 @@ async function handleUpdate(update, tg) {
       }
       return;
     }
-    await tg.sendMessage(chatId, '✅ Booked and confirmed — the website now shows these hours as taken.\n\n' + bookingText(res.booking).replace('🆕 New booking request — Hidden Homestay\n\n', '') + customerLinkBlock(res.booking.ref));
+    await tg.sendMessage(chatId, '✅ Booked and confirmed — the website now shows these hours as taken.\n\n' + bookingText(res.booking).replace('🆕 <b>New Booking Request</b> — Hidden Homestay\n\n', '') + customerLinkBlock(res.booking.ref));
     return;
   }
 
@@ -1092,9 +1118,8 @@ async function deliverConfirmation(chatId, ref, tg) {
         : '🕐 ' + fmtTime(b.checkIn) + ' → ' + fmtTime(b.checkOut) + ' (' + b.hours + 'h)\n') +
       '💵 Total: <b>' + money(b.total) + '</b>\n' +
       '🙋 Guest: ' + esc(b.name) + ' · ' + esc(b.phone) + '\n\n' +
-      '⏳ Status: <b>pending</b> — the owner will confirm your booking.\n' +
-      'Once the owner confirms, open this bot again (or check <b>My Booking</b> on the website) and you will receive the full information: room photo, how to enter, parking and the food menu. 🙏\n\n' +
-      '🍜 ការកក់ត្រូវបានទទួល — សូមរង់ចាំការបញ្ជាក់ពីម្ចាស់ផ្ទះ។ នៅពេលបញ្ជាក់រួចរាល់ សូមបើក Telegram នេះមកវិញ ដើម្បីទទួលព័ត៌មានពេញលេញ។');
+      '⏳ Status: <b>Pending Confirmation</b> — the owner will contact you directly to arrange payment. Your booking is not confirmed until the owner confirms it.\n\n' +
+      '🍜 ការកក់ត្រូវបានទទួល — សូមរង់ចាំម្ចាស់ផ្ទះទាក់ទងអ្នកដោយផ្ទាល់ ដើម្បីរៀបចំការបង់ប្រាក់។');
     return;
   }
   const txt =
@@ -1109,18 +1134,11 @@ async function deliverConfirmation(chatId, ref, tg) {
     '🙋 Guest: ' + esc(b.name) + ' · ' + esc(b.phone) + '\n\n' +
     '📍 ' + esc(ADDRESS) + '\n' +
     '📞 ' + FOOD_ORDER + '\n\n' +
-    (b.status === 'confirmed'
-      ? 'Your booking is <b>confirmed</b> ✅ — see you soon!\n'
-      : '⏳ Status: <b>pending</b> — full payment confirms your booking.\n') +
-    '🍜 ការកក់ត្រូវបានទទួល — សូមមើលរូបភាពខាងក្រោមសម្រាប់មគ្គុទ្ទេសក៍ចូល និងមឺនុយអាហារ។\n\n' +
-    'Below: your room \u{1F3E8}, how to enter \u{1F5FA}\uFE0F, parking \u{1F17F}\uFE0F and the food menu \u{1F35C}. Enjoy your stay!';
+    '💳 The owner will contact you directly to arrange payment.\n' +
+    '✅ Your booking is confirmed — see you soon!\n' +
+    '🍜 ការកក់របស់អ្នកត្រូវបានបញ្ជាក់រួចរាល់ — សូមរង់ចាំម្ចាស់ផ្ទះទាក់ទងអ្នកដោយផ្ទាល់។ សូមស្នាក់នៅដោយសុខដុម!';
   await tg.sendMessage(chatId, txt);
-  const media = [{ type: 'photo', media: a.photo, caption: '🛏 ' + esc(roomLabel(b.room)) }];
-  if (ROOMS[b.room] && ROOMS[b.room].type !== 'pool') media.push({ type: 'photo', media: a.guide, caption: '🗺 How to enter & find your room' });
-  media.push({ type: 'photo', media: a.parking, caption: '🅿️ Parking guide' });
-  a.menus.forEach((m, i) => media.push({ type: 'photo', media: m, caption: '🍜 Food menu ' + (i + 1) + '/5' }));
-  try { await tg.sendMediaGroup(chatId, media); }
-  catch (e) { console.error('[bot] confirmation media failed:', e.message); }
+  /* no media album to the customer — the owner sends the access information manually */
 }
 
 /* ---------- polling loop ---------- */
@@ -1157,6 +1175,58 @@ async function startPolling() {
   })();
 }
 
+/* ---------- owner-confirmed bookings: one shared confirm path for dashboard + Telegram ---------- */
+async function confirmBookingRef(ref, via, tg) {
+  const b = (await store.all()).find(x => String(x.ref).toUpperCase() === String(ref || '').toUpperCase());
+  if (!b) return { ok: false, message: 'booking not found' };
+  if (b.status === 'confirmed') return { ok: false, already: true, message: 'this booking is already confirmed' };
+  if (b.status === 'cancelled') return { ok: false, message: 'this booking was cancelled — cannot confirm' };
+  /* re-check availability: exclude this booking itself; the 1-hour cleaning rule applies */
+  const clashes = (await findConflicts(b.room, b.date, b.checkIn, b.hours || 12)).filter(x => x.ref !== b.ref && x.status !== 'cancelled');
+  if (clashes.length)
+    return { ok: false, error: 'conflict', busy: clashes,
+             message: 'the room is no longer available for that time — ' + clashes.map(x => x.ref + ' (' + x.status + ', ' + fmtTime(x.checkIn) + '–' + fmtTime(x.checkOut) + ')').join(', ') };
+  await store.update(b.ref, { status: 'confirmed' });
+  console.log('[booking] ' + b.ref + ' confirmed via ' + via);
+  /* room access information goes to the OWNER only — never auto-sent to the customer */
+  const botOk = tg || (CFG.botToken && !CFG.botToken.startsWith('test'));
+  if (botOk) {
+    try { await sendOwnerAccessPackage({ ...b, status: 'confirmed' }, tg || makeTelegram(CFG.botToken), via); }
+    catch (e) { console.error('[bot] owner access package failed:', e.message); }
+  }
+  return { ok: true, booking: { ...b, status: 'confirmed' } };
+}
+
+async function sendOwnerAccessPackage(b, tg, via) {
+  const owner = await store.getOwner();
+  if (!owner) return;
+  const r = ROOMS[b.room] || { name: b.room, type: '?' };
+  const a = roomAssets(b.room);
+  const txt =
+    '✅ <b>BOOKING CONFIRMED — ROOM ACCESS INFORMATION</b>\n\n' +
+    'Room: <b>' + esc(roomLabel(b.room)) + '</b>' + (r.type === 'vip' ? ' 👑 VIP' : r.type === 'pool' ? ' 🎱' : '') + '\n' +
+    'Date: ' + fmtDShort(b.date) + '\n' +
+    (b.overnight
+      ? '🌙 Overnight: ' + fmtTime(b.checkIn) + ' → ' + fmtTime(b.checkOut) + ' next morning\n'
+      : 'Check-in: ' + fmtTime(b.checkIn) + '\n' +
+        'Check-out: ' + fmtTime(b.checkOut) + '\n' +
+        'Duration: ' + b.hours + ' hour' + (b.hours > 1 ? 's' : '') + '\n') +
+    'Customer: <b>' + esc(b.name) + '</b>\n' +
+    'Phone: ' + esc(b.phone) + '\n' +
+    (b.email ? 'Email: ' + esc(b.email) + '\n' : '') +
+    'Price: <b>' + money(b.total) + '</b>\n' +
+    'Ref: ' + b.ref + '\n\n' +
+    '📍 ' + esc(ADDRESS) + '\n' +
+    '📞 ' + FOOD_ORDER + '\n\n' +
+    '💳 <b>Next step (owner):</b> contact the customer to arrange payment, then forward the entry guideline and parking guide below to them manually.';
+  await tg.sendMessage(owner, txt);
+  const media = [{ type: 'photo', media: a.photo, caption: '🛏 ' + esc(roomLabel(b.room)) }];
+  if (ROOMS[b.room] && ROOMS[b.room].type !== 'pool') media.push({ type: 'photo', media: a.guide, caption: '🗺 Entry guideline — ' + esc(roomLabel(b.room)) });
+  media.push({ type: 'photo', media: a.parking, caption: '🅿️ Parking guide' });
+  try { await tg.sendMediaGroup(owner, media); }
+  catch (e) { console.error('[bot] owner access media failed:', e.message); }
+}
+
 /* ---------- notify owner about new website bookings ---------- */
 async function notifyOwner(booking) {
   if (!CFG.botToken || CFG.botToken.startsWith('test')) return;
@@ -1165,7 +1235,7 @@ async function notifyOwner(booking) {
   const tg = makeTelegram(CFG.botToken);
   await tg.sendMessage(owner, bookingText(booking), {
     reply_markup: { inline_keyboard: [[
-      { text: '✅ Confirm', callback_data: 'confirm:' + booking.ref },
+      { text: '✅ Confirm Booking', callback_data: 'confirm:' + booking.ref },
       { text: '❌ Cancel', callback_data: 'cancel:' + booking.ref }
     ]] }
   });
@@ -1322,6 +1392,11 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       if (!ref || ['pending', 'confirmed', 'cancelled'].indexOf(body.status) === -1)
         return json(res, 400, { ok: false, message: 'ref and a valid status (pending/confirmed/cancelled) are required' });
+      if (body.status === 'confirmed') {
+        const r = await confirmBookingRef(ref, 'dashboard', null);
+        if (!r.ok) return json(res, 409, { ok: false, message: r.message, busy: r.busy });
+        return json(res, 200, { ok: true, ref: ref, status: 'confirmed' });
+      }
       await store.update(ref, { status: body.status });
       return json(res, 200, { ok: true, ref: ref, status: body.status });
     }
@@ -1413,7 +1488,7 @@ process.on('uncaughtException', e => console.error('[warn] uncaught exception:',
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.7.2 (7 updates)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.8.0 (8 updates)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));
@@ -1425,4 +1500,4 @@ if (require.main === module) {
 }
 
 /* exported for testing */
-module.exports = { createBooking, handleUpdate, store, findConflicts, bookingText, digestText, sendDailyDigest, deliverConfirmation, priceFor, ROOMS, PRICING, server };
+module.exports = { createBooking, handleUpdate, store, findConflicts, bookingText, confirmBookingRef, sendOwnerAccessPackage, digestText, sendDailyDigest, deliverConfirmation, priceFor, ROOMS, PRICING, server };

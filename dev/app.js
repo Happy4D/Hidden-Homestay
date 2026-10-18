@@ -146,10 +146,10 @@ const I18N = {
     howKicker: 'Effortless booking', howTitle: 'Three steps to your hideaway',
     how1T: 'Date & duration', how1P: 'Choose your date and how long you\u2019ll stay — 2 to 6 hours, or a full overnight (8PM–8AM / 9PM–9AM). The price shows instantly, weekday or weekend.',
     how2T: 'Pick your room', how2P: 'Twelve themed rooms, one address. Only rooms that are actually free for your slot are shown — no double bookings, ever.',
-    how3T: 'Confirm & relax', how3P: 'Agree to the house rules, confirm your booking, and get your confirmation, room photo, entry guideline and parking guide straight to your Telegram.',
+    how3T: 'Submit & relax', how3P: 'Agree to the house rules and submit your booking request — the owner will contact you directly to arrange payment and confirm your booking.',
     bookKicker: 'Reserve in two minutes', bookTitle: 'Book your stay',
     bookSub: 'Select your date, room, and check-in time — it only takes two minutes.',
-    step1: 'Schedule', step2: 'Room', step3: 'Your details', step4: 'Confirm & pay',
+    step1: 'Schedule', step2: 'Room', step3: 'Your details', step4: 'Confirm',
     s1Title: 'When would you like to stay?',
     s1Date: 'Date', hrs: 'hrs', ovNight: 'overnight',
     s1Dur: 'Duration', s1PoolHours: 'Pool Room — hours:', s1In: 'Check-in time', s1Ov: 'Overnight check-in / check-out',
@@ -160,34 +160,29 @@ const I18N = {
     s1OvLine: 'Check-in {in} (evening) · Check-out {out} (next morning)',
     s2Title: 'Choose your room',
     s2Note: '{n} of {t} rooms free for your slot', s2NoteDemo: 'Demo mode — availability checking is active on the live site',
-    s3Title: 'Your details', s3Name: 'Full name', s3Phone: 'Telegram phone number',
-    s3PhoneNote: '📱 Please enter the phone number registered with your Telegram account — your booking confirmation and entry guideline will be sent there.',
+    s3Title: 'Your details', s3Name: 'Full name', s3Email: 'Email', s3Phone: 'Telegram phone number',
+    s3PhoneNote: '📱 Please enter the phone number registered with your Telegram account — the owner will use it to contact you about your booking.',
     s3Id: 'ID Card photo (required for overnight)',
     s3IdNote: 'Overnight stays require a photo of your ID Card. Please upload a clear picture (front side).',
     s3IdRetake: 'Retake', s3IdOk: 'ID photo attached ✓',
     s4Title: 'Review & confirm', s4Rules: 'House rules',
     s4Agree: 'I have read and agree to the house rules above.',
-    s4PayTitle: 'Payment',
-    s4PayNote: 'Full payment is required to confirm your booking. Scan the QR code below with any Cambodian banking app (ABA, ACLEDA, Wing…), or download it to pay.',
     s5hNote: 'If you would like to book for more than 5 hours, please contact the owner directly via Telegram.',
     pool1h: 'Pool · 1 hr',
-    dlQr: 'Download QR Code',
-    qrMiss: '⚠️ QR code for this amount is not available yet — please contact the owner on Telegram: @hiddenhomestay',
     phoneLabel: 'Phone',
     tDurRoom: 'That duration is not available for this room — please choose another option.',
-    s4PayDone: 'After you tap \u201CConfirm Booking\u201D, open Telegram to receive your confirmation, room photo, entry guideline and parking guide.',
-    total: 'Total', confirmBtn: 'Confirm Booking ✓', back: '← Back', next: 'Next →',
-    s5Title: 'Booking received!',
-    s5Sub: 'Your request is in. One last tap — open Telegram and press START to receive your confirmation, your room\u2019s photo, the entry guideline, the parking guide and the food menu.',
-    s5Btn: 'Get my confirmation in Telegram', s5Again: 'Book another stay',
+    total: 'Total', confirmBtn: 'Submit Booking Request ✓', back: '← Back', next: 'Next →',
+    s5Title: 'Booking Request Submitted',
+    s5Sub: 'Thank you for your booking request. The owner will contact you directly to arrange payment. Your booking is not confirmed until the owner confirms it.',
+    s5Btn: 'Open Telegram', s5Again: 'Book another stay',
     s5RefNote: 'Booking reference: {ref}',
     locKicker: 'One address', locTitle: 'Hidden Homestay — Borey Vimean Phnom Penh',
     locL1: 'No 235D, Road No 777', locL2: 'Sangkat Jranh Chomres II, Khan Russey Keo', locL3: 'Phnom Penh, Cambodia',
-    locSub: 'Easy to find, calm streets, and space to park. The exact entry guideline and parking guide are sent to your Telegram with every booking.',
+    locSub: 'Easy to find, calm streets, and space to park.',
     termsKicker: 'Please read before booking', termsTitle: 'Terms & Conditions',
     addrLabel: 'Address', hoursValue: 'Every day · 8:00 AM – 11:00 PM',
     addrValue: 'No 235D, Road 777, Sangkat Jranh Chomres II, Khan Russey Keo, Phnom Penh',
-    footFine: 'Bookings are confirmed after full payment.',
+    footFine: 'Bookings are confirmed by the owner after payment is arranged.',
     weekday: 'weekday', weekend: 'weekend', overnight: 'overnight', hoursWord: 'hours',
     fromPrice: 'from', perHour: '/ hour', vipPlus: 'VIP upgrade +$3',
     vipIncludesTitle: 'VIP rooms include',
@@ -205,20 +200,21 @@ const I18N = {
       '<b>Early check-in</b> must be arranged with the owner via Telegram.',
       'Late check-out — $5/hour',
       'No refund for cancellation.',
-      'Full payment is required to confirm a booking.'
+      'Payment is arranged directly with the owner.'
     ],
     rcDate: 'Date', rcRoom: 'Room', rcType: 'Type', rcIn: 'Check-in', rcOut: 'Check-out',
-    rcDur: 'Duration', rcGuest: 'Guest', rcPhone: 'Phone', rcId: 'ID Card', rcPriceType: 'Pricing',
+    rcDur: 'Duration', rcGuest: 'Guest', rcPhone: 'Phone', rcEmail: 'Email', rcId: 'ID Card', rcPriceType: 'Pricing',
     rcIdYes: 'Attached ✓', rcIdNo: '— (not required)',
     tName: 'Please enter your full name',
     tPhone: 'Phone number must contain digits only',
     tPhoneLen: 'Please enter a valid phone number (8–15 digits)',
+    tEmail: 'Please enter a valid email address (e.g. name@gmail.com).',
     tId: 'Overnight stays require an ID Card photo',
     tRoom: 'Please choose a room first',
     tDur: 'Please choose a duration first',
     tBusy: 'Those hours were just taken — please pick another room or time',
     tServer: 'Could not reach the server — please try again',
-    tDone: 'Booking sent! Open Telegram to get your confirmation 🎉',
+    tDone: 'Booking request submitted! The owner will contact you soon 🙏',
     tLang: 'Language switched to English'
   },
 
@@ -256,10 +252,10 @@ const I18N = {
     howKicker: 'កក់ងាយស្រួល', howTitle: 'បីជំហាន ទៅកាន់កន្លែងសម្រាប់អ្នក',
     how1T: 'កាលបរិច្ឆេទ និងរយៈពេល', how1P: 'ជ្រើសរើសកាលបរិច្ឆេទ និងរយៈពេលស្នាក់ — ២ ទៅ ៦ ម៉ោង ឬពេញមួយយប់ (20:00–08:00 / 21:00–09:00)។ តម្លៃបង្ហាញភ្លាមៗ ថ្ងៃធ្វើការ ឬចុងសប្តាហ៍។',
     how2T: 'ជ្រើសរើសបន្ទប់', how2P: 'បន្ទប់ចម្រុះ ១២ បន្ទប់ នៅអាសយដ្ឋានតែមួយ។ បង្ហាញតែបន្ទប់ដែលទំនេងពិតប្រាកដសម្រាប់ពេលរបស់អ្នក — មិនមានការកក់ទ្វេដងឡើយ។',
-    how3T: 'បញ្ជាក់ ហើយសម្រាក', how3P: 'យល់ព្រមនឹងច្បាប់ផ្ទះ បញ្ជាក់ការកក់របស់អ្នក ហើយទទួលបានការបញ្ជាក់ រូបបន្ទប់ មគ្គុទ្ទេសក៍ចូល និងមគ្គុទ្ទេសក៍ចត់ឡាន តាម Telegram ដោយផ្ទាល់។',
+    how3T: 'ដាក់ស្នើ ហើយសម្រាក', how3P: 'យល់ព្រមនឹងច្បាប់ផ្ទះ ហើយដាក់ស្នើសំណើការកក់របស់អ្នក — ម្ចាស់ផ្ទះនឹងទាក់ទងអ្នកដោយផ្ទាល់ ដើម្បីរៀបចំការបង់ប្រាក់ និងបញ្ជាក់ការកក់របស់អ្នក។',
     bookKicker: 'កក់ក្នុងរយៈពេលពីរនាទី', bookTitle: 'កក់ការស្នាក់នៅរបស់អ្នក',
     bookSub: 'ជ្រើសរើសកាលបរិច្ឆេទ បន្ទប់ និងម៉ោងចូល — ចំណាយពេលតែពីរនាទីប៉ុណ្ណោះ។',
-    step1: 'កាលវិភាគ', step2: 'បន្ទប់', step3: 'ព័ត៌មានរបស់អ្នក', step4: 'បញ្ជាក់ និងបង់ប្រាក់',
+    step1: 'កាលវិភាគ', step2: 'បន្ទប់', step3: 'ព័ត៌មានរបស់អ្នក', step4: 'បញ្ជាក់',
     s1Title: 'តើអ្នកចង់ស្នាក់នៅពេលណា?',
     s1Date: 'កាលបរិច្ឆេទ', hrs: 'ម៉ោង', ovNight: 'ពេលយប់',
     s1Dur: 'រយៈពេល', s1PoolHours: 'បន្ទប់ Pool — ចំនួនម៉ោង:', s1In: 'ម៉ោងចូល', s1Ov: 'ចូល / ចេញ ពេលយប់',
@@ -270,34 +266,29 @@ const I18N = {
     s1OvLine: 'ចូលម៉ោង {in} (ល្ងាច) · ចេញម៉ោង {out} (ព្រឹកថ្ងៃក្រោយ)',
     s2Title: 'ជ្រើសរើសបន្ទប់របស់អ្នក',
     s2Note: 'មានបន្ទប់ {n} ក្នុងចំណោម {t} ទំនេងសម្រាប់ពេលរបស់អ្នក', s2NoteDemo: 'របៀបសាកល្បង — ការពិនិត្យភាពទំនេងដំណើរការនៅលើគេហទំព័រពិត',
-    s3Title: 'ព័ត៌មានរបស់អ្នក', s3Name: 'ឈ្មោះពេញ', s3Phone: 'លេខទូរស័ព្ទ Telegram',
-    s3PhoneNote: '📱 សូមបញ្ចូលលេខទូរស័ព្ទដែលបានចុះឈ្មោះក្នុង Telegram របស់អ្នក — ការបញ្ជាក់ការកក់ និងមគ្គុទ្ទេសក៍ចូល នឹងផ្ញើទៅទីនោះ។',
+    s3Title: 'ព័ត៌មានរបស់អ្នក', s3Name: 'ឈ្មោះពេញ', s3Email: 'អ៊ីមែល', s3Phone: 'លេខទូរស័ព្ទ Telegram',
+    s3PhoneNote: '📱 សូមបញ្ចូលលេខទូរស័ព្ទដែលបានចុះឈ្មោះក្នុង Telegram របស់អ្នក — ម្ចាស់ផ្ទះនឹងប្រើលេខនេះទាក់ទងអ្នកអំពីការកក់របស់អ្នក។',
     s3Id: 'រូបភាពអត្តសញ្ញាណប័ណ្ណ (តម្រូវសម្រាប់ពេលយប់)',
     s3IdNote: 'ការស្នាក់ពេលយប់តម្រូវឱ្យមានរូបភាពអត្តសញ្ញាណប័ណ្ណ។ សូមបញ្ចូលរូបភាពច្បាស់ (ផ្នែកខាងមុខ)។',
     s3IdRetake: 'យកឡើងវិញ', s3IdOk: 'បានភ្ជាប់រូបអត្តសញ្ញាណ ✓',
     s4Title: 'ពិនិត្យ និងបញ្ជាក់', s4Rules: 'ច្បាប់ផ្ទះ',
     s4Agree: 'ខ្ញុំបានអាន ហើយយល់ព្រមនឹងច្បាប់ផ្ទះខាងលើ។',
-    s4PayTitle: 'ការបង់ប្រាក់',
-    s4PayNote: 'ត្រូវបង់ប្រាក់ពេញលេញ ដើម្បីបញ្ជាក់ការកក់។ សូមស្កេន QR កូដខាងក្រោម ដោយកម្មវិធីធនាគារកម្ពុជាណាមួយ (ABA, ACLEDA, Wing…) ឬទាញយកវាមកបង់ប្រាក់។',
     s5hNote: 'ប្រសិនបើអ្នកចង់កក់លើសពី ៥ ម៉ោង សូមទាក់ទងម្ចាស់ផ្ទះដោយផ្ទាល់តាម Telegram។',
     pool1h: 'បន្ទប់Pool · ១ ម៉ោង',
-    dlQr: 'ទាញយក QR Code',
-    qrMiss: '⚠️ កំឡី QR ដើម្បីតម្រោរនេងមិនទាងជាដេងអស្គារនិងម្លាតងដើម្បី Telegram របូបក្នុងផ្នើស្មើ: @hiddenhomestay',
     phoneLabel: 'ទុរស្ពើ',
     tDurRoom: 'រយៈពេលនេះមិនមានសម្រាប់បន្ទប់នេះទេ — សូមជ្រើសរើសជម្រើសផ្សេងទៀត។',
-    s4PayDone: 'បន្ទាប់ពីចុច \u201Cបញ្ជាក់ការកក់\u201D សូមបើក Telegram ដើម្បីទទួលការបញ្ជាក់ រូបបន្ទប់ មគ្គុទ្ទេសក៍ចូល និងមគ្គុទ្ទេសក៍ចត់ឡាន។',
-    total: 'សរុប', confirmBtn: 'បញ្ជាក់ការកក់ ✓', back: '← ត្រឡប់', next: 'បន្ទាប់ →',
-    s5Title: 'បានទទួលការកក់!',
-    s5Sub: 'សំណើរបស់អ្នកបានជោគជ័យ។ នៅសល់មួយចុច — បើក Telegram ហើយចុច START ដើម្បីទទួលការបញ្ជាក់ រូបបន្ទប់របស់អ្នក មគ្គុទ្ទេសក៍ចូល មគ្គុទ្ទេសក៍ចត់ឡាន និងមឺនុុយអាហារ។',
-    s5Btn: 'ទទួលការបញ្ជាក់តាម Telegram', s5Again: 'កក់ម្តងទៀត',
+    total: 'សរុប', confirmBtn: 'ដាក់ស្នើសំណើការកក់ ✓', back: '← ត្រឡប់', next: 'បន្ទាប់ →',
+    s5Title: 'សំណើការកក់ត្រូវបានដាក់ស្នើ',
+    s5Sub: 'សូមអរគុណសម្រាប់សំណើការកក់របស់អ្នក។ ម្ចាស់ផ្ទះនឹងទាក់ទងអ្នកដោយផ្ទាល់ ដើម្បីរៀបចំការបង់ប្រាក់។ ការកក់របស់អ្នកមិនត្រូវបានបញ្ជាក់ទេ រហូតដល់ម្ចាស់ផ្ទះបញ្ជាក់វា។',
+    s5Btn: 'បើក Telegram', s5Again: 'កក់ម្តងទៀត',
     s5RefNote: 'លេខយោងការកក់: {ref}',
     locKicker: 'អាសយដ្ឋានតែមួយ', locTitle: 'Hidden Homestay — បូរីវៀនភ្នំពេញ',
     locL1: 'លេខ 235D, ផ្លូវលេខ 777', locL2: 'សង្កាត់ជ្រាញ់ជំនុះ II, ខណ្ឌ Russey Keo', locL3: 'ភ្នំពេញ, កម្ពុជា',
-    locSub: 'ងាយស្រួលរក តំបន់ស្ងប់ស្ងាត់ និងមានកន្លែងចត់ឡាន។ មគ្គុទ្ទេសក៍ចូល និងមគ្គុទ្ទេសក៍ចត់ឡានត្រូវបានផ្ញើទៅ Telegram របស់អ្នកជាមួយគ្រប់ការកក់។',
+    locSub: 'ងាយស្រួលរក តំបន់ស្ងប់ស្ងាត់ និងមានកន្លែងចត់ឡាន។',
     termsKicker: 'សូមអានមុនពេលកក់', termsTitle: 'លក្ខខណ្ឌ និងច្បាប់',
     addrLabel: 'អាសយដ្ឋាន', hoursValue: 'រាល់ថ្ងៃ · 8:00 ព្រឹក – 11:00 យប់',
     addrValue: 'លេខ 235D, ផ្លូវលេខ 777, សង្កាត់ជ្រាញ់ជំនុះទី២, ខណ្ឌឫស្សីកែវ, ភ្នំពេញ',
-    footFine: 'ការកក់ត្រូវបានបញ្ជាក់ បន្ទាប់ពីបង់ប្រាក់ពេញលេញ។',
+    footFine: 'ការកក់ត្រូវបានបញ្ជាក់ដោយម្ចាស់ផ្ទះ បន្ទាប់ពីការបង់ប្រាក់ត្រូវបានរៀបចំរួចរាល់។',
     weekday: 'ថ្ងៃធ្វើការ', weekend: 'ចុងសប្តាហ៍', overnight: 'ពេលយប់', hoursWord: 'ម៉ោង',
     fromPrice: 'ចាប់ពី', perHour: '/ ម៉ោង', vipPlus: 'សេវា VIP +៣$',
     vipIncludesTitle: 'បន្ទប់ VIP រួមមាន',
@@ -315,20 +306,21 @@ const I18N = {
       'ការចូលមុនម៉ោង ត្រូវសម្របសម្រួលជាមួយម្ចាស់ផ្ទះតាម Telegram។',
       'ចេញយឺត — ៥ ដុល្លារ / ម៉ោង',
       'ការលុបចោលការកក់ នឹងមិនត្រូវបង់វិញទេ។',
-      'ត្រូវបង់ប្រាក់ពេញលេញ ដើម្បីបញ្ជាក់ការកក់។'
+      'ការបង់ប្រាក់ត្រូវរៀបចំដោយផ្ទាល់ជាមួយម្ចាស់ផ្ទះ។'
     ],
     rcDate: 'កាលបរិច្ឆេទ', rcRoom: 'បន្ទប់', rcType: 'ប្រភេទ', rcIn: 'ចូល', rcOut: 'ចេញ',
-    rcDur: 'រយៈពេល', rcGuest: 'ភ្ញៀវ', rcPhone: 'ទូរស័ព្ទ', rcId: 'អត្តសញ្ញាណ', rcPriceType: 'ការកំណត់តម្លៃ',
+    rcDur: 'រយៈពេល', rcGuest: 'ភ្ញៀវ', rcPhone: 'ទូរស័ព្ទ', rcEmail: 'អ៊ីមែល', rcId: 'អត្តសញ្ញាណ', rcPriceType: 'ការកំណត់តម្លៃ',
     rcIdYes: 'បានភ្ជាប់ ✓', rcIdNo: '— (មិនតម្រូវ)',
     tName: 'សូមបញ្ចូលឈ្មោះពេញរបស់អ្នក',
     tPhone: 'លេខទូរស័ព្ទត្រូវមានតែលេខប៉ុណ្ណោះ',
     tPhoneLen: 'សូមបញ្ចូលលេខទូរស័ព្ទត្រឹមត្រូវ (៨–១៥ ខ្ទង់)',
+    tEmail: 'សូមបញ្ចូលអ៊ីមែលត្រឹមត្រូវ (ឧ. name@gmail.com)។',
     tId: 'ការស្នាក់ពេលយប់តម្រូវឱ្យមានរូបភាពអត្តសញ្ញាណប័ណ្ណ',
     tRoom: 'សូមជ្រើសរើសបន្ទប់ជាមុនសិន',
     tDur: 'សូមជ្រើសរើសរយៈពេលជាមុនសិន',
     tBusy: 'ពេលនោះទើបតែមានមនុស្សកក់ — សូមជ្រើសបន្ទប់ ឬពេលផ្សេង',
     tServer: 'មិនអាចទាក់ទងម៉ាស៊ីនបម្រើបានទេ — សូមព្យាយាមម្តងទៀត',
-    tDone: 'បានផ្ញើការកក់! សូមបើក Telegram ដើម្បីទទួលការបញ្ជាក់ 🎉',
+    tDone: 'សំណើការកក់ត្រូវបានដាក់ស្នើ! ម្ចាស់ផ្ទះនឹងទាក់ទងអ្នកឆាប់ៗ 🙏',
     tLang: 'បានប្តូរភាសាទៅខ្មែរ'
   }
 };
@@ -444,7 +436,7 @@ async function detectLive() {
    ============================================================ */
 const state = {
   step: 1, date: '', dur: '', disabledRooms: [],
-  start: '', room: '', name: '', phone: '', agreed: false,
+  start: '', room: '', name: '', phone: '', email: '', agreed: false,
   idCard: '', ref: '', completed: false, avail: ''
 };
 const D = $('#book');
@@ -687,14 +679,15 @@ async function buildRoomGrid() {
    STEP 3 — GUEST DETAILS (phone validation + ID upload)
    ============================================================ */
 function buildGuest() {
-  const nm = $('#bkName'), ph = $('#bkPhone');
-  nm.value = state.name; ph.value = state.phone;
+  const nm = $('#bkName'), ph = $('#bkPhone'), em = $('#bkEmail');
+  nm.value = state.name; ph.value = state.phone; em.value = state.email;
   const isON = state.dur === 'ON8' || state.dur === 'ON9';
   $('#idField').hidden = !isON;
 
   if (!nm.dataset.init) {
     nm.dataset.init = '1';
     nm.addEventListener('input', () => { state.name = nm.value; guestValid(); });
+    em.addEventListener('input', () => { state.email = em.value; guestValid(); });
     /* phone: digits only, live-filtered */
     ph.addEventListener('input', () => {
       const clean = ph.value.replace(/\D+/g, '');
@@ -712,6 +705,7 @@ function buildGuest() {
     $('#actNext3').onclick = () => {
       const onNow = state.dur === 'ON8' || state.dur === 'ON9';   // fresh — never a stale closure
       if (!state.name.trim()) { toast(t('tName'), ICON.info); return; }
+      if (!emailOk(state.email)) { toast(t('tEmail'), ICON.info); return; }
       if (!phoneOk(state.phone)) { toast(t('tPhoneLen'), ICON.info); return; }
       if (onNow && !state.idCard) { toast(t('tId'), ICON.info); return; }
       goStep(4);
@@ -720,9 +714,10 @@ function buildGuest() {
   guestValid();
 }
 const phoneOk = p => /^[0-9]{8,15}$/.test(p);
+const emailOk = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((e || '').trim());
 function guestValid() {
   const isON = state.dur === 'ON8' || state.dur === 'ON9';
-  const valid = !!(state.name.trim() && phoneOk(state.phone) && (!isON || !!state.idCard));
+  const valid = !!(state.name.trim() && phoneOk(state.phone) && emailOk(state.email) && (!isON || !!state.idCard));
   $('#actNext3').disabled = !valid;
 }
 
@@ -768,6 +763,7 @@ function receiptHTML() {
          row(t('rcDur'), isON ? esc(t('overnight')) + ' (12h)' : info.hours + ' ' + esc(t('hoursWord'))) +
          row(t('rcGuest'), esc(state.name)) +
          row(t('rcPhone'), esc(state.phone)) +
+         (state.email ? row(t('rcEmail'), esc(state.email)) : '') +
          (isON ? row(t('rcId'), state.idCard ? esc(t('rcIdYes')) : '—') : '') +
          '<div class="rc-row rc-total"><span>' + esc(t('total')) + '</span><b>' + money(total) + '</b></div>';
 }
@@ -777,27 +773,10 @@ function buildReview() {
   $('#termsList').innerHTML = t('rules').map(r => '<li>' + r + '</li>').join('');
   const ag = $('#agreedTerms');
   ag.checked = state.agreed;
-  $('#paySection').classList.toggle('open', state.agreed);
-  const payTotal = priceFor(state.room, state.date, state.dur);
-  $('#payAmount').textContent = money(payTotal);
-  /* QR code is selected by the FINAL price: assets/qr/<price>.jpg */
-  const qrImg = $('#payQrImg'), dlBtn = $('#dlQrBtn'), qrMiss = $('#qrMissing');
-  if (qrImg && dlBtn) {
-    const qrFile = 'assets/qr/' + payTotal + '.jpg';
-    qrMiss.style.display = 'none';
-    qrImg.style.display = '';
-    dlBtn.style.display = '';
-    qrImg.onerror = () => { qrImg.style.display = 'none'; dlBtn.style.display = 'none'; qrMiss.style.display = ''; };
-    qrImg.src = qrFile;
-    dlBtn.href = qrFile;
-    dlBtn.setAttribute('download', 'Hidden-Homestay-QR-$' + payTotal + '.jpg');
-  }
-  $('#payRef').textContent = '';
   if (!ag.dataset.init) {
     ag.dataset.init = '1';
     ag.addEventListener('change', () => {
       state.agreed = ag.checked;
-      $('#paySection').classList.toggle('open', state.agreed);
       syncConfirmBtn();
     });
     $('#actBack4').onclick = () => goStep(3);
@@ -807,7 +786,7 @@ function buildReview() {
 }
 function syncConfirmBtn() {
   const info = durInfo(), isON = info.overnight;
-  const valid = state.agreed && state.name.trim() && phoneOk(state.phone) && (!isON || !!state.idCard) && state.room;
+  const valid = state.agreed && state.name.trim() && phoneOk(state.phone) && emailOk(state.email) && (!isON || !!state.idCard) && state.room;
   $('#actConfirm').disabled = !valid;
 }
 
@@ -824,7 +803,7 @@ async function confirmBooking() {
         room: state.room, date: state.date,
         checkIn: info.checkIn, checkOut: info.checkOut,
         hours: info.hours, overnight: info.overnight,
-        name: state.name.trim(), phone: state.phone.trim(), contact: '',
+        name: state.name.trim(), phone: state.phone.trim(), email: state.email.trim(), contact: '',
         idCard: info.overnight ? state.idCard : ''
       })
     }, 12000);
@@ -838,7 +817,7 @@ async function confirmBooking() {
       room: state.room, date: state.date,
       checkIn: info.checkIn, checkOut: info.checkOut,
       hours: info.hours, overnight: !!info.overnight,
-      name: state.name.trim(),
+      name: state.name.trim(), email: state.email.trim(),
       total: (j.booking ? j.booking.total : j.total) || priceFor(state.room, state.date, state.dur)
     });
     toast(t('tDone'), ICON.ok);
@@ -927,11 +906,11 @@ function initShowcase() {
    BOOKING OVERLAY (opens like the classic pop-up booking screen)
    ============================================================ */
 function resetBooking() {
-  Object.assign(state, { step: 1, date: '', dur: '', start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
-  $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = '';
+  Object.assign(state, { step: 1, date: '', dur: '', start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', email: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
+  $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = ''; $('#bkEmail').value = '';
   $('#idUpload').value = ''; $('#idPreview').hidden = true;
   const ag = $('#agreedTerms');
-  if (ag) { ag.checked = false; $('#paySection').classList.remove('open'); }
+  if (ag) { ag.checked = false; }
 }
 function openBooking(e) {
   if (e) e.preventDefault();

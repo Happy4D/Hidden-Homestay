@@ -1,0 +1,76 @@
+{
+  "bookings": [
+    {
+      "ref": "HH-GWG8UG",
+      "source": "website",
+      "branch": "penghout",
+      "room": "vintage",
+      "date": "2026-09-09",
+      "checkIn": "14:00",
+      "checkOut": "17:00",
+      "hours": 3,
+      "rate": 7,
+      "total": 21,
+      "name": "Sokha Pen",
+      "phone": "012 345 678",
+      "contact": "",
+      "status": "pending",
+      "created": "2026-09-08T02:22:01.472Z"
+    },
+    {
+      "ref": "HH-5SHQFU",
+      "source": "website",
+      "branch": "cheasophara",
+      "room": "burger",
+      "date": "2026-09-09",
+      "checkIn": "18:00",
+      "checkOut": "20:00",
+      "hours": 2,
+      "rate": 6,
+      "total": 12,
+      "name": "Dara Chhan",
+      "phone": "098 765 432",
+      "contact": "@dara",
+      "status": "confirmed",
+      "created": "2026-09-08T02:22:01.480Z"
+    },
+    {
+      "ref": "HH-D6Q8VF",
+      "source": "manual",
+      "branch": "cheasophara",
+      "room": "vintage",
+      "date": "2026-09-11",
+      "checkIn": "15:00",
+      "checkOut": "17:00",
+      "hours": 2,
+      "rate": 7,
+      "total": 14,
+      "name": "Channy Owner",
+      "phone": "097 555 111",
+      "contact": "",
+      "status": "confirmed",
+      "created": "2026-09-08T08:13:01.447Z"
+    },
+    {
+      "ref": "HH-C8XY68",
+      "source": "telegram",
+      "branch": "penghout",
+      "room": "vintage",
+      "date": "2026-09-20",
+      "checkIn": "14:00",
+      "checkOut": "17:00",
+      "hours": 3,
+      "rate": 7,
+      "total": 21,
+      "name": "Chea",
+      "phone": "010000000016:15",
+      "contact": "",
+      "status": "confirmed",
+      "created": "2026-09-08T09:49:52.385Z"
+    }
+  ],
+  "ownerChatId": "6641201328",
+  "kv": {
+    "tgOffset": "984005500"
+  }
+}
