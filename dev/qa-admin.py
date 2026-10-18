@@ -39,8 +39,11 @@ try:
             if s == 200: break
         except Exception: time.sleep(0.3)
     # 1. customer submits a booking request (pending)
-    s, p1 = req('POST', '/api/bookings', {'room': 'vintage', 'date': A_WEEKDAY, 'checkIn': '14:00', 'hours': 3, 'name': 'Dash E2E', 'phone': '012345678', 'email': 'dash.e2e@example.com'})
+    s, p1 = req('POST', '/api/bookings', {'room': 'vintage', 'date': A_WEEKDAY, 'checkIn': '14:00', 'hours': 3, 'name': 'Dash E2E', 'phone': '012345678', 'email': 'dash.e2e@example.com',
+                                           'foodOrder': {'items': [{'id': 'gyoza', 'qty': 2}, {'id': 'water', 'qty': 1}], 'notes': 'extra spicy'}})
     check('customer request saved as pending', s == 200 and p1.get('status') == 'pending', p1)
+    got = [b for b in req('GET', f'/api/bookings?key={KEY}')[1].get('bookings', []) if b['ref'] == p1['ref']][0]
+    check('food order stored with server prices (2x gyoza + 1x water = $7.50)', got.get('foodSubtotal') == 7.5 and len(got.get('food', [])) == 2 and got.get('foodNotes') == 'extra spicy', got)
     # second pending (for the stale-tab conflict test)
     s, p2 = req('POST', '/api/bookings', {'room': 'classic', 'date': A_WEEKDAY, 'checkIn': '10:00', 'hours': 2, 'name': 'Stale Tab', 'phone': '099887766', 'email': 'stale@example.com'})
     ref2 = p2['ref']
@@ -58,6 +61,10 @@ try:
         check('dashboard lists the booking', row.count() == 1, row.count())
         check('status pill shows Pending Confirmation', 'PENDING CONFIRMATION' in row.inner_text().upper(), row.inner_text()[:120])
         check('email column shows the customer email', 'dash.e2e@example.com' in row.inner_text(), row.inner_text()[:160])
+        food_cell = row.locator('td').nth(6)
+        check('food column shows $7.50 + item count', '$7.50' in food_cell.inner_text() and '2' in food_cell.inner_text(), food_cell.inner_text())
+        tip = food_cell.locator('.food-n').get_attribute('title') or ''
+        check('food tooltip lists items + notes + combined total', 'Fried Gyoza' in tip and 'extra spicy' in tip and 'Total (room + food): $19.50' in tip, tip)
         btn = row.locator('button[data-act="confirmed"]')
         check('button reads "✓ Confirm Booking"', 'Confirm Booking' in btn.inner_text(), btn.inner_text())
         # 2. owner confirms from the dashboard

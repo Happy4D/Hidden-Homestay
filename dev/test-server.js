@@ -39,6 +39,8 @@ const photoUpd = (chatId, caption) => ({ message: { chat: { id: chatId }, captio
 const texts = tg => tg.calls.filter(c => c.method === 'sendMessage').map(c => c.params.text);
 const edits = tg => tg.calls.filter(c => c.method === 'editMessageText').map(c => c.params.text);
 
+const patch_status_for_test = async ref => { await store.update(ref, { status: 'cancelled' }); };
+
 /* date helpers — pick a guaranteed weekday + a guaranteed Saturday, in the future */
 function nextDow(dow, minAhead) {
   let d = new Date(Date.now() + (minAhead || 2) * 86400000);
@@ -184,7 +186,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
 
   /* paste a filled template (owner → confirmed) */
   await handleUpdate(upd(OWNER, 'BOOKING\nRoom: London\nDate: ' + aWeekday + '\nCheck-in: 15:00\nHours: 4\nName: Template Guest\nPhone: 099887766'), tg);
-  const tplDone = texts(tg).slice(-1)[0] || '';
+  const tplDone = texts(tg).join('\n---\n');
   ok('owner template paste → confirmed booking', /HH-/.test(tplDone) && /London/.test(tplDone), tplDone.slice(0, 140));
   ok('booking text shows "(5) London Room"', /\(5\) London Room/.test(tplDone), tplDone.slice(0, 140));
   ok('owner booking info includes Food Order', /Food Order: 015 233 598/.test(tplDone), tplDone.slice(-120));
@@ -192,17 +194,20 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
 
   /* template overnight (owner side) */
   await handleUpdate(upd(OWNER, 'BOOKING\nRoom: kuromi\nDate: ' + aSaturday + '\nCheck-in: 20:00\nHours: overnight\nName: ON Guest\nPhone: 099887766'), tg);
-  const tplON = texts(tg).slice(-1)[0] || '';
+  const tplON = texts(tg).slice(-2).join('\n---\n');
   ok('template overnight → booked + ID prompt', /HH-/.test(tplON) && /ID/.test(tplON), tplON.slice(0, 160));
+  ok('owner paste → room information package in the same chat', /ROOM ACCESS INFORMATION/.test(tplON) && /\(502\) Kuromi Room/.test(tplON), tplON.slice(0, 200));
+  ok('owner paste → package pictures (room + guideline + parking)', tg.calls.filter(c => c.method === 'sendMediaGroup').slice(-1)[0] && tg.calls.filter(c => c.method === 'sendMediaGroup').slice(-1)[0].params.media.length === 3, 'no media');
 
   /* quick /book path */
   await handleUpdate(upd(OWNER, '/book gaming ' + aWeekday + ' 14:00 3 011122233 Quick VIP'), tg);
-  const quick = texts(tg).slice(-1)[0] || '';
+  const quick = texts(tg).slice(-2).join('\n---\n');
   ok('/book quick path: VIP 3h = $15', /HH-/.test(quick) && /\$15\.00/.test(quick), quick.slice(0, 160));
 
   await handleUpdate(upd(OWNER, '/book pool ' + aWeekday + ' 12:00 2 011122233 Pool Quick'), tg);
   ok('/book pool 2h = $10', /\$10\.00/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
-  ok('quick /book reply includes forwardable customer link', /https:\/\/t\.me\/HiddenHomestayBot\?start=HH-/.test(texts(tg).slice(-1)[0] || ''), (texts(tg).slice(-1)[0] || '').slice(-160));
+  ok('quick /book reply includes forwardable customer link', /https:\/\/t\.me\/HiddenHomestayBot\?start=HH-/.test(quick), quick.slice(-160));
+  ok('quick /book → room information package follows', /ROOM ACCESS INFORMATION/.test(texts(tg).join(' ')), texts(tg).slice(-1)[0] && texts(tg).slice(-1)[0].slice(0, 100));
 
   /* guided flow with buttons */
   const tg2 = makeTg();
@@ -232,6 +237,10 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
     const done = edits(tg2).slice(-1)[0] || '';
     ok('guided flow confirms booking', /BOOKED/.test(done) && /HH-/.test(done), done.slice(0, 160));
     ok('guided flow reply includes customer link', /https:\/\/t\.me\/HiddenHomestayBot\?start=HH-/.test(done), done.slice(-160));
+    const guidedAll = texts(tg2).join('\n');
+    ok('guided flow → room information package to the owner chat', /ROOM ACCESS INFORMATION/.test(guidedAll), guidedAll.slice(0, 120));
+    const guidedMedia = tg2.calls.filter(c => c.method === 'sendMediaGroup');
+    ok('guided flow package includes guideline + parking pictures', guidedMedia.length === 1 && guidedMedia[0].params.media.length === 3, guidedMedia.length);
   }
 
   /* ============================================================
@@ -367,6 +376,65 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   ok('/link unknown ref → not found', /No booking/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
   await handleUpdate(upd(STRANGER, '/link ' + someRef), tg);
   ok('/link is owner-only (stranger turned away)', /private/.test(texts(tg).slice(-1)[0] || ''), texts(tg).slice(-1)[0]);
+
+  /* ============================================================
+     5c — TELEGRAM BOOKING → OWNER CONFIRM → ROOM INFO PACKAGE (item 12) + FOOD (item 13)
+     ============================================================ */
+  console.log('== TELEGRAM ROOM INFO + FOOD ==');
+  {
+    /* customer pastes a booking template with a food order -> pending + owner button */
+    const tgf = makeTg();
+    await handleUpdate(upd(CUSTOMER, 'BOOKING\nRoom: kuromi\nDate: ' + sortDate + '\nCheck-in: 13:00\nHours: 2\nName: Food Guest\nPhone: 099887766'), tgf);
+    const custReply = texts(tgf).join('\n');
+    ok('customer template booking → pending request', /booking request was received/i.test(custReply) && /Pending Confirmation|pending/i.test(custReply), custReply.slice(0, 140));
+
+    /* website booking WITH food */
+    const wfRes = await createBooking({
+      room: 'veggie', date: sortDate, checkIn: '15:00', hours: 2, name: 'Web Food', phone: '099887766', email: 'food@example.com',
+      foodOrder: { items: [{ id: 'gyoza', qty: 2 }, { id: 'water', qty: 1 }, { id: 'nope', qty: 5 }, { id: 'mama', qty: 99 }], notes: 'less spicy please' }
+    }, 'website');
+    const wfb = (await store.all()).find(b => b.ref === wfRes.booking.ref);
+    ok('food order stored (unknown ids dropped, qty capped at 20)', wfb.food.length === 3 && wfb.food.find(x => x.id === 'mama').qty === 20 && !wfb.food.some(x => x.id === 'nope'), wfb.food);
+    ok('food subtotal computed by the server', wfb.foodSubtotal === Math.round((3.5 * 2 + 0.5 + 3 * 20) * 10) / 10, wfb.foodSubtotal);
+    ok('food notes saved', wfb.foodNotes === 'less spicy please', wfb.foodNotes);
+    const wfbt = bookingText(wfb);
+    ok('bookingText: food items + subtotal + combined total', /Food Order/.test(wfbt) && /2× Fried Gyoza — \$7/.test(wfbt) && /Food subtotal: \$67\.50/.test(wfbt) && /Total \(room \+ food\): <b>\$82\.50/.test(wfbt), wfbt.slice(0, 320));
+
+    /* owner confirms the website food booking via /confirm — package includes food */
+    const tgo = makeTg();
+    await handleUpdate(upd(OWNER, '/confirm ' + wfb.ref), tgo);
+    const opkg = texts(tgo).join('\n');
+    ok('/confirm confirms + sends the room information package', /Confirmed: /.test(opkg) && /ROOM ACCESS INFORMATION/.test(opkg), opkg.slice(0, 160));
+    ok('package shows the food order + combined total', /Food Order/.test(opkg) && /2× Fried Gyoza/.test(opkg) && /less spicy please/.test(opkg) && /Total \(room \+ food\)/.test(opkg), opkg.slice(0, 400));
+    ok('package shows room + number + date + times + duration + price', /\(101\) Veggie Room/.test(opkg) && /Date: /.test(opkg) && /Check-in: /.test(opkg) && /Check-out: /.test(opkg) && /Duration: 2 hours/.test(opkg) && /\$15/.test(opkg), opkg.slice(0, 300));
+    ok('package: entry + parking instruction lines + address + food-order phone', /Room access:/.test(opkg) && /Parking:/.test(opkg) && /235D/.test(opkg) && /Food Order: 015 233 598/.test(opkg), opkg.slice(0, 400));
+    ok('package media: room + guideline + parking (3 pictures)', tgo.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tgo.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 3, 'media');
+
+    /* customer opens the bot with the ref — sees their food order, no pictures */
+    const tgc2 = makeTg();
+    await handleUpdate(upd(CUSTOMER, '/start ' + wfb.ref), tgc2);
+    const ctxt = texts(tgc2).join('\n');
+    ok('customer confirmation shows food + combined total, no media album', /BOOKING CONFIRMED/.test(ctxt) && /2× Fried Gyoza/.test(ctxt) && /Total \(room \+ food\)/.test(ctxt) && tgc2.calls.filter(c => c.method === 'sendMediaGroup').length === 0, ctxt.slice(0, 200));
+
+    /* /resend — retry mechanism */
+    const tgr = makeTg();
+    await handleUpdate(upd(OWNER, '/resend ' + wfb.ref), tgr);
+    ok('/resend re-sends the room information package', /Re-sent the room information/.test(texts(tgr).slice(-1)[0] || '') && /ROOM ACCESS INFORMATION/.test(texts(tgr).join('\n')) && tgr.calls.filter(c => c.method === 'sendMediaGroup').length === 1, texts(tgr).slice(-1)[0]);
+    const tgr2 = makeTg();
+    await handleUpdate(upd(OWNER, '/resend HH-NOPE99'), tgr2);
+    ok('/resend unknown ref → not found', /No booking/.test(texts(tgr2).slice(-1)[0] || ''), texts(tgr2).slice(-1)[0]);
+    const pendRes2 = await createBooking({ room: 'camping', date: sortDate, checkIn: '10:00', hours: 2, name: 'Still Pending', phone: '099887766' }, 'website');
+    const tgr3 = makeTg();
+    await handleUpdate(upd(OWNER, '/resend ' + pendRes2.booking.ref), tgr3);
+    ok('/resend on a pending booking → asks to confirm first', /not confirmed yet/.test(texts(tgr3).slice(-1)[0] || ''), texts(tgr3).slice(-1)[0]);
+
+    /* /confirm on a conflict → refused (no silent confirm) */
+    await store.add({ ref: 'HH-FOOD99', room: 'camping', date: sortDate, checkIn: '11:00', checkOut: '13:00', hours: 2, overnight: false, rate: 10, total: 10, name: 'Blocker', phone: '012345678', email: '', contact: '', food: [], foodNotes: '', foodSubtotal: 0, idCard: '', status: 'confirmed', source: 'manual', created: new Date().toISOString() });
+    const tgc3 = makeTg();
+    await handleUpdate(upd(OWNER, '/confirm ' + pendRes2.booking.ref), tgc3);
+    ok('/confirm with slot taken → refused with reason', /Could not confirm/.test(texts(tgc3).join('\n')) && /no longer available/.test(texts(tgc3).join('\n')), texts(tgc3).join(' | ').slice(0, 200));
+    await patch_status_for_test('HH-FOOD99');
+  }
 
   /* ============================================================
      6 — HTTP API

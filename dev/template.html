@@ -199,6 +199,16 @@
           <input type="tel" id="bkPhone" inputmode="numeric" pattern="[0-9]*" maxlength="16" autocomplete="tel" placeholder="0123456789">
           <p class="field-note tg-note" data-i18n="s3PhoneNote">📱 Please enter the phone number registered with your Telegram account — your booking confirmation and entry guideline will be sent there.</p>
         </div>
+        <div class="food-box" id="foodBox">
+          <h4>🍜 <span data-i18n="foodTitle">Food Order</span> <span class="food-opt" data-i18n="foodOpt">— optional</span></h4>
+          <p class="field-note" data-i18n="foodNote">Pick items from the homestay food menu — food is paid together with the room. You can also order later by calling 015 233 598.</p>
+          <div id="foodCats"></div>
+          <div class="field">
+            <label for="foodNotes" data-i18n="foodNotesLbl">Food notes / special requests</label>
+            <input type="text" id="foodNotes" maxlength="300" autocomplete="off" data-i18n-ph="foodNotesPh" placeholder="e.g. less spicy, bring it at 7pm">
+          </div>
+          <div class="food-total-row"><span data-i18n="foodSubLbl">Food subtotal</span>: <b id="foodSub">$0</b></div>
+        </div>
         <div class="field" id="idField" hidden>
           <label for="idUpload" data-i18n="s3Id">ID Card photo (required for overnight) <span class="req">✦</span></label>
           <input type="file" id="idUpload" accept="image/*">

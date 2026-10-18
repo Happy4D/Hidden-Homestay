@@ -408,3 +408,20 @@ section { padding: 64px 0; }
   .room-grid, .room-grid.pick { grid-template-columns: repeat(2, 1fr); }
   .step-btn { min-width: calc(50% - 8px); }
 }
+
+/* ---- food order (step 3) ---- */
+.food-box { background: rgba(255, 255, 255, .62); border: 1px dashed rgba(122, 60, 80, .35); border-radius: 16px; padding: 16px 18px; margin: 16px 0; }
+.food-box h4 { margin-bottom: 4px; }
+.food-opt { color: var(--ink-soft); font-weight: 500; font-size: .8rem; }
+.food-cat h5 { margin: 12px 0 2px; font-size: .78rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-soft); }
+.food-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(122, 60, 80, .12); }
+.food-row:last-child { border-bottom: 0; }
+.food-name { flex: 1; font-size: .92rem; }
+.food-price { color: var(--ink-soft); font-weight: 650; font-size: .88rem; min-width: 44px; text-align: right; }
+.stepper { display: flex; align-items: center; gap: 7px; }
+.stepper button { width: 27px; height: 27px; border-radius: 999px; border: 1px solid rgba(122, 60, 80, .3); background: var(--card); color: var(--ink); font-weight: 800; cursor: pointer; line-height: 1; font-size: 1rem; padding: 0; }
+.stepper button:hover { background: rgba(122, 60, 80, .08); }
+.stepper .fqty { min-width: 18px; text-align: center; font-weight: 800; }
+.food-total-row { margin-top: 10px; text-align: right; color: var(--ink-soft); font-size: .95rem; }
+.food-total-row b { color: var(--ink); }
+.rc-food-h span { font-weight: 800; }

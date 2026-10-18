@@ -162,6 +162,10 @@ const I18N = {
     s2Note: '{n} of {t} rooms free for your slot', s2NoteDemo: 'Demo mode — availability checking is active on the live site',
     s3Title: 'Your details', s3Name: 'Full name', s3Email: 'Email', s3Phone: 'Telegram phone number',
     s3PhoneNote: '📱 Please enter the phone number registered with your Telegram account — the owner will use it to contact you about your booking.',
+    foodTitle: 'Food Order', foodOpt: '— optional',
+    foodNote: 'Pick items from the homestay food menu — food is paid together with the room. You can also order later by calling 015 233 598.',
+    foodNotesLbl: 'Food notes / special requests', foodNotesPh: 'e.g. less spicy, bring it at 7pm',
+    foodSubLbl: 'Food subtotal', rcFood: 'Food Order', rcFoodSub: 'Food subtotal', rcTotalAll: 'Total (room + food)',
     s3Id: 'ID Card photo (required for overnight)',
     s3IdNote: 'Overnight stays require a photo of your ID Card. Please upload a clear picture (front side).',
     s3IdRetake: 'Retake', s3IdOk: 'ID photo attached ✓',
@@ -268,6 +272,10 @@ const I18N = {
     s2Note: 'មានបន្ទប់ {n} ក្នុងចំណោម {t} ទំនេងសម្រាប់ពេលរបស់អ្នក', s2NoteDemo: 'របៀបសាកល្បង — ការពិនិត្យភាពទំនេងដំណើរការនៅលើគេហទំព័រពិត',
     s3Title: 'ព័ត៌មានរបស់អ្នក', s3Name: 'ឈ្មោះពេញ', s3Email: 'អ៊ីមែល', s3Phone: 'លេខទូរស័ព្ទ Telegram',
     s3PhoneNote: '📱 សូមបញ្ចូលលេខទូរស័ព្ទដែលបានចុះឈ្មោះក្នុង Telegram របស់អ្នក — ម្ចាស់ផ្ទះនឹងប្រើលេខនេះទាក់ទងអ្នកអំពីការកក់របស់អ្នក។',
+    foodTitle: 'ការកក់អាហារ', foodOpt: '— ស្រេចចិត្ត',
+    foodNote: 'ជ្រើសរើសពីមឺនុយអាហាររបស់ផ្ទះ — តម្លៃអាហារត្រូវបង់រួមគ្នាជាមួយបន្ទប់។ អ្នកក៏អាចកក់ពេលក្រោយដោយហៅ 015 233 598 បានដែរ។',
+    foodNotesLbl: 'កំណត់សម្គាល់អាហារ / សំណើពិសេស', foodNotesPh: 'ឧ. មិនគ្រឿងទេ យកមកម៉ោង 7 ល្ងាច',
+    foodSubLbl: 'តម្លៃអាហារសរុប', rcFood: 'ការកក់អាហារ', rcFoodSub: 'អាហារសរុប', rcTotalAll: 'សរុប (បន្ទប់ + អាហារ)',
     s3Id: 'រូបភាពអត្តសញ្ញាណប័ណ្ណ (តម្រូវសម្រាប់ពេលយប់)',
     s3IdNote: 'ការស្នាក់ពេលយប់តម្រូវឱ្យមានរូបភាពអត្តសញ្ញាណប័ណ្ណ។ សូមបញ្ចូលរូបភាពច្បាស់ (ផ្នែកខាងមុខ)។',
     s3IdRetake: 'យកឡើងវិញ', s3IdOk: 'បានភ្ជាប់រូបអត្តសញ្ញាណ ✓',
@@ -336,6 +344,7 @@ function applyI18n() {
   document.documentElement.lang = LANG === 'kh' ? 'km' : 'en';
   document.body.dataset.lang = LANG;
   $$('[data-i18n]').forEach(el => { el.innerHTML = t(el.dataset.i18n); });
+  $$('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   $('#langEn').classList.toggle('active', LANG === 'en');
   $('#langKh').classList.toggle('active', LANG === 'kh');
 }
@@ -436,10 +445,80 @@ async function detectLive() {
    ============================================================ */
 const state = {
   step: 1, date: '', dur: '', disabledRooms: [],
-  start: '', room: '', name: '', phone: '', email: '', agreed: false,
+  start: '', room: '', name: '', phone: '', email: '', food: {}, foodNotes: '', agreed: false,
   idCard: '', ref: '', completed: false, avail: ''
 };
 const D = $('#book');
+
+/* food menu — must match the server FOOD_MENU (read from the menu photos) */
+const FOOD_MENU = [
+  { cat: 'Appetizer', items: [
+    { id: 'nuggets',   name: 'Chicken Nuggets & French Fries', price: 3 },
+    { id: 'gyoza',     name: 'Fried Gyoza', price: 3.5 },
+    { id: 'wings',     name: 'Fried Chicken Wing', price: 3.5 },
+    { id: 'mango',     name: 'Spicy Green Mango', price: 2 },
+    { id: 'banhtrang', name: 'Grill Crispy Banh Trang', price: 2 },
+    { id: 'meatball',  name: 'Deep Fried Meatball', price: 3 } ] },
+  { cat: 'Main Dish', items: [
+    { id: 'corn',      name: 'Fried Corn with Dry Shrimp', price: 2.5 },
+    { id: 'mama',      name: 'Mama Recipe Fried Noodles', price: 3 },
+    { id: 'buldak',    name: 'Spicy Buldak', price: 3.5 },
+    { id: 'bolognese', name: 'Bolognese Spaghetti', price: 3.9 },
+    { id: 'wonton',    name: 'Wonton Soup', price: 2.9 },
+    { id: 'beefbasil', name: 'Stir-Fried Beef with Basil & Rice', price: 3 },
+    { id: 'sichuan',   name: 'Spicy Sichuan Soup', price: 3.9 },
+    { id: 'ramen',     name: 'Korean Ramen', price: 3.9 } ] },
+  { cat: 'Drinks', items: [
+    { id: 'beer',      name: 'Beer (Angkor/Cambodia)', price: 1.5 },
+    { id: 'mojito',    name: 'Mojito', price: 3 },
+    { id: 'mojitop',   name: 'Mojito Passione', price: 3 },
+    { id: 'mojitos',   name: 'Mojito Strawberry', price: 3 },
+    { id: 'redwine',   name: 'Red Wine', price: 3.5 },
+    { id: 'jinro',     name: 'Jinro', price: 3 },
+    { id: 'rio',       name: 'Rio', price: 3 },
+    { id: 'homemade',  name: 'Homemade Drink (non-alcoholic)', price: 1.5 },
+    { id: 'water',     name: 'Water', price: 0.5 },
+    { id: 'coke',      name: 'Coke/Sting/Vigor', price: 1 },
+    { id: 'herbaltea', name: 'Chinese Herbal Tea', price: 1.5 },
+    { id: 'coffee',    name: 'Coffee (Latte/Americano)', price: 2 } ] }
+];
+const foodItemById = id => { for (const g of FOOD_MENU) { const it = g.items.find(x => x.id === id); if (it) return it; } return null; };
+const foodSubtotal = () => Object.keys(state.food).reduce((s, id) => { const it = foodItemById(id); return s + (it ? it.price * state.food[id] : 0); }, 0);
+const foodItems = () => Object.keys(state.food).filter(id => state.food[id] > 0).map(id => ({ item: foodItemById(id), qty: state.food[id] })).filter(x => x.item);
+
+function buildFood() {
+  const box = $('#foodCats');
+  if (!box || box.dataset.init) return;
+  box.dataset.init = '1';
+  box.innerHTML = FOOD_MENU.map(g =>
+    '<div class="food-cat"><h5>' + esc(g.cat) + '</h5>' +
+    g.items.map(it =>
+      '<div class="food-row" data-id="' + it.id + '">' +
+        '<span class="food-name">' + esc(it.name) + '</span>' +
+        '<span class="food-price">' + money(it.price) + '</span>' +
+        '<div class="stepper"><button type="button" class="fminus" aria-label="less">−</button><b class="fqty">0</b><button type="button" class="fplus" aria-label="more">+</button></div>' +
+      '</div>').join('') + '</div>').join('');
+  box.addEventListener('click', e => {
+    const row = e.target.closest('.food-row');
+    if (!row) return;
+    const id = row.dataset.id;
+    const plus = e.target.classList.contains('fplus');
+    const minus = e.target.classList.contains('fminus');
+    if (!plus && !minus) return;
+    const cur = state.food[id] || 0;
+    const next = Math.max(0, Math.min(20, cur + (plus ? 1 : -1)));
+    if (next === cur) return;
+    state.food[id] = next;
+    if (!next) delete state.food[id];
+    row.querySelector('.fqty').textContent = next;
+    $('#foodSub').textContent = money(foodSubtotal());
+  });
+}
+function resetFood() {
+  state.food = {};
+  $$('.food-row').forEach(r => { const q = r.querySelector('.fqty'); if (q) q.textContent = '0'; });
+  const sub = $('#foodSub'); if (sub) sub.textContent = '$0';
+}
 
 const durInfo = () => {
   if (state.dur === 'ON8') return { checkIn: '20:00', checkOut: '08:00', hours: 12, overnight: true };
@@ -679,8 +758,9 @@ async function buildRoomGrid() {
    STEP 3 — GUEST DETAILS (phone validation + ID upload)
    ============================================================ */
 function buildGuest() {
-  const nm = $('#bkName'), ph = $('#bkPhone'), em = $('#bkEmail');
-  nm.value = state.name; ph.value = state.phone; em.value = state.email;
+  const nm = $('#bkName'), ph = $('#bkPhone'), em = $('#bkEmail'), fn = $('#foodNotes');
+  nm.value = state.name; ph.value = state.phone; em.value = state.email; if (fn) fn.value = state.foodNotes;
+  buildFood();
   const isON = state.dur === 'ON8' || state.dur === 'ON9';
   $('#idField').hidden = !isON;
 
@@ -688,6 +768,7 @@ function buildGuest() {
     nm.dataset.init = '1';
     nm.addEventListener('input', () => { state.name = nm.value; guestValid(); });
     em.addEventListener('input', () => { state.email = em.value; guestValid(); });
+    if (fn) fn.addEventListener('input', () => { state.foodNotes = fn.value; });
     /* phone: digits only, live-filtered */
     ph.addEventListener('input', () => {
       const clean = ph.value.replace(/\D+/g, '');
@@ -765,7 +846,12 @@ function receiptHTML() {
          row(t('rcPhone'), esc(state.phone)) +
          (state.email ? row(t('rcEmail'), esc(state.email)) : '') +
          (isON ? row(t('rcId'), state.idCard ? esc(t('rcIdYes')) : '—') : '') +
-         '<div class="rc-row rc-total"><span>' + esc(t('total')) + '</span><b>' + money(total) + '</b></div>';
+         (foodItems().length
+           ? '<div class="rc-row rc-food-h"><span>🍜 ' + esc(t('rcFood')) + '</span><b></b></div>' +
+             foodItems().map(x => '<div class="rc-row"><span>' + esc(x.item.name) + ' ×' + x.qty + '</span><b>' + money(x.item.price * x.qty) + '</b></div>').join('') +
+             '<div class="rc-row"><span>' + esc(t('rcFoodSub')) + '</span><b>' + money(foodSubtotal()) + '</b></div>'
+           : '') +
+         '<div class="rc-row rc-total"><span>' + esc(foodItems().length ? t('rcTotalAll') : t('total')) + '</span><b>' + money(total + foodSubtotal()) + '</b></div>';
 }
 
 function buildReview() {
@@ -804,6 +890,7 @@ async function confirmBooking() {
         checkIn: info.checkIn, checkOut: info.checkOut,
         hours: info.hours, overnight: info.overnight,
         name: state.name.trim(), phone: state.phone.trim(), email: state.email.trim(), contact: '',
+        foodOrder: { items: foodItems().map(x => ({ id: x.item.id, qty: x.qty })), notes: state.foodNotes.trim() },
         idCard: info.overnight ? state.idCard : ''
       })
     }, 12000);
@@ -817,7 +904,7 @@ async function confirmBooking() {
       room: state.room, date: state.date,
       checkIn: info.checkIn, checkOut: info.checkOut,
       hours: info.hours, overnight: !!info.overnight,
-      name: state.name.trim(), email: state.email.trim(),
+      name: state.name.trim(), email: state.email.trim(), foodSubtotal: foodSubtotal(),
       total: (j.booking ? j.booking.total : j.total) || priceFor(state.room, state.date, state.dur)
     });
     toast(t('tDone'), ICON.ok);
@@ -906,8 +993,9 @@ function initShowcase() {
    BOOKING OVERLAY (opens like the classic pop-up booking screen)
    ============================================================ */
 function resetBooking() {
-  Object.assign(state, { step: 1, date: '', dur: '', start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', email: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
-  $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = ''; $('#bkEmail').value = '';
+  Object.assign(state, { step: 1, date: '', dur: '', start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', email: '', food: {}, foodNotes: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
+  $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = ''; $('#bkEmail').value = ''; $('#foodNotes').value = '';
+  resetFood();
   $('#idUpload').value = ''; $('#idPreview').hidden = true;
   const ag = $('#agreedTerms');
   if (ag) { ag.checked = false; }
@@ -993,7 +1081,7 @@ function renderMyBookings() {
         '<div><span>' + esc(t('mbTimes')) + '</span><b>' + esc(bk.checkIn) + ' – ' + esc(bk.checkOut) + (bk.overnight ? ' 🌙' : '') + '</b></div>' +
         '<div><span>' + esc(t('mbGuest')) + '</span><b>' + esc(bk.name) + '</b></div>' +
       '</div>' +
-      '<div class="mb-foot"><span class="mb-amt">' + money(bk.total) + '</span>' +
+      '<div class="mb-foot"><span class="mb-amt">' + money(bk.total + (bk.foodSubtotal || 0)) + (bk.foodSubtotal ? ' 🍜' : '') + '</span>' +
         '<span class="mb-foot-btns">' +
           (confirmed
             ? '<a class="btn btn-tg btn-sm" target="_blank" rel="noopener" href="' + CONFIG.botUrl + '?start=' + encodeURIComponent(bk.ref) + '">📨 ' + esc(t('mbTgBtn')) + '</a>'

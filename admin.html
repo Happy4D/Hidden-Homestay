@@ -85,6 +85,7 @@ td{padding:13px 14px;border-bottom:1px solid rgba(122,60,80,.10);font-size:.9rem
 tr:last-child td{border-bottom:0}
 tr:hover td{background:rgba(198,62,233,.05)}
 .ref{font-family:'Khmer OS Siem Reap',ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;color:var(--cyan)}
+.food-n{cursor:help;font-size:.75rem;color:var(--muted)}
 .pill{display:inline-block;padding:5px 12px;border-radius:999px;font-size:.7rem;font-weight:750;letter-spacing:.1em;text-transform:uppercase}
 .pill.pending{background:rgba(180,83,9,.10);color:var(--warn);border:1px solid rgba(180,83,9,.35)}
 .pill.confirmed{background:rgba(4,120,87,.1);color:var(--ok);border:1px solid rgba(4,120,87,.35)}
@@ -194,7 +195,7 @@ footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:spac
       <table>
         <thead><tr>
           <th>Ref</th><th>Date</th><th>Branch</th><th>Room</th><th>Check-in</th><th>Check-out</th>
-          <th>Hrs</th><th>Total</th><th>Guest</th><th>Phone</th><th>Email</th><th>Source</th><th>Status</th><th>Actions</th>
+          <th>Hrs</th><th>Total</th><th>Food</th><th>Guest</th><th>Phone</th><th>Email</th><th>Source</th><th>Status</th><th>Actions</th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
@@ -376,6 +377,7 @@ function render() {
       <td>${b.overnight ? '🌙 ' + esc(fmtT(b.checkIn)) + '→' + esc(fmtT(b.checkOut)) + '+1' : esc(fmtT(b.checkIn)) + '–' + esc(fmtT(b.checkOut))}</td>
       <td>${b.overnight ? 'overnight' : +b.hours + 'h'}</td>
       <td class="money">${money(b.total)}</td>
+      <td>${b.foodSubtotal ? money(b.foodSubtotal) + ' <span class="food-n" title="' + esc(foodTip(b)) + '">🍽 ' + b.food.length + '</span>' : '—'}</td>
       <td>${esc(b.name)}${b.overnight ? (b.idCard ? ' <button class="btn sm" data-id="' + esc(b.ref) + '" title="View guest ID Card">🪪 ID</button>' : ' <span title="ID Card missing" style="color:var(--red)">🪪✗</span>') : ''}</td>
       <td>${esc(b.phone)}</td>
       <td>${b.email ? esc(b.email) : '—'}</td>
@@ -391,6 +393,12 @@ function render() {
   $('#meta').textContent = list.length + ' of ' + all.length + ' bookings · updated ' + new Date().toLocaleTimeString();
 }
 const stat = (label, val, cls) => `<div class="stat ${cls || ''}"><small>${label}</small><b>${val}</b></div>`;
+function foodTip(b) {
+  const lines = (b.food || []).map(f => f.qty + '× ' + f.name + ' — ' + money(f.qty * f.price));
+  if (b.foodNotes) lines.push('📝 ' + b.foodNotes);
+  lines.push('Total (room + food): ' + money((+b.total || 0) + (+b.foodSubtotal || 0)));
+  return lines.join('\n');
+}
 
 async function act(ref, status) {
   try {
@@ -406,7 +414,7 @@ async function act(ref, status) {
 
 function exportCSV() {
   const list = filtered();
-  const cols = ['ref','date','room','checkIn','checkOut','hours','overnight','total','name','phone','email','contact','source','status','created'];
+  const cols = ['ref','date','room','checkIn','checkOut','hours','overnight','total','name','phone','email','contact','source','status','created','foodSubtotal','foodNotes'];
   const rows = [cols.join(',')].concat(list.map(b => cols.map(c => {
     let v = b[c] == null ? '' : b[c];
     if (c === 'room') v = roomLabel(b.room);

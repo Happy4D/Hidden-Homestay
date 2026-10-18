@@ -269,19 +269,29 @@ This server now keeps itself awake automatically:
 
 > ⚠️ Storage warning: if the Render log line says `storage: JSON file`, bookings are stored inside the container and Render free restarts wipe them. Ask me and I'll switch you to the built-in Supabase cloud-storage mode (also free).
 
-## v3.16 — Owner-confirmed bookings: ONE required SQL step
+## v3.17 — owner-confirmed bookings + food menu: ONE required SQL step
 
-The website no longer takes online payment. Customers submit a booking request (name + **email** + phone), the owner confirms it from the dashboard or Telegram, and the bot sends the room access information **to the owner only**.
+Customers submit a booking request (name + **email** + phone + optional **food order**), the owner confirms it from the dashboard or Telegram, and the bot sends the room access information **to the owner only**.
 
-Before deploying, run this **once** in Supabase so the new `email` column exists:
+Before deploying, run this **once** in Supabase so the new columns exist:
 
 1. Go to `https://supabase.com` → your project → **SQL Editor** → **New query**.
 2. Paste exactly this and click **Run**:
 
 ```sql
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS food jsonb DEFAULT '[]';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS food_notes text DEFAULT '';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS food_subtotal numeric DEFAULT 0;
 ```
 
 3. You should see `Success. No rows returned`.
 
-If you skip this step the site still works (the server detects the missing column and saves the booking without email), but customer emails will not be stored — so run it.
+If you skip this step the site still works (the server detects missing columns and saves the booking without email/food details), but customer emails and food orders will not be stored in the cloud — so run it.
+
+## v3.17 — Telegram room information + food menu (what changed)
+
+- Every confirmed booking now sends the owner a **room information package** in Telegram (customer + phone + email, room + number, date, check-in/out, duration, price, food order, address, entry guideline + parking guide pictures). The owner forwards it to the customer manually.
+- This happens for **all** confirm paths: the owner's ✅ Confirm Booking button, the dashboard, `/confirm`, `/book`, the guided button flow and owner template pastes.
+- `/resend HH-XXXXXX` re-sends the package if a message or picture failed to arrive.
+- The website booking form has a **Food Order** section (menu read from the homestay's menu photos). Food subtotal is added to the final total; the dashboard and all Telegram messages show the food details.
