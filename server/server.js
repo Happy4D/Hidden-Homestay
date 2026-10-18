@@ -1128,12 +1128,15 @@ async function startPolling() {
   if (!CFG.botToken) { console.log('[bot] No BOT_TOKEN set — running without Telegram.'); return; }
   if (CFG.botToken.startsWith('test')) { console.log('[bot] Test token — polling disabled.'); return; }
   const tg = makeTelegram(CFG.botToken);
-  let offset = parseInt(await store.getKv('tgOffset'), 10) || 0;   // persisted → no replay after restart
-  let invalidToken = false;
+  let offset = 0, offsetLoaded = false, invalidToken = false;
   console.log('[bot] Polling Telegram for updates…');
   (async function loop() {
     while (!invalidToken) {
       try {
+        if (!offsetLoaded) {                       // persisted → no replay after restart; retry until the cloud answers
+          offset = parseInt(await store.getKv('tgOffset'), 10) || 0;
+          offsetLoaded = true;
+        }
         const r = await fetch('https://api.telegram.org/bot' + CFG.botToken + '/getUpdates?timeout=25&offset=' + offset, { method: 'GET' });
         if (r.status === 401 || r.status === 404) {
           console.error('[bot] BOT_TOKEN rejected by Telegram (' + r.status + '). Check the token from @BotFather.');
@@ -1391,17 +1394,34 @@ function startDailyDigest() {
   }, 30000);
 }
 
+/* ---------- keep-awake: Render free services sleep after ~15 min without traffic.
+   When running on Render we ping our own /api/health every 10 minutes,
+   so the site stays awake 24/7 (720-744 hours fits the free 750-hour monthly budget). ---------- */
+function startKeepAwake() {
+  if (!process.env.RENDER || !CFG.publicUrl) return;   // only on Render — never in local tests
+  const ping = () => fetch(CFG.publicUrl + '/api/health', { method: 'GET' })
+    .then(r => console.log('[keep-awake] ' + CFG.publicUrl + '/api/health -> ' + r.status))
+    .catch(e => console.log('[keep-awake] ping failed: ' + e.message));
+  ping();
+  setInterval(ping, 10 * 60 * 1000);
+}
+
+/* crash-proofing: a one-off network hiccup must never take the whole server down */
+process.on('unhandledRejection', e => console.error('[warn] unhandled promise:', (e && e.message) || e));
+process.on('uncaughtException', e => console.error('[warn] uncaught exception:', (e && e.message) || e));
+
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.7.0 (7 updates)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.7.2 (7 updates)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));
   });
-  startPolling();
+  startPolling().catch(e => console.error('[bot] polling startup failed:', e.message));
   startDailyDigest();
-  supabaseBootCheck();
+  supabaseBootCheck().catch(e => console.error('[supabase] boot check failed:', e.message));
+  startKeepAwake();
 }
 
 /* exported for testing */

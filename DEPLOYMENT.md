@@ -244,3 +244,27 @@ BOT_TOKEN=xxx npm start   # with the real Telegram bot connected
 node dev/test-server.js   # run the automated server/bot tests
 python3 dev/build.py      # rebuild index.html after editing dev/ sources
 ```
+
+## Custom domain — hidden-homestay.com (no "onrender.com" in the name)
+
+The domain `hidden-homestay.com` is currently **unregistered** — anyone can buy it (~$10-12/year).
+
+1. **Buy the domain** (Namecheap, Cloudflare, GoDaddy…). Example at Namecheap: search `hidden-homestay.com` → add to cart → checkout.
+2. **Render Dashboard** → your `hidden-homestay` service → **Settings** → **Custom Domains** → **Add Custom Domain** → type `hidden-homestay.com`.
+3. Render shows you DNS records (an **A record** for the root + a **CNAME** for `www`). Copy the exact values it shows.
+4. In your domain registrar → **DNS / Advanced DNS** → add those records exactly as Render displays them.
+5. Wait (5-30 min). Render issues a **free HTTPS certificate** automatically — no action needed.
+6. On Render → **Environment** → change `PUBLIC_URL` to `https://hidden-homestay.com` and save. (This makes the Telegram confirmation photos use the new name.)
+7. Open `https://hidden-homestay.com` — done. Custom domains + TLS are free on Render's free plan.
+
+## Keep the site awake 24/7 (no sleeping)
+
+Render's free plan sleeps a service after **15 minutes** with no visitors, and waking up takes ~1 minute.
+This server now keeps itself awake automatically:
+
+- Since **v2.7.1**, on Render it pings its own `/api/health` every 10 minutes (check the logs for `[keep-awake]` lines). No setup needed — just deploy this build.
+- 24/7 uptime uses ~720-744 of the 750 free monthly hours, so it fits the free plan.
+- Optional extra safety: create a free monitor at uptimerobot.com that pings `https://hidden-homestay.com/api/health` every 5 minutes — you also get an email if the site ever goes down.
+- The never-sleeps alternative: Render **Starter** plan ($7/month) — no pinger needed at all.
+
+> ⚠️ Storage warning: if the Render log line says `storage: JSON file`, bookings are stored inside the container and Render free restarts wipe them. Ask me and I'll switch you to the built-in Supabase cloud-storage mode (also free).
