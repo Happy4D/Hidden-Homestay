@@ -123,8 +123,7 @@
       <div class="steps-row">
         <button class="step-btn" data-step="1" type="button"><span class="step-num">1</span><span class="step-label" data-i18n="step1">Schedule</span></button>
         <button class="step-btn" data-step="2" type="button"><span class="step-num">2</span><span class="step-label" data-i18n="step2">Room</span></button>
-        <button class="step-btn" data-step="3" type="button"><span class="step-num">3</span><span class="step-label" data-i18n="step3">Your details</span></button>
-        <button class="step-btn" data-step="4" type="button"><span class="step-num">4</span><span class="step-label" data-i18n="step4">Confirm &amp; pay</span></button>
+        <button class="step-btn" data-step="3" type="button"><span class="step-num">3</span><span class="step-label" data-i18n="step3">Your details &amp; confirm</span></button>
       </div>
 
       <!-- ============ STEP 1 : SCHEDULE ============ -->
@@ -177,6 +176,11 @@
         <h3 class="pane-title" data-i18n="s2Title">Choose your room</h3>
         <p class="section-sub" id="roomAvailNote"></p>
         <div class="room-grid pick" id="roomGrid"></div>
+        <div class="food-link-card">
+          <h4>🍜 <span data-i18n="foodGoT">Food menu</span></h4>
+          <p class="field-note" data-i18n="foodGoP">See the full food menu with pictures in our Telegram bot — appetizers, main dishes and drinks. Order by phone: 015 233 598.</p>
+          <a class="btn btn-ghost" href="https://t.me/HiddenHomestayBot?start=menu" target="_blank" rel="noopener">📨 <span data-i18n="foodGoBtn">Open the food menu in Telegram</span></a>
+        </div>
         <div class="pane-nav">
           <button class="btn btn-ghost" id="actBack2" type="button" data-i18n="back">← Back</button>
           <button class="btn btn-primary" id="actNext2" type="button" disabled data-i18n="next">Next →</button>
@@ -185,7 +189,7 @@
 
       <!-- ============ STEP 3 : GUEST ============ -->
       <div class="pane" id="pane3" hidden>
-        <h3 class="pane-title" data-i18n="s3Title">Your details</h3>
+        <h3 class="pane-title" data-i18n="s3Title">Your details &amp; confirm</h3>
         <div class="field">
           <label for="bkName" data-i18n="s3Name">Full name <span class="req">✦</span></label>
           <input type="text" id="bkName" maxlength="60" autocomplete="name">
@@ -199,31 +203,12 @@
           <input type="tel" id="bkPhone" inputmode="numeric" pattern="[0-9]*" maxlength="16" autocomplete="tel" placeholder="0123456789">
           <p class="field-note tg-note" data-i18n="s3PhoneNote">📱 Please enter the phone number registered with your Telegram account — your booking confirmation and entry guideline will be sent there.</p>
         </div>
-        <div class="food-box" id="foodBox">
-          <h4>🍜 <span data-i18n="foodTitle">Food Order</span> <span class="food-opt" data-i18n="foodOpt">— optional</span></h4>
-          <p class="field-note" data-i18n="foodNote">Pick items from the homestay food menu — food is paid together with the room. You can also order later by calling 015 233 598.</p>
-          <div id="foodCats"></div>
-          <div class="field">
-            <label for="foodNotes" data-i18n="foodNotesLbl">Food notes / special requests</label>
-            <input type="text" id="foodNotes" maxlength="300" autocomplete="off" data-i18n-ph="foodNotesPh" placeholder="e.g. less spicy, bring it at 7pm">
-          </div>
-          <div class="food-total-row"><span data-i18n="foodSubLbl">Food subtotal</span>: <b id="foodSub">$0</b></div>
-        </div>
         <div class="field" id="idField" hidden>
           <label for="idUpload" data-i18n="s3Id">ID Card photo (required for overnight) <span class="req">✦</span></label>
           <input type="file" id="idUpload" accept="image/*">
           <p class="field-note" data-i18n="s3IdNote">Overnight stays require a photo of your ID Card. Please upload a clear picture (front side).</p>
           <div class="id-preview" id="idPreview" hidden><img id="idPreviewImg" alt="ID preview"><button type="button" id="idClear" class="btn btn-ghost btn-sm" data-i18n="s3IdRetake">Retake</button></div>
         </div>
-        <div class="pane-nav">
-          <button class="btn btn-ghost" id="actBack3" type="button" data-i18n="back">← Back</button>
-          <button class="btn btn-primary" id="actNext3" type="button" disabled data-i18n="next">Next →</button>
-        </div>
-      </div>
-
-      <!-- ============ STEP 4 : REVIEW + PAY ============ -->
-      <div class="pane" id="pane4" hidden>
-        <h3 class="pane-title" data-i18n="s4Title">Review &amp; confirm</h3>
         <div class="receipt" id="reviewReceipt"></div>
 
         <div class="terms-box">
@@ -239,8 +224,8 @@
 
 
         <div class="pane-nav">
-          <button class="btn btn-ghost" id="actBack4" type="button" data-i18n="back">← Back</button>
-          <button class="btn btn-primary btn-lg" id="actConfirm" type="button" disabled data-i18n="confirmBtn">Confirm Booking ✓</button>
+          <button class="btn btn-ghost" id="actBack3" type="button" data-i18n="back">← Back</button>
+          <button class="btn btn-primary btn-lg" id="actConfirm" type="button" disabled data-i18n="confirmBtn">Submit Booking Request ✓</button>
         </div>
       </div>
 

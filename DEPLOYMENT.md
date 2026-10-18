@@ -269,6 +269,23 @@ This server now keeps itself awake automatically:
 
 > ⚠️ Storage warning: if the Render log line says `storage: JSON file`, bookings are stored inside the container and Render free restarts wipe them. Ask me and I'll switch you to the built-in Supabase cloud-storage mode (also free).
 
+## v3.18 — food menu pictures in the bot + 3-step booking (NO new SQL)
+
+Nothing to do in Supabase — the columns from v3.17 already cover everything. Deploy = push the new code, that's all.
+
+What changed:
+
+1. **Food menu pictures are back in the Telegram bot** (like the previous version):
+   - `/menu` in the bot → the 5 menu photos with prices.
+   - The bot welcome message has a **🍜 Food menu** button.
+   - `t.me/HiddenHomestayBot?start=menu` opens the menu directly.
+   - When the owner **confirms** a booking, the customer now also receives the 5 food menu pictures with the confirmation text (pending bookings stay text-only; the room access information still goes to the owner only).
+2. **The website food-order form is gone.** Instead, the room step of the booking wizard has a small **Food menu** card that links to the bot (`t.me/HiddenHomestayBot?start=menu`). Food orders happen by phone / Telegram, not on the website.
+3. **The booking wizard is 3 steps now** (was 4): Schedule → Room → **Your details & confirm**. The old "Next" button between the details form and the review is removed — the guest fills in name/email/phone, sees the receipt + house rules on the same screen, ticks the agree box and taps **Submit Booking Request**. Overnight bookings still need the ID photo on this screen.
+4. Dashboard, Telegram messages and old bookings with food orders are unchanged — the owner's confirmation flow is exactly the same.
+
+After pushing, check the Render log for: `BUILD v2.10.0 (10 updates)`.
+
 ## v3.17 — owner-confirmed bookings + food menu: ONE required SQL step
 
 Customers submit a booking request (name + **email** + phone + optional **food order**), the owner confirms it from the dashboard or Telegram, and the bot sends the room access information **to the owner only**.

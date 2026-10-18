@@ -149,7 +149,7 @@ const I18N = {
     how3T: 'Submit & relax', how3P: 'Agree to the house rules and submit your booking request — the owner will contact you directly to arrange payment and confirm your booking.',
     bookKicker: 'Reserve in two minutes', bookTitle: 'Book your stay',
     bookSub: 'Select your date, room, and check-in time — it only takes two minutes.',
-    step1: 'Schedule', step2: 'Room', step3: 'Your details', step4: 'Confirm',
+    step1: 'Schedule', step2: 'Room', step3: 'Your details & confirm',
     s1Title: 'When would you like to stay?',
     s1Date: 'Date', hrs: 'hrs', ovNight: 'overnight',
     s1Dur: 'Duration', s1PoolHours: 'Pool Room — hours:', s1In: 'Check-in time', s1Ov: 'Overnight check-in / check-out',
@@ -160,12 +160,10 @@ const I18N = {
     s1OvLine: 'Check-in {in} (evening) · Check-out {out} (next morning)',
     s2Title: 'Choose your room',
     s2Note: '{n} of {t} rooms free for your slot', s2NoteDemo: 'Demo mode — availability checking is active on the live site',
-    s3Title: 'Your details', s3Name: 'Full name', s3Email: 'Email', s3Phone: 'Telegram phone number',
+    s3Title: 'Your details & confirm', s3Name: 'Full name', s3Email: 'Email', s3Phone: 'Telegram phone number',
+    foodGoT: 'Food menu', foodGoP: 'See the full food menu with pictures in our Telegram bot — appetizers, main dishes and drinks. Order by phone: 015 233 598.', foodGoBtn: 'Open the food menu in Telegram',
     s3PhoneNote: '📱 Please enter the phone number registered with your Telegram account — the owner will use it to contact you about your booking.',
-    foodTitle: 'Food Order', foodOpt: '— optional',
-    foodNote: 'Pick items from the homestay food menu — food is paid together with the room. You can also order later by calling 015 233 598.',
-    foodNotesLbl: 'Food notes / special requests', foodNotesPh: 'e.g. less spicy, bring it at 7pm',
-    foodSubLbl: 'Food subtotal', rcFood: 'Food Order', rcFoodSub: 'Food subtotal', rcTotalAll: 'Total (room + food)',
+    rcFood: 'Food Order', rcFoodSub: 'Food subtotal', rcTotalAll: 'Total (room + food)',
     s3Id: 'ID Card photo (required for overnight)',
     s3IdNote: 'Overnight stays require a photo of your ID Card. Please upload a clear picture (front side).',
     s3IdRetake: 'Retake', s3IdOk: 'ID photo attached ✓',
@@ -259,7 +257,7 @@ const I18N = {
     how3T: 'ដាក់ស្នើ ហើយសម្រាក', how3P: 'យល់ព្រមនឹងច្បាប់ផ្ទះ ហើយដាក់ស្នើសំណើការកក់របស់អ្នក — ម្ចាស់ផ្ទះនឹងទាក់ទងអ្នកដោយផ្ទាល់ ដើម្បីរៀបចំការបង់ប្រាក់ និងបញ្ជាក់ការកក់របស់អ្នក។',
     bookKicker: 'កក់ក្នុងរយៈពេលពីរនាទី', bookTitle: 'កក់ការស្នាក់នៅរបស់អ្នក',
     bookSub: 'ជ្រើសរើសកាលបរិច្ឆេទ បន្ទប់ និងម៉ោងចូល — ចំណាយពេលតែពីរនាទីប៉ុណ្ណោះ។',
-    step1: 'កាលវិភាគ', step2: 'បន្ទប់', step3: 'ព័ត៌មានរបស់អ្នក', step4: 'បញ្ជាក់',
+    step1: 'កាលវិភាគ', step2: 'បន្ទប់', step3: 'ព័ត៌មានរបស់អ្នក និងបញ្ជាក់',
     s1Title: 'តើអ្នកចង់ស្នាក់នៅពេលណា?',
     s1Date: 'កាលបរិច្ឆេទ', hrs: 'ម៉ោង', ovNight: 'ពេលយប់',
     s1Dur: 'រយៈពេល', s1PoolHours: 'បន្ទប់ Pool — ចំនួនម៉ោង:', s1In: 'ម៉ោងចូល', s1Ov: 'ចូល / ចេញ ពេលយប់',
@@ -270,12 +268,10 @@ const I18N = {
     s1OvLine: 'ចូលម៉ោង {in} (ល្ងាច) · ចេញម៉ោង {out} (ព្រឹកថ្ងៃក្រោយ)',
     s2Title: 'ជ្រើសរើសបន្ទប់របស់អ្នក',
     s2Note: 'មានបន្ទប់ {n} ក្នុងចំណោម {t} ទំនេងសម្រាប់ពេលរបស់អ្នក', s2NoteDemo: 'របៀបសាកល្បង — ការពិនិត្យភាពទំនេងដំណើរការនៅលើគេហទំព័រពិត',
-    s3Title: 'ព័ត៌មានរបស់អ្នក', s3Name: 'ឈ្មោះពេញ', s3Email: 'អ៊ីមែល', s3Phone: 'លេខទូរស័ព្ទ Telegram',
+    s3Title: 'ព័ត៌មានរបស់អ្នក និងបញ្ជាក់', s3Name: 'ឈ្មោះពេញ', s3Email: 'អ៊ីមែល', s3Phone: 'លេខទូរស័ព្ទ Telegram',
+    foodGoT: 'មឺនុយអាហារ', foodGoP: 'មើលមឺនុយអាហារពេញលេញជាមួយរូបភាពនៅក្នុង Telegram bot របស់យើង — ម្ហូបឆ្ងាញ់ៗ និងភេសជ្ជៈ។ កក់តាមទូរស័ព្ទ: 015 233 598។', foodGoBtn: 'បើកមឺនុយអាហារនៅក្នុង Telegram',
     s3PhoneNote: '📱 សូមបញ្ចូលលេខទូរស័ព្ទដែលបានចុះឈ្មោះក្នុង Telegram របស់អ្នក — ម្ចាស់ផ្ទះនឹងប្រើលេខនេះទាក់ទងអ្នកអំពីការកក់របស់អ្នក។',
-    foodTitle: 'ការកក់អាហារ', foodOpt: '— ស្រេចចិត្ត',
-    foodNote: 'ជ្រើសរើសពីមឺនុយអាហាររបស់ផ្ទះ — តម្លៃអាហារត្រូវបង់រួមគ្នាជាមួយបន្ទប់។ អ្នកក៏អាចកក់ពេលក្រោយដោយហៅ 015 233 598 បានដែរ។',
-    foodNotesLbl: 'កំណត់សម្គាល់អាហារ / សំណើពិសេស', foodNotesPh: 'ឧ. មិនគ្រឿងទេ យកមកម៉ោង 7 ល្ងាច',
-    foodSubLbl: 'តម្លៃអាហារសរុប', rcFood: 'ការកក់អាហារ', rcFoodSub: 'អាហារសរុប', rcTotalAll: 'សរុប (បន្ទប់ + អាហារ)',
+    rcFood: 'ការកក់អាហារ', rcFoodSub: 'អាហារសរុប', rcTotalAll: 'សរុប (បន្ទប់ + អាហារ)',
     s3Id: 'រូបភាពអត្តសញ្ញាណប័ណ្ណ (តម្រូវសម្រាប់ពេលយប់)',
     s3IdNote: 'ការស្នាក់ពេលយប់តម្រូវឱ្យមានរូបភាពអត្តសញ្ញាណប័ណ្ណ។ សូមបញ្ចូលរូបភាពច្បាស់ (ផ្នែកខាងមុខ)។',
     s3IdRetake: 'យកឡើងវិញ', s3IdOk: 'បានភ្ជាប់រូបអត្តសញ្ញាណ ✓',
@@ -543,8 +539,7 @@ function goStep(n) {
   });
   $$('.step-btn').forEach(b => { if (Number(b.dataset.step) === 2) b.style.display = state.roomLocked ? 'none' : ''; });
   if (n === 2) buildRoomGrid();
-  if (n === 3) buildGuest();
-  if (n === 4) buildReview();
+  if (n === 3) { buildGuest(); buildReview(); }
   if (n === 5) buildSuccess();
   if (D) D.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -783,23 +778,21 @@ function buildGuest() {
       state.idCard = ''; $('#idUpload').value = ''; $('#idPreview').hidden = true; guestValid();
     });
     $('#actBack3').onclick = () => goStep(state.roomLocked ? 1 : 2);
-    $('#actNext3').onclick = () => {
-      const onNow = state.dur === 'ON8' || state.dur === 'ON9';   // fresh — never a stale closure
+    $('#actConfirm').addEventListener('click', () => {   // validate before submitting from the merged screen
+      const onNow = state.dur === 'ON8' || state.dur === 'ON9';
       if (!state.name.trim()) { toast(t('tName'), ICON.info); return; }
       if (!emailOk(state.email)) { toast(t('tEmail'), ICON.info); return; }
       if (!phoneOk(state.phone)) { toast(t('tPhoneLen'), ICON.info); return; }
       if (onNow && !state.idCard) { toast(t('tId'), ICON.info); return; }
-      goStep(4);
-    };
+    }, true);
   }
   guestValid();
 }
 const phoneOk = p => /^[0-9]{8,15}$/.test(p);
 const emailOk = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((e || '').trim());
 function guestValid() {
-  const isON = state.dur === 'ON8' || state.dur === 'ON9';
-  const valid = !!(state.name.trim() && phoneOk(state.phone) && emailOk(state.email) && (!isON || !!state.idCard));
-  $('#actNext3').disabled = !valid;
+  /* the Next button is gone (details + confirm merged) — re-check the Submit button instead */
+  syncConfirmBtn();
 }
 
 /* read + downscale ID image to a data URL (max 1280px, jpeg) */
@@ -865,7 +858,6 @@ function buildReview() {
       state.agreed = ag.checked;
       syncConfirmBtn();
     });
-    $('#actBack4').onclick = () => goStep(3);
     $('#actConfirm').addEventListener('click', confirmBooking);
   }
   syncConfirmBtn();
@@ -994,8 +986,8 @@ function initShowcase() {
    ============================================================ */
 function resetBooking() {
   Object.assign(state, { step: 1, date: '', dur: '', start: '', room: '', roomLocked: false, busyKey: '', busyRanges: null, name: '', phone: '', email: '', food: {}, foodNotes: '', agreed: false, idCard: '', ref: '', completed: false, avail: '' });
-  $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = ''; $('#bkEmail').value = ''; $('#foodNotes').value = '';
-  resetFood();
+  $('#bkDate').value = ''; $('#bkIn').value = ''; $('#bkPhone').value = ''; $('#bkName').value = ''; $('#bkEmail').value = '';
+  state.food = {}; state.foodNotes = '';
   $('#idUpload').value = ''; $('#idPreview').hidden = true;
   const ag = $('#agreedTerms');
   if (ag) { ag.checked = false; }
@@ -1181,8 +1173,8 @@ function renderStatic() {
 (async function boot() {
   LANG = store.get('hh_lang') || 'en';
   applyI18n(); renderShowcase(); renderStatic(); initShowcase(); initBookingOverlay(); initMyBookings();
-  $('#langEn').addEventListener('click', () => { LANG = 'en'; store.set('hh_lang', 'en'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step >= 4) buildReview(); if (state.step === 5) buildSuccess(); });
-  $('#langKh').addEventListener('click', () => { LANG = 'kh'; store.set('hh_lang', 'kh'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step >= 4) buildReview(); if (state.step === 5) buildSuccess(); });
+  $('#langEn').addEventListener('click', () => { LANG = 'en'; store.set('hh_lang', 'en'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step === 3) { buildGuest(); buildReview(); } if (state.step === 5) buildSuccess(); });
+  $('#langKh').addEventListener('click', () => { LANG = 'kh'; store.set('hh_lang', 'kh'); applyI18n(); renderShowcase(); renderStatic(); syncSchedule(); if (state.step === 2) buildRoomGrid(); if (state.step === 3) { buildGuest(); buildReview(); } if (state.step === 5) buildSuccess(); });
   initSchedule();
   $$('.step-btn').forEach(b => b.addEventListener('click', () => { const s = Number(b.dataset.step); if (s === 2 && state.roomLocked) return; if (s < state.step && !state.completed) goStep(s); }));
   await detectLive();

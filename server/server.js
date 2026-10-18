@@ -61,6 +61,19 @@ const CFG = {
   botUsername: process.env.BOT_USERNAME || 'HiddenHomestayBot'
 };
 
+/* ---------- food menu pictures (menu1-5.jpg) — shown in the bot, like the previous version ---------- */
+function menuMedia() {
+  return [1, 2, 3, 4, 5].map(i => ({ type: 'photo', media: CFG.publicUrl + '/assets/menu/menu' + i + '.jpg', caption: '🍜 Food menu ' + i + '/5' }));
+}
+async function sendMenu(chatId, tg) {
+  await tg.sendMessage(chatId,
+    '🍜 <b>FOOD MENU — HIDDEN HOMESTAY</b>\n\n' +
+    'Browse the menu pictures below 📸 — appetizers, main dishes and drinks with prices.\n\n' +
+    '📞 Food Order: 015 233 598');
+  try { await tg.sendMediaGroup(chatId, menuMedia()); }
+  catch (e) { console.error('[bot] menu pictures failed:', e.message); }
+}
+
 /* ---------- customer deep link (bot cannot message first — the guest taps this) ---------- */
 const botDeepLink = ref => "https://t.me/" + CFG.botUsername + '?start=' + encodeURIComponent(ref);
 const customerLinkBlock = ref =>
@@ -949,6 +962,11 @@ async function handleUpdate(update, tg) {
     const cb = update.callback_query;
     const chatId = String(cb.message.chat.id);
     if ((cb.data || '').startsWith('bk:')) return draftCallback(cb, tg);
+    if ((cb.data || '') === 'menu:show') {
+      await tg.call('answerCallbackQuery', { callback_query_id: cb.id });
+      await sendMenu(chatId, tg);
+      return;
+    }
     const owner = await store.getOwner();
     if (owner && chatId !== owner) { await tg.call('answerCallbackQuery', { callback_query_id: cb.id, text: 'Not allowed' }); return; }
     const [action, ref] = (cb.data || '').split(':');
@@ -1013,6 +1031,7 @@ async function handleUpdate(update, tg) {
   if (cmd === '/start') {
     const payload = (parts[1] || '').trim();
     if (/^HH-[A-Z0-9]{4,10}$/i.test(payload)) { await deliverConfirmation(chatId, payload.toUpperCase(), tg); return; }
+    if (payload.toLowerCase() === 'menu') { await sendMenu(chatId, tg); return; }
     if (!owner) {
       await store.setOwner(chatId);
       await tg.sendMessage(chatId,
@@ -1037,13 +1056,19 @@ async function handleUpdate(update, tg) {
         'Phone: \n\n' +
         'Rooms: ' + ROOM_ORDER.map(id => roomLabel(id) + (disRooms.includes(id) ? ' 🔧 under maintenance' : '')).join(', ') + '\n' +
         'Hours: 2\u20136, or <b>overnight</b> (8PM\u20138AM / 9PM\u20139AM) \u00b7 Pool Room: 1\u20134 hours\n\n' +
-        'The owner will confirm your booking right here. 🏠');
+        'The owner will confirm your booking right here. 🏠',
+        { reply_markup: { inline_keyboard: [[ { text: '🍜 Food menu', callback_data: 'menu:show' } ]] } });
     }
     return;
   }
 
   if (cmd === '/chatid') {
     await tg.sendMessage(chatId, 'Your chat id is: <code>' + chatId + '</code>');
+    return;
+  }
+
+  if (cmd === '/menu') {
+    await sendMenu(chatId, tg);
     return;
   }
   if (cmd === '/help') {
@@ -1064,6 +1089,7 @@ async function handleUpdate(update, tg) {
       'Example:\n<code>/book vintage 2026-09-10 14:00 3 012345678 Sokha Pen</code>\n' +
       'rooms: pool, vintage, shanghai, classic, london, camping, fishing, burger, kuromi, veggie, slayer, gaming\n' +
       'hours: 2–6, or <b>overnight</b> (8PM–8AM / 9PM–9AM)\n\n' +
+      '/menu — the food menu pictures 🍜\n' +
       '/link HH-XXXXXX — customer confirmation link to forward 📨\n' +
       '/resend HH-XXXXXX — re-send the room information package 📨\n' +
       '/confirm HH-XXXXXX — confirm a pending booking\n' +
@@ -1251,7 +1277,10 @@ async function deliverConfirmation(chatId, ref, tg) {
     '✅ Your booking is confirmed — see you soon!\n' +
     '🍜 ការកក់របស់អ្នកត្រូវបានបញ្ជាក់រួចរាល់ — សូមរង់ចាំម្ចាស់ផ្ទះទាក់ទងអ្នកដោយផ្ទាល់។ សូមស្នាក់នៅដោយសុខដុម!';
   await tg.sendMessage(chatId, txt);
-  /* no media album to the customer — the owner sends the access information manually */
+  /* no room/access pictures to the customer — the owner forwards those manually.
+     the food menu pictures are restored, like the previous version. */
+  try { await tg.sendMediaGroup(chatId, menuMedia()); }
+  catch (e) { console.error('[bot] customer menu pictures failed:', e.message); }
 }
 
 /* ---------- polling loop ---------- */
@@ -1610,7 +1639,7 @@ process.on('uncaughtException', e => console.error('[warn] uncaught exception:',
 /* ---------- start ---------- */
 if (require.main === module) {
   server.listen(CFG.port, () => {
-    console.log(' Hidden Homestay server  ·  BUILD v2.9.0 (9 updates)');
+    console.log(' Hidden Homestay server  ·  BUILD v2.10.0 (10 updates)');
     console.log('  · site:    http://localhost:' + CFG.port);
     console.log('  · api:     http://localhost:' + CFG.port + '/api/health');
     console.log('  · storage: ' + (useSupabase ? 'Supabase' : 'JSON file (' + path.join(CFG.dataDir, 'store.json') + ')'));

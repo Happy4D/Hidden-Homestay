@@ -256,14 +256,16 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   ok('confirmation includes Food Order number', cMsgs.some(x => /Food Order: 015 233 598/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 200));
   ok('confirmation includes room label', cMsgs.some(x => /\(2\) Shanghai Room/.test(x)), cMsgs[0] && cMsgs[0].slice(0, 200));
   ok('customer text mentions payment arranged with owner', cMsgs.some(x => /arrange payment/i.test(x)), cMsgs[0] && cMsgs[0].slice(0, 240));
-  ok('customer gets NO media album (owner sends access info manually)', tg3.calls.filter(c => c.method === 'sendMediaGroup').length === 0, tg3.calls.length);
+  const cMenus = tg3.calls.filter(c => c.method === 'sendMediaGroup');
+  ok('customer gets the food menu pictures (5 photos, like the previous version)', cMenus.length === 1 && cMenus[0].params.media.length === 5 && cMenus[0].params.media.every(m => m.media.includes('/assets/menu/')), cMenus[0] && cMenus[0].params.media.map(m => m.media.split('/').pop()));
+  ok('customer gets NO room/guideline/parking photos (owner forwards those)', cMenus.length === 1 && cMenus[0].params.media.every(m => !m.media.includes('/rooms/') && !m.media.includes('/guides/')), cMenus[0] && cMenus[0].params.media[0]);
 
   /* pool booking → also text only */
   const tg3b = makeTg();
   const poolRes = await createBooking({ room: 'pool', date: aWeekday, checkIn: '15:00', hours: 2, name: 'Pool C', phone: '099887766' }, 'website');
   await store.update(poolRes.booking.ref, { status: 'confirmed' });
   await handleUpdate(upd(CUSTOMER, '/start ' + poolRes.booking.ref), tg3b);
-  ok('pool confirmation: text only, no media album', /BOOKING CONFIRMED/.test(texts(tg3b)[0] || '') && tg3b.calls.filter(c => c.method === 'sendMediaGroup').length === 0, texts(tg3b)[0] && texts(tg3b)[0].slice(0, 100));
+  ok('pool confirmation: text + food menu pictures', /BOOKING CONFIRMED/.test(texts(tg3b)[0] || '') && tg3b.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tg3b.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 5, texts(tg3b)[0] && texts(tg3b)[0].slice(0, 100));
 
   await handleUpdate(upd(CUSTOMER, '/start HH-NOPE99'), tg3);
   ok('unknown ref → friendly message', /don.t know the booking/i.test(texts(tg3).slice(-1)[0] || ''), texts(tg3).slice(-1)[0]);
@@ -277,7 +279,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   await store.update(pendRes.booking.ref, { status: 'confirmed' });
   const tg3p2 = makeTg();
   await handleUpdate(upd(CUSTOMER, '/start ' + pendRes.booking.ref), tg3p2);
-  ok('after owner confirms → confirmation text, still no media album', texts(tg3p2).some(x => /BOOKING CONFIRMED/.test(x)) && tg3p2.calls.filter(c => c.method === 'sendMediaGroup').length === 0, texts(tg3p2)[0] && texts(tg3p2)[0].slice(0, 100));
+  ok('after owner confirms → confirmation text + food menu pictures', texts(tg3p2).some(x => /BOOKING CONFIRMED/.test(x)) && tg3p2.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tg3p2.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 5, texts(tg3p2)[0] && texts(tg3p2)[0].slice(0, 100));
 
   /* ============================================================
      5b — OWNER-CONFIRMED BOOKINGS (button → recheck → access package to OWNER)
@@ -329,6 +331,34 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
   const tgN = makeTg();
   await handleUpdate(cbk(OWNER, 'confirm:HH-NOPE99'), tgN);
   ok('confirm unknown ref → not found', texts(tgN).some(x => /Could not confirm/.test(x) && /not found/.test(x)), texts(tgN).join(' | ').slice(0, 180));
+
+  /* ============================================================
+     5d — FOOD MENU PICTURES IN THE BOT (restored, like the previous version)
+     ============================================================ */
+  console.log('== FOOD MENU IN THE BOT ==');
+  {
+    const tgm = makeTg();
+    await handleUpdate(upd(CUSTOMER, '/menu'), tgm);
+    const mm = tgm.calls.filter(c => c.method === 'sendMediaGroup');
+    ok('/menu → FOOD MENU text + 5 menu pictures', /FOOD MENU/.test(texts(tgm)[0] || '') && mm.length === 1 && mm[0].params.media.length === 5 && String(mm[0].params.chat_id) === String(CUSTOMER), texts(tgm)[0] && texts(tgm)[0].slice(0, 80));
+    ok('menu pictures are menu1-5.jpg with 1/5..5/5 captions', mm[0].params.media.every((m, i) => m.media.endsWith('/assets/menu/menu' + (i + 1) + '.jpg') && m.caption === '🍜 Food menu ' + (i + 1) + '/5'), mm[0].params.media.map(m => m.caption));
+    ok('menu text mentions the food order phone number', /015 233 598/.test(texts(tgm)[0] || ''), texts(tgm)[0]);
+
+    const tgm2 = makeTg();
+    await handleUpdate(upd(CUSTOMER, '/start menu'), tgm2);
+    ok('/start menu deep-link → the menu pictures', tgm2.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tgm2.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 5, tgm2.calls.length);
+
+    const tgm3 = makeTg();
+    await handleUpdate(upd(CUSTOMER, '/start'), tgm3);
+    const wMsg = tgm3.calls.find(c => c.method === 'sendMessage');
+    ok('customer welcome has a 🍜 Food menu button', wMsg && wMsg.params.reply_markup && JSON.stringify(wMsg.params.reply_markup).includes('menu:show') && JSON.stringify(wMsg.params.reply_markup).includes('Food menu'), wMsg && JSON.stringify(wMsg.params.reply_markup));
+    await handleUpdate(cbk(CUSTOMER, 'menu:show'), tgm3);
+    ok('Food menu button works for customers (public callback)', tgm3.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tgm3.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 5, tgm3.calls.length);
+
+    const tgm4 = makeTg();
+    await handleUpdate(upd(OWNER, '/menu'), tgm4);
+    ok('owner can use /menu too', tgm4.calls.filter(c => c.method === 'sendMediaGroup').length === 1, tgm4.calls.length);
+  }
 
   /* owner sends ID photo for a telegram-side overnight booking */
   const tg4 = makeTg();
@@ -414,7 +444,7 @@ const OWNER = 111222333, CUSTOMER = 777888999, STRANGER = 555000111;
     const tgc2 = makeTg();
     await handleUpdate(upd(CUSTOMER, '/start ' + wfb.ref), tgc2);
     const ctxt = texts(tgc2).join('\n');
-    ok('customer confirmation shows food + combined total, no media album', /BOOKING CONFIRMED/.test(ctxt) && /2× Fried Gyoza/.test(ctxt) && /Total \(room \+ food\)/.test(ctxt) && tgc2.calls.filter(c => c.method === 'sendMediaGroup').length === 0, ctxt.slice(0, 200));
+    ok('customer confirmation shows food + combined total + menu pictures', /BOOKING CONFIRMED/.test(ctxt) && /2× Fried Gyoza/.test(ctxt) && /Total \(room \+ food\)/.test(ctxt) && tgc2.calls.filter(c => c.method === 'sendMediaGroup').length === 1 && tgc2.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.length === 5 && tgc2.calls.filter(c => c.method === 'sendMediaGroup')[0].params.media.every(m => m.media.includes('/assets/menu/')), ctxt.slice(0, 200));
 
     /* /resend — retry mechanism */
     const tgr = makeTg();

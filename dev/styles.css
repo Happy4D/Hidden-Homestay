@@ -425,3 +425,8 @@ section { padding: 64px 0; }
 .food-total-row { margin-top: 10px; text-align: right; color: var(--ink-soft); font-size: .95rem; }
 .food-total-row b { color: var(--ink); }
 .rc-food-h span { font-weight: 800; }
+
+/* ---- food menu card (room step — links to the Telegram bot) ---- */
+.food-link-card { background: rgba(255, 255, 255, .62); border: 1px solid rgba(122, 60, 80, .22); border-radius: 16px; padding: 16px 18px; margin: 18px 0 4px; }
+.food-link-card h4 { margin-bottom: 6px; }
+.food-link-card .btn { margin-top: 10px; }
